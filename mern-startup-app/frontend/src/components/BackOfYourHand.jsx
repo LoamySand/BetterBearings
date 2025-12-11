@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
-import { Trophy, Target, Star, Award } from 'lucide-react';
-import { streets, getRandomStreet } from '../data/streets';
+import { Trophy, Target, Star, Award, RefreshCw } from 'lucide-react';
+import { useStreets } from '../hooks/useStreets';
 import './BackOfYourHand.css';
 
 export default function StreetFinderGame() {
@@ -18,12 +18,25 @@ export default function StreetFinderGame() {
   const polylinesRef = useRef({});
   const mapInitialized = useRef(false);
   
-  // Use refs for values we need in event handlers
   const gameActiveRef = useRef(false);
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
 
+  // Load streets from API
+  const { streets, loading, error, refreshStreets } = useStreets(10);
+  const streetsRef = useRef([]);
+  const usedStreetIndices = useRef(new Set());
+
   const center = [35.0844, -106.6504];
+
+  // Update streets ref when streets change
+  useEffect(() => {
+    if (streets && streets.length > 0) {
+      streetsRef.current = streets;
+      usedStreetIndices.current.clear();
+      console.log('Streets loaded:', streets.length);
+    }
+  }, [streets]);
 
   // Sync refs with state
   useEffect(() => {
@@ -38,9 +51,9 @@ export default function StreetFinderGame() {
     gameOverRef.current = gameOver;
   }, [gameOver]);
 
-  // Initialize map once
+  // Initialize map once streets are loaded
   useEffect(() => {
-    if (mapInitialized.current) return;
+    if (mapInitialized.current || !streetsRef.current.length) return;
 
     let checkInterval;
     
@@ -69,14 +82,15 @@ export default function StreetFinderGame() {
 
         console.log('Map created, adding streets...');
 
-        streets.forEach(street => {
+        // Draw all streets from API
+        streetsRef.current.forEach(street => {
           const polyline = window.L.polyline(street.coordinates, {
             color: '#3B82F6',
             weight: 3,
             opacity: 0.7
           }).addTo(map);
           
-          polylinesRef.current[street.id] = polyline;
+          polylinesRef.current[street._id || street.id] = polyline;
         });
 
         console.log('Streets added:', Object.keys(polylinesRef.current).length);
@@ -142,7 +156,7 @@ export default function StreetFinderGame() {
         mapInitialized.current = false;
       }
     };
-  }, []);
+  }, [streets]);
 
   // Highlight current street
   useEffect(() => {
@@ -150,10 +164,13 @@ export default function StreetFinderGame() {
 
     console.log('Highlighting street:', currentStreet.name);
 
-    streets.forEach(street => {
-      const polyline = polylinesRef.current[street.id];
+    streetsRef.current.forEach(street => {
+      const polyline = polylinesRef.current[street._id || street.id];
       if (polyline) {
-        if (street.id === currentStreet.id) {
+        const streetId = street._id || street.id;
+        const currentStreetId = currentStreet._id || currentStreet.id;
+        
+        if (streetId === currentStreetId) {
           polyline.setStyle({
             color: '#EF4444',
             weight: 5,
@@ -170,8 +187,31 @@ export default function StreetFinderGame() {
     });
   }, [currentStreet]);
 
+  const getRandomStreet = () => {
+    if (streetsRef.current.length === 0) return null;
+    
+    // If we've used all streets, reset
+    if (usedStreetIndices.current.size >= streetsRef.current.length) {
+      usedStreetIndices.current.clear();
+    }
+    
+    // Find unused street
+    let randomIndex;
+    do {
+      randomIndex = Math.floor(Math.random() * streetsRef.current.length);
+    } while (usedStreetIndices.current.has(randomIndex));
+    
+    usedStreetIndices.current.add(randomIndex);
+    return streetsRef.current[randomIndex];
+  };
+
   const startNewRound = () => {
     const newStreet = getRandomStreet();
+    if (!newStreet) {
+      console.error('No streets available');
+      return;
+    }
+    
     console.log('=== NEW ROUND ===');
     console.log('New street:', newStreet.name);
     setCurrentStreet(newStreet);
@@ -185,7 +225,6 @@ export default function StreetFinderGame() {
 
     let minDistance = Infinity;
 
-    // Check distance to street line
     for (let i = 0; i < street.coordinates.length - 1; i++) {
       const [lat1, lng1] = street.coordinates[i];
       const [lat2, lng2] = street.coordinates[i + 1];
@@ -258,9 +297,10 @@ export default function StreetFinderGame() {
     setRound(1);
     setGameOver(false);
     setFinalScore(0);
+    usedStreetIndices.current.clear();
     
-    streets.forEach(street => {
-      const polyline = polylinesRef.current[street.id];
+    streetsRef.current.forEach(street => {
+      const polyline = polylinesRef.current[street._id || street.id];
       if (polyline) {
         polyline.setStyle({
           color: '#3B82F6',
@@ -273,13 +313,52 @@ export default function StreetFinderGame() {
     startNewRound();
   };
 
+  if (loading) {
+    return (
+      <div className="game-container">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <RefreshCw size={48} className="animate-spin" />
+          <p>Loading streets from database...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="game-container">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          flexDirection: 'column',
+          gap: '1rem',
+          padding: '2rem'
+        }}>
+          <p style={{ color: '#EF4444' }}>Error loading streets: {error}</p>
+          <button onClick={refreshStreets} className="btn-primary">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="game-container">
       <div className="game-header">
         <div className="game-info">
           <h1 className="game-title">
             <Target size={32} />
-            Back Of Your Hand
+            Street Finder Game
           </h1>
           <div className="game-stats">
             <div className="stat">
@@ -308,7 +387,7 @@ export default function StreetFinderGame() {
                 )}
                 <p className="instruction">
                   {gameActive 
-                    ? 'Click on the correct street below' 
+                    ? 'Click on the red highlighted street on the map below' 
                     : 'Wait for next round...'}
                 </p>
               </>

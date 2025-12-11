@@ -21,10 +21,7 @@ app.get('/api', (req, res) => {
 
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
-
-// Example Routes (we'll create these)
-// app.use('/api/users', require('./routes/userRoutes'));
-// app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/streets', require('./routes/streetRoutes'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
