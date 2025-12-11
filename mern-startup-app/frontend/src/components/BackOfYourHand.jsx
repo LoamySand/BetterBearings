@@ -17,8 +17,26 @@ export default function StreetFinderGame() {
   const mapInstanceRef = useRef(null);
   const polylinesRef = useRef({});
   const mapInitialized = useRef(false);
+  
+  // Use refs for values we need in event handlers
+  const gameActiveRef = useRef(false);
+  const currentStreetRef = useRef(null);
+  const gameOverRef = useRef(false);
 
   const center = [35.0844, -106.6504];
+
+  // Sync refs with state
+  useEffect(() => {
+    gameActiveRef.current = gameActive;
+  }, [gameActive]);
+
+  useEffect(() => {
+    currentStreetRef.current = currentStreet;
+  }, [currentStreet]);
+
+  useEffect(() => {
+    gameOverRef.current = gameOver;
+  }, [gameOver]);
 
   // Initialize map once
   useEffect(() => {
@@ -27,18 +45,10 @@ export default function StreetFinderGame() {
     let checkInterval;
     
     const initMap = () => {
-      // Check if Leaflet is loaded and map container exists
-      if (!window.L) {
-        console.log('Leaflet not loaded yet...');
+      if (!window.L || !mapRef.current) {
         return;
       }
 
-      if (!mapRef.current) {
-        console.log('Map container not ready...');
-        return;
-      }
-
-      // Clear the check interval
       if (checkInterval) {
         clearInterval(checkInterval);
       }
@@ -46,22 +56,19 @@ export default function StreetFinderGame() {
       console.log('Creating map...');
       
       try {
-        // Create the map
         const map = window.L.map(mapRef.current, {
           center: center,
           zoom: 12,
           zoomControl: true
         });
 
-        // Add tile layer
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
         console.log('Map created, adding streets...');
 
-        // Draw all streets
         streets.forEach(street => {
           const polyline = window.L.polyline(street.coordinates, {
             color: '#3B82F6',
@@ -74,22 +81,40 @@ export default function StreetFinderGame() {
 
         console.log('Streets added:', Object.keys(polylinesRef.current).length);
 
-        // Add click handler
+        // Add click handler using refs
         map.on('click', (e) => {
+          console.log('=== MAP CLICKED ===');
+          console.log('Game active (ref):', gameActiveRef.current);
+          console.log('Current street (ref):', currentStreetRef.current?.name);
+          console.log('Game over (ref):', gameOverRef.current);
+          
+          if (gameOverRef.current) {
+            console.log('Game is over');
+            return;
+          }
+          
+          if (!currentStreetRef.current) {
+            console.log('No current street');
+            return;
+          }
+          
+          if (!gameActiveRef.current) {
+            console.log('Game not active - waiting for next round');
+            return;
+          }
+          
+          console.log('Processing click...');
           handleMapClick(e.latlng);
         });
 
         mapInstanceRef.current = map;
         mapInitialized.current = true;
 
-        // Force map to update its size
         setTimeout(() => {
           map.invalidateSize();
         }, 100);
 
         console.log('Map fully initialized!');
-
-        // Start the first round
         startNewRound();
 
       } catch (error) {
@@ -97,10 +122,8 @@ export default function StreetFinderGame() {
       }
     };
 
-    // Try to initialize immediately
     initMap();
 
-    // If not ready, keep checking
     checkInterval = setInterval(() => {
       if (!mapInitialized.current) {
         initMap();
@@ -149,6 +172,7 @@ export default function StreetFinderGame() {
 
   const startNewRound = () => {
     const newStreet = getRandomStreet();
+    console.log('=== NEW ROUND ===');
     console.log('New street:', newStreet.name);
     setCurrentStreet(newStreet);
     setGameActive(true);
@@ -156,19 +180,9 @@ export default function StreetFinderGame() {
   };
 
   const handleMapClick = (clickedPoint) => {
-    if (!gameActive) {
-      console.log('Game not active');
-      return;
-    }
-    
-    console.log('Clicked at:', clickedPoint);
-    checkStreetClick(clickedPoint);
-  };
+    const street = currentStreetRef.current;
+    if (!street) return;
 
-  const checkStreetClick = (clickedPoint) => {
-    if (!currentStreet || !gameActive) return;
-
-    const street = currentStreet;
     let minDistance = Infinity;
 
     // Check distance to street line
@@ -188,24 +202,26 @@ export default function StreetFinderGame() {
       minDistance = Math.min(minDistance, distance);
     }
 
-    console.log('Distance:', minDistance);
+    console.log('Distance to street:', minDistance);
 
     const threshold = 0.01;
     const isCorrect = minDistance < threshold;
 
     if (isCorrect) {
       const points = 10;
-      setScore(score + points);
+      setScore(prevScore => prevScore + points);
       setFeedback('🎉 Correct! +10 points');
+      console.log('✓ CORRECT!');
     } else {
-      setFeedback('❌ Not quite! That wasn\'t ' + currentStreet.name);
+      setFeedback('❌ Not quite! That wasn\'t ' + street.name);
+      console.log('✗ INCORRECT');
     }
 
     setGameActive(false);
 
     setTimeout(() => {
       if (round < totalRounds) {
-        setRound(round + 1);
+        setRound(prevRound => prevRound + 1);
         startNewRound();
       } else {
         endGame();
@@ -263,7 +279,7 @@ export default function StreetFinderGame() {
         <div className="game-info">
           <h1 className="game-title">
             <Target size={32} />
-            Street Finder Game
+            Back Of Your Hand
           </h1>
           <div className="game-stats">
             <div className="stat">
@@ -290,7 +306,11 @@ export default function StreetFinderGame() {
                     {feedback}
                   </div>
                 )}
-                <p className="instruction">Click on the red highlighted street on the map below</p>
+                <p className="instruction">
+                  {gameActive 
+                    ? 'Click on the correct street below' 
+                    : 'Wait for next round...'}
+                </p>
               </>
             ) : (
               <p>Loading...</p>
