@@ -9,8 +9,16 @@ export const api = axios.create({
   },
 });
 
-// User API calls
+// User API
 export const userAPI = {
   getAll: () => api.get('/users'),
   create: (userData) => api.post('/users', userData),
+  getById: (id) => api.get(`/users/${id}`),
+};
+
+// Score API
+export const scoreAPI = {
+  getLeaderboard: () => api.get('/scores/leaderboard'),
+  getUserScore: (userId) => api.get(`/scores/user/${userId}`),
+  updateScore: (scoreData) => api.post('/scores/update', scoreData),
 };

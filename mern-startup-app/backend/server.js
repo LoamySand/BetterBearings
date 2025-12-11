@@ -16,11 +16,12 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-star
 
 // Basic Route
 app.get('/api', (req, res) => {
-  res.json({ message: 'Welcome to MERN Startup API' });
+  res.json({ message: 'How local are you?' });
 });
 
-// User Route
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/scores', require('./routes/scoreRoutes'));
+
 // Example Routes (we'll create these)
 // app.use('/api/users', require('./routes/userRoutes'));
 // app.use('/api/products', require('./routes/productRoutes'));

@@ -1,7 +1,7 @@
-import LandingPage from './components/LandingPage';
+import StreetFinderGame from './components/BackOfYourHand';
 
 function App() {
-  return <LandingPage />;
+  return <StreetFinderGame />;
 }
 
 export default App;
