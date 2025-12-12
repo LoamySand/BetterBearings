@@ -27,36 +27,37 @@ export default function AdminPanel() {
       alert('Please select a GeoJSON file');
       return;
     }
-    
+
     setLoading(true);
     setUploadProgress(0);
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       console.log(`Uploading ${file.name} for ${selectedCity}...`);
-      
+
       const response = await fetch(
         `http://localhost:5000/api/streets/import-geojson/${selectedCity}`,
 
         {
           method: 'POST',
-          body: formData
+          body: formData,
         }
       );
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setResult(data);
-        alert(`✅ Success!\n\nImported ${data.uniqueStreets} unique streets\n${data.totalSegments} total segments\n\nFor: ${selectedCity}`);
+        alert(
+          `✅ Success!\n\nImported ${data.uniqueStreets} unique streets\n${data.totalSegments} total segments\n\nFor: ${selectedCity}`
+        );
         setFile(null);
         loadCities();
       } else {
         alert(`❌ Error: ${data.message || 'Import failed'}`);
       }
-      
     } catch (error) {
       console.error('Upload error:', error);
       alert('❌ Error uploading file: ' + error.message);
@@ -76,8 +77,9 @@ export default function AdminPanel() {
   };
 
   const deleteCity = async () => {
-    if (!window.confirm(`⚠️ Delete ALL streets for ${selectedCity}?\n\nThis cannot be undone!`)) return;
-    
+    if (!window.confirm(`⚠️ Delete ALL streets for ${selectedCity}?\n\nThis cannot be undone!`))
+      return;
+
     try {
       await streetAPI.deleteCity(selectedCity);
       alert(`✅ Deleted all streets for ${selectedCity}`);
@@ -91,19 +93,26 @@ export default function AdminPanel() {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h1>🗺️ Street Data Management</h1>
-      
+
       {/* City Selector */}
-      <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px' }}>
+      <div
+        style={{
+          marginBottom: '2rem',
+          padding: '1rem',
+          background: '#f3f4f6',
+          borderRadius: '8px',
+        }}
+      >
         <h3>Select City</h3>
-        <select 
-          value={selectedCity} 
+        <select
+          value={selectedCity}
           onChange={(e) => setSelectedCity(e.target.value)}
-          style={{ 
-            padding: '0.75rem', 
-            fontSize: '1rem', 
+          style={{
+            padding: '0.75rem',
+            fontSize: '1rem',
             minWidth: '250px',
             borderRadius: '8px',
-            border: '2px solid #d1d5db'
+            border: '2px solid #d1d5db',
           }}
         >
           <option value="Albuquerque">Albuquerque, NM</option>
@@ -122,47 +131,54 @@ export default function AdminPanel() {
       </div>
 
       {/* GeoJSON Upload */}
-      <div style={{ 
-        marginBottom: '2rem', 
-        padding: '1.5rem', 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '12px',
-        color: 'white'
-      }}>
+      <div
+        style={{
+          marginBottom: '2rem',
+          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '12px',
+          color: 'white',
+        }}
+      >
         <h3 style={{ marginTop: 0, color: 'white' }}>📤 Upload GeoJSON for {selectedCity}</h3>
-        
-        <div style={{ 
-          background: 'rgba(255,255,255,0.1)', 
-          padding: '1rem', 
-          borderRadius: '8px',
-          marginBottom: '1rem'
-        }}>
+
+        <div
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+          }}
+        >
           <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
             <strong>Step 1:</strong> Download GeoJSON from USDOT
           </p>
-          <a 
-            href="https://geodata.bts.gov/datasets/usdot::north-american-roads/about" 
+          <a
+            href="https://geodata.bts.gov/datasets/usdot::north-american-roads/about"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ 
+            style={{
               color: '#fcd34d',
               textDecoration: 'underline',
-              fontSize: '0.9rem'
+              fontSize: '0.9rem',
             }}
           >
             → USDOT North American Roads Dataset
           </a>
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
-            💡 Tip: Filter by state (e.g., "New Mexico") before downloading to get a smaller file
+            💡 Tip: Filter by state (e.g., &quot;New Mexico&quot;) before downloading to get a
+            smaller file
           </p>
         </div>
 
-        <div style={{ 
-          background: 'rgba(255,255,255,0.1)', 
-          padding: '1rem', 
-          borderRadius: '8px',
-          marginBottom: '1rem'
-        }}>
+        <div
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+          }}
+        >
           <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>
             <strong>Step 2:</strong> Select the downloaded file
           </p>
@@ -175,7 +191,7 @@ export default function AdminPanel() {
               background: 'white',
               borderRadius: '8px',
               width: '100%',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           />
           {file && (
@@ -185,7 +201,7 @@ export default function AdminPanel() {
           )}
         </div>
 
-        <button 
+        <button
           onClick={uploadGeoJSON}
           disabled={loading || !file}
           style={{
@@ -198,7 +214,7 @@ export default function AdminPanel() {
             cursor: loading || !file ? 'not-allowed' : 'pointer',
             width: '100%',
             fontWeight: 'bold',
-            transition: 'all 0.3s'
+            transition: 'all 0.3s',
           }}
         >
           {loading ? '⏳ Uploading and Processing...' : '🚀 Upload and Import to MongoDB'}
@@ -213,7 +229,7 @@ export default function AdminPanel() {
 
       {/* Quick Actions */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-        <button 
+        <button
           onClick={getCityStats}
           style={{
             padding: '1rem 2rem',
@@ -224,13 +240,13 @@ export default function AdminPanel() {
             borderRadius: '8px',
             cursor: 'pointer',
             flex: 1,
-            minWidth: '200px'
+            minWidth: '200px',
           }}
         >
           📊 View Stats for {selectedCity}
         </button>
-        
-        <button 
+
+        <button
           onClick={deleteCity}
           style={{
             padding: '1rem 2rem',
@@ -241,7 +257,7 @@ export default function AdminPanel() {
             borderRadius: '8px',
             cursor: 'pointer',
             flex: 1,
-            minWidth: '200px'
+            minWidth: '200px',
           }}
         >
           🗑️ Delete {selectedCity} Streets
@@ -250,27 +266,33 @@ export default function AdminPanel() {
 
       {/* Database Cities */}
       {cities.length > 0 && (
-        <div style={{ 
-          marginBottom: '2rem', 
-          padding: '1rem', 
-          background: '#f3f4f6', 
-          borderRadius: '8px' 
-        }}>
+        <div
+          style={{
+            marginBottom: '2rem',
+            padding: '1rem',
+            background: '#f3f4f6',
+            borderRadius: '8px',
+          }}
+        >
           <h3>Cities in Database</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-            {cities.map(city => (
-              <div 
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '1rem',
+            }}
+          >
+            {cities.map((city) => (
+              <div
                 key={city.name}
                 style={{
                   padding: '1rem',
                   background: 'white',
                   borderRadius: '8px',
-                  border: city.name === selectedCity ? '2px solid #667eea' : '1px solid #e5e7eb'
+                  border: city.name === selectedCity ? '2px solid #667eea' : '1px solid #e5e7eb',
                 }}
               >
-                <strong style={{ display: 'block', marginBottom: '0.25rem' }}>
-                  {city.name}
-                </strong>
+                <strong style={{ display: 'block', marginBottom: '0.25rem' }}>{city.name}</strong>
                 <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                   {city.streetCount} segments
                 </span>
@@ -282,22 +304,26 @@ export default function AdminPanel() {
 
       {/* Results */}
       {result && (
-        <div style={{ 
-          background: '#f9fafb', 
-          padding: '1.5rem', 
-          borderRadius: '8px', 
-          border: '1px solid #e5e7eb',
-          maxHeight: '500px', 
-          overflow: 'auto' 
-        }}>
-          <h3 style={{ marginTop: 0 }}>Result</h3>
-          <pre style={{ 
-            fontSize: '0.875rem',
-            background: 'white',
-            padding: '1rem',
+        <div
+          style={{
+            background: '#f9fafb',
+            padding: '1.5rem',
             borderRadius: '8px',
-            overflow: 'auto'
-          }}>
+            border: '1px solid #e5e7eb',
+            maxHeight: '500px',
+            overflow: 'auto',
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Result</h3>
+          <pre
+            style={{
+              fontSize: '0.875rem',
+              background: 'white',
+              padding: '1rem',
+              borderRadius: '8px',
+              overflow: 'auto',
+            }}
+          >
             {JSON.stringify(result, null, 2)}
           </pre>
         </div>

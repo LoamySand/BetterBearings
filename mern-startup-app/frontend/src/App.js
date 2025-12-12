@@ -7,7 +7,7 @@ function App() {
 
   return (
     <div>
-      <button 
+      <button
         onClick={() => setShowAdmin(!showAdmin)}
         style={{
           position: 'fixed',
@@ -19,12 +19,12 @@ function App() {
           color: 'white',
           border: 'none',
           borderRadius: '4px',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
       >
         {showAdmin ? 'Game' : 'Admin'}
       </button>
-      
+
       {showAdmin ? <AdminPanel /> : <StreetFinderGame />}
     </div>
   );

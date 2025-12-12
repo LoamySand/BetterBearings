@@ -29,8 +29,12 @@ export default function LandingPageSimple() {
             <span className="logo-text">Startup</span>
           </div>
           <div className="nav-links">
-            <a href="#features" className="nav-link">Features</a>
-            <a href="#pricing" className="nav-link">Pricing</a>
+            <a href="#features" className="nav-link">
+              Features
+            </a>
+            <a href="#pricing" className="nav-link">
+              Pricing
+            </a>
             <button className="btn-primary">Get Started</button>
           </div>
         </div>
@@ -43,7 +47,7 @@ export default function LandingPageSimple() {
           <span className="hero-gradient">10x Faster</span>
         </h1>
         <p>The all-in-one platform for startups</p>
-        
+
         <div className="signup-form">
           <input
             type="text"
@@ -70,9 +74,9 @@ export default function LandingPageSimple() {
         <h2 className="section-title">Powerful Features</h2>
         <div className="features-grid">
           {[
-            { title: "Lightning Fast", icon: "⚡" },
-            { title: "Secure", icon: "🔒" },
-            { title: "Easy Integration", icon: "🔌" },
+            { title: 'Lightning Fast', icon: '⚡' },
+            { title: 'Secure', icon: '🔒' },
+            { title: 'Easy Integration', icon: '🔌' },
           ].map((feature, idx) => (
             <div key={idx} className="feature-card">
               <div className="feature-icon">{feature.icon}</div>
@@ -87,9 +91,18 @@ export default function LandingPageSimple() {
         <h2 className="section-title">Simple Pricing</h2>
         <div className="pricing-grid">
           {[
-            { name: "Starter", price: "$29", features: ["5 Projects", "10GB Storage"] },
-            { name: "Pro", price: "$79", features: ["Unlimited Projects", "100GB Storage"], popular: true },
-            { name: "Enterprise", price: "$199", features: ["Unlimited Everything", "24/7 Support"] },
+            { name: 'Starter', price: '$29', features: ['5 Projects', '10GB Storage'] },
+            {
+              name: 'Pro',
+              price: '$79',
+              features: ['Unlimited Projects', '100GB Storage'],
+              popular: true,
+            },
+            {
+              name: 'Enterprise',
+              price: '$199',
+              features: ['Unlimited Everything', '24/7 Support'],
+            },
           ].map((plan, idx) => (
             <div key={idx} className={`pricing-card ${plan.popular ? 'popular' : ''}`}>
               <h3>{plan.name}</h3>
@@ -105,7 +118,9 @@ export default function LandingPageSimple() {
                   </li>
                 ))}
               </ul>
-              <button className="btn-primary" style={{width: '100%'}}>Get Started</button>
+              <button className="btn-primary" style={{ width: '100%' }}>
+                Get Started
+              </button>
             </div>
           ))}
         </div>

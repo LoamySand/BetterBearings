@@ -13,12 +13,12 @@ export default function StreetFinderGame() {
   const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [selectedCity, setSelectedCity] = useState('Albuquerque');
-  
+
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const polylinesRef = useRef({});
   const mapInitialized = useRef(false);
-  
+
   const gameActiveRef = useRef(false);
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
@@ -57,164 +57,167 @@ export default function StreetFinderGame() {
     if (mapInitialized.current || !streetsRef.current.length) {
       console.log('Map init check:', {
         initialized: mapInitialized.current,
-        streetsCount: streetsRef.current.length
+        streetsCount: streetsRef.current.length,
       });
       return;
     }
 
     let checkInterval;
-    
+
     const initMap = () => {
-  if (!window.L || !mapRef.current) {
-    return;
-  }
+      if (!window.L || !mapRef.current) {
+        return;
+      }
 
-  if (checkInterval) {
-    clearInterval(checkInterval);
-  }
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
 
-  console.log('=== INITIALIZING MAP ===');
-  console.log('Streets to draw:', streetsRef.current.length);
-  
-  try {
-    const map = window.L.map(mapRef.current, {
-      center: center,
-      zoom: 11.5,
-      zoomControl: true
-    });
+      console.log('=== INITIALIZING MAP ===');
+      console.log('Streets to draw:', streetsRef.current.length);
 
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+      try {
+        const map = window.L.map(mapRef.current, {
+          center: center,
+          zoom: 11.5,
+          zoomControl: true,
+        });
 
-    console.log('Map created, adding streets...');
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(map);
 
-    let totalPolylinesDrawn = 0;
+        console.log('Map created, adding streets...');
 
-    // Draw all streets
-    streetsRef.current.forEach((street, streetIndex) => {
-      console.log(`\nStreet ${streetIndex + 1}: ${street.name}`);
-      console.log(`  Segments: ${street.segments?.length || 0}`);
-      
-      // Each street can have multiple segments
-      if (street.segments && street.segments.length > 0) {
-        street.segments.forEach((segment, segmentIndex) => {
-          console.log(`  Drawing segment ${segmentIndex + 1}/${street.segments.length} with ${segment.coordinates.length} points`);
-          
-          const polyline = window.L.polyline(segment.coordinates, {
-            color: '#3B82F6',
-            weight: 4,
-            opacity: 0.7,
-            className: 'clickable-street'
-          }).addTo(map);
-          
-          polyline.streetId = street.id;
-          polyline.streetName = street.name;
-          
-          // Click handler
-          polyline.on('click', (e) => {
-            window.L.DomEvent.stopPropagation(e);
-            
-            console.log('=== STREET CLICKED ===');
-            console.log('Clicked:', street.name);
-            console.log('Target:', currentStreetRef.current?.name);
-            
-            if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
-              return;
-            }
-            
-            const clickedId = String(street.id);
-            const currentId = String(currentStreetRef.current.id);
-            const isCorrect = clickedId === currentId;
-            
-            // Visual feedback - flash the clicked street
-            polyline.setStyle({
-              color: isCorrect ? '#10B981' : '#EF4444',
-              weight: 6,
-              opacity: 1
-            });
-            
-            if (isCorrect) {
-              setScore(prevScore => prevScore + 10);
-              setFeedback('🎉 Correct! +10 points');
-              console.log('✓ CORRECT!');
-            } else {
-              setFeedback(`❌ Wrong! That was ${street.name}, not ${currentStreetRef.current.name}`);
-              console.log('✗ INCORRECT');
-            }
-            
-            setGameActive(false);
-            
-            setTimeout(() => {
-              // Reset color back to blue
-              polyline.setStyle({
+        let totalPolylinesDrawn = 0;
+
+        // Draw all streets
+        streetsRef.current.forEach((street, streetIndex) => {
+          console.log(`\nStreet ${streetIndex + 1}: ${street.name}`);
+          console.log(`  Segments: ${street.segments?.length || 0}`);
+
+          // Each street can have multiple segments
+          if (street.segments && street.segments.length > 0) {
+            street.segments.forEach((segment, segmentIndex) => {
+              console.log(
+                `  Drawing segment ${segmentIndex + 1}/${street.segments.length} with ${segment.coordinates.length} points`
+              );
+
+              const polyline = window.L.polyline(segment.coordinates, {
                 color: '#3B82F6',
                 weight: 4,
-                opacity: 0.7
+                opacity: 0.7,
+                className: 'clickable-street',
+              }).addTo(map);
+
+              polyline.streetId = street.id;
+              polyline.streetName = street.name;
+
+              // Click handler
+              polyline.on('click', (e) => {
+                window.L.DomEvent.stopPropagation(e);
+
+                console.log('=== STREET CLICKED ===');
+                console.log('Clicked:', street.name);
+                console.log('Target:', currentStreetRef.current?.name);
+
+                if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
+                  return;
+                }
+
+                const clickedId = String(street.id);
+                const currentId = String(currentStreetRef.current.id);
+                const isCorrect = clickedId === currentId;
+
+                // Visual feedback - flash the clicked street
+                polyline.setStyle({
+                  color: isCorrect ? '#10B981' : '#EF4444',
+                  weight: 6,
+                  opacity: 1,
+                });
+
+                if (isCorrect) {
+                  setScore((prevScore) => prevScore + 10);
+                  setFeedback('🎉 Correct! +10 points');
+                  console.log('✓ CORRECT!');
+                } else {
+                  setFeedback(
+                    `❌ Wrong! That was ${street.name}, not ${currentStreetRef.current.name}`
+                  );
+                  console.log('✗ INCORRECT');
+                }
+
+                setGameActive(false);
+
+                setTimeout(() => {
+                  // Reset color back to blue
+                  polyline.setStyle({
+                    color: '#3B82F6',
+                    weight: 4,
+                    opacity: 0.7,
+                  });
+
+                  if (round < totalRounds) {
+                    setRound((prevRound) => prevRound + 1);
+                    startNewRound();
+                  } else {
+                    endGame();
+                  }
+                }, 2000);
               });
-              
-              if (round < totalRounds) {
-                setRound(prevRound => prevRound + 1);
-                startNewRound();
-              } else {
-                endGame();
+
+              // Hover effects
+              polyline.on('mouseover', function () {
+                if (gameActiveRef.current && !gameOverRef.current) {
+                  this.setStyle({ weight: 6, opacity: 0.9 });
+                }
+              });
+
+              polyline.on('mouseout', function () {
+                // Always return to blue (no highlighting)
+                this.setStyle({
+                  color: '#3B82F6',
+                  weight: 4,
+                  opacity: 0.7,
+                });
+              });
+
+              // Store reference
+              if (!polylinesRef.current[street.id]) {
+                polylinesRef.current[street.id] = [];
               }
-            }, 2000);
-          });
-          
-          // Hover effects
-          polyline.on('mouseover', function() {
-            if (gameActiveRef.current && !gameOverRef.current) {
-              this.setStyle({ weight: 6, opacity: 0.9 });
-            }
-          });
-          
-          polyline.on('mouseout', function() {
-            // Always return to blue (no highlighting)
-            this.setStyle({ 
-              color: '#3B82F6', 
-              weight: 4, 
-              opacity: 0.7 
+              polylinesRef.current[street.id].push(polyline);
+
+              totalPolylinesDrawn++;
             });
-          });
-          
-          // Store reference
-          if (!polylinesRef.current[street.id]) {
-            polylinesRef.current[street.id] = [];
           }
-          polylinesRef.current[street.id].push(polyline);
-          
-          totalPolylinesDrawn++;
         });
+
+        console.log(`\n✅ Map initialized!`);
+        console.log(`   Total streets: ${streetsRef.current.length}`);
+        console.log(`   Total polylines drawn: ${totalPolylinesDrawn}`);
+
+        mapInstanceRef.current = map;
+        mapInitialized.current = true;
+
+        // Use whenReady to ensure map is fully loaded before proceeding
+        map.whenReady(() => {
+          console.log('Map is ready and rendered');
+
+          try {
+            map.invalidateSize();
+          } catch (err) {
+            console.warn('Could not invalidate size:', err.message);
+          }
+
+          // Start the first round
+          startNewRound();
+        });
+      } catch (error) {
+        console.error('❌ Error creating map:', error);
       }
-    });
-
-    console.log(`\n✅ Map initialized!`);
-    console.log(`   Total streets: ${streetsRef.current.length}`);
-    console.log(`   Total polylines drawn: ${totalPolylinesDrawn}`);
-
-    mapInstanceRef.current = map;
-    mapInitialized.current = true;
-
-    // Use whenReady to ensure map is fully loaded before proceeding
-    map.whenReady(() => {
-      console.log('Map is ready and rendered');
-      
-      try {
-        map.invalidateSize();
-      } catch (err) {
-        console.warn('Could not invalidate size:', err.message);
-      }
-      
-      // Start the first round
-      startNewRound();
-    });
-
-  } catch (error) {
-    console.error('❌ Error creating map:', error);
-  }
-};
+    };
 
     initMap();
 
@@ -240,18 +243,18 @@ export default function StreetFinderGame() {
 
   const getRandomStreet = () => {
     if (streetsRef.current.length === 0) return null;
-    
+
     // If we've used all streets, reset
     if (usedStreetIndices.current.size >= streetsRef.current.length) {
       usedStreetIndices.current.clear();
     }
-    
+
     // Find unused street
     let randomIndex;
     do {
       randomIndex = Math.floor(Math.random() * streetsRef.current.length);
     } while (usedStreetIndices.current.has(randomIndex));
-    
+
     usedStreetIndices.current.add(randomIndex);
     return streetsRef.current[randomIndex];
   };
@@ -262,7 +265,7 @@ export default function StreetFinderGame() {
       console.error('No streets available');
       return;
     }
-    
+
     console.log('=== NEW ROUND ===');
     console.log('New street:', newStreet.name);
     setCurrentStreet(newStreet);
@@ -282,36 +285,38 @@ export default function StreetFinderGame() {
     setGameOver(false);
     setFinalScore(0);
     usedStreetIndices.current.clear();
-    
+
     // Reset all polylines to blue
-    Object.values(polylinesRef.current).forEach(polylineArray => {
+    Object.values(polylinesRef.current).forEach((polylineArray) => {
       if (Array.isArray(polylineArray)) {
-        polylineArray.forEach(polyline => {
+        polylineArray.forEach((polyline) => {
           if (polyline && polyline.setStyle) {
             polyline.setStyle({
               color: '#3B82F6',
               weight: 4,
-              opacity: 0.7
+              opacity: 0.7,
             });
           }
         });
       }
     });
-    
+
     startNewRound();
   };
 
   if (loading) {
     return (
       <div className="game-container">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          flexDirection: 'column',
-          gap: '1rem'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}
+        >
           <RefreshCw size={48} className="animate-spin" />
           <p>Loading streets from database...</p>
         </div>
@@ -322,15 +327,17 @@ export default function StreetFinderGame() {
   if (error) {
     return (
       <div className="game-container">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          flexDirection: 'column',
-          gap: '1rem',
-          padding: '2rem'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            flexDirection: 'column',
+            gap: '1rem',
+            padding: '2rem',
+          }}
+        >
           <p style={{ color: '#EF4444' }}>Error loading streets: {error}</p>
           <button onClick={refreshStreets} className="btn-primary">
             Retry
@@ -343,24 +350,24 @@ export default function StreetFinderGame() {
   if (streets.length === 0) {
     return (
       <div className="game-container">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100vh',
-          flexDirection: 'column',
-          gap: '1rem',
-          padding: '2rem',
-          textAlign: 'center'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            flexDirection: 'column',
+            gap: '1rem',
+            padding: '2rem',
+            textAlign: 'center',
+          }}
+        >
           <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
             No streets found for {selectedCity}
           </p>
-          <p style={{ color: '#6b7280' }}>
-            Please upload street data using the Admin Panel
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <p style={{ color: '#6b7280' }}>Please upload street data using the Admin Panel</p>
+          <button
+            onClick={() => window.location.reload()}
             style={{
               padding: '1rem 2rem',
               background: '#4F46E5',
@@ -368,7 +375,7 @@ export default function StreetFinderGame() {
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '1rem'
+              fontSize: '1rem',
             }}
           >
             Reload Page
@@ -386,7 +393,7 @@ export default function StreetFinderGame() {
             <Target size={32} />
             Back Of Your Hand
           </h1>
-          <select 
+          <select
             value={selectedCity}
             onChange={(e) => {
               setSelectedCity(e.target.value);
@@ -401,7 +408,7 @@ export default function StreetFinderGame() {
               borderRadius: '8px',
               border: '2px solid #4F46E5',
               background: 'white',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
             <option value="Albuquerque">Albuquerque, NM</option>
@@ -409,7 +416,7 @@ export default function StreetFinderGame() {
             <option value="Phoenix">Phoenix, AZ</option>
             <option value="Denver">Denver, CO</option>
           </select>
-          
+
           <div className="game-stats">
             <div className="stat">
               <Star size={20} />
@@ -417,7 +424,9 @@ export default function StreetFinderGame() {
             </div>
             <div className="stat">
               <Trophy size={20} />
-              <span>Round: {round}/{totalRounds}</span>
+              <span>
+                Round: {round}/{totalRounds}
+              </span>
             </div>
           </div>
         </div>
@@ -431,14 +440,14 @@ export default function StreetFinderGame() {
                 <h2 className="question">Find this street:</h2>
                 <h3 className="street-name">{currentStreet.name}</h3>
                 {feedback && (
-                  <div className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}>
+                  <div
+                    className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
+                  >
                     {feedback}
                   </div>
                 )}
                 <p className="instruction">
-                  {gameActive 
-                    ? 'Click on the street on the map below' 
-                    : 'Wait for next round...'}
+                  {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
                 </p>
               </>
             ) : (
@@ -447,12 +456,12 @@ export default function StreetFinderGame() {
           </div>
 
           <div className="map-wrapper">
-            <div 
+            <div
               ref={mapRef}
-              style={{ 
-                height: '100%', 
+              style={{
+                height: '100%',
                 width: '100%',
-                minHeight: '500px'
+                minHeight: '500px',
               }}
             />
           </div>
@@ -466,7 +475,11 @@ export default function StreetFinderGame() {
               <p>Final Score</p>
               <h1>{finalScore}</h1>
               <p className="score-message">
-                {finalScore >= 40 ? '🎉 Excellent!' : finalScore >= 25 ? '👏 Good job!' : '💪 Keep practicing!'}
+                {finalScore >= 40
+                  ? '🎉 Excellent!'
+                  : finalScore >= 25
+                    ? '👏 Good job!'
+                    : '💪 Keep practicing!'}
               </p>
             </div>
             <button onClick={restartGame} className="btn-restart">

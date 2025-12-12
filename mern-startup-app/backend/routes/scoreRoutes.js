@@ -36,7 +36,7 @@ router.get('/user/:userId', async (req, res) => {
 router.post('/update', async (req, res) => {
   try {
     const { userId, points, gameScore } = req.body;
-    
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -46,7 +46,7 @@ router.post('/update', async (req, res) => {
     if (gameScore > user.highScore) {
       user.highScore = gameScore;
     }
-    
+
     await user.save();
 
     // Create score record
