@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { streetAPI } from '../services/api';
 
 export default function AdminPanel() {

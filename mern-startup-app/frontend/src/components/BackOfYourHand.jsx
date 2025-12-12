@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Trophy, Target, Star, Award, RefreshCw } from 'lucide-react';
 import { useStreets } from '../hooks/useStreets';
 import './BackOfYourHand.css';
@@ -23,11 +23,15 @@ export default function StreetFinderGame() {
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
 
-  // Load streets from API
-  const { streets, loading, error, refreshStreets } = useStreets(10, selectedCity);
-  const streetsRef = useRef([]);
-  const usedStreetIndices = useRef(new Set());
+  //Set number of loaded streets
+  const streetsToLoad = 20;
 
+  // Load streets from API
+  const { streets, loading, error, refreshStreets } = useStreets(streetsToLoad, selectedCity);
+  const streetsRef = useRef([]);
+  const usedStreetIndices = useRef(new Set());  // track streets that have been used
+
+  // TODO Make dynamic based on city
   const center = [35.0844, -106.6504];
 
   // Update streets ref when streets change
@@ -35,6 +39,7 @@ export default function StreetFinderGame() {
     if (streets && streets.length > 0) {
       streetsRef.current = streets;
       usedStreetIndices.current.clear();
+      // TODO lock behind debug flag
       console.log('Streets loaded:', streets.length);
     }
   }, [streets]);
@@ -65,6 +70,7 @@ export default function StreetFinderGame() {
     let checkInterval;
 
     const initMap = () => {
+        //Check if leaflet has loaded TODO make sure it is either bundled or a dependancy 
       if (!window.L || !mapRef.current) {
         return;
       }
@@ -73,6 +79,7 @@ export default function StreetFinderGame() {
         clearInterval(checkInterval);
       }
 
+      // TODO lock behind debug flag
       console.log('=== INITIALIZING MAP ===');
       console.log('Streets to draw:', streetsRef.current.length);
 
@@ -83,6 +90,7 @@ export default function StreetFinderGame() {
           zoomControl: true,
         });
 
+        // Add OpenStreetMap tile layer
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap contributors',
@@ -97,9 +105,10 @@ export default function StreetFinderGame() {
           console.log(`\nStreet ${streetIndex + 1}: ${street.name}`);
           console.log(`  Segments: ${street.segments?.length || 0}`);
 
-          // Each street can have multiple segments
+          // Check for missing segments
           if (street.segments && street.segments.length > 0) {
             street.segments.forEach((segment, segmentIndex) => {
+            // TODO lock behind debug flag
               console.log(
                 `  Drawing segment ${segmentIndex + 1}/${street.segments.length} with ${segment.coordinates.length} points`
               );
@@ -117,11 +126,12 @@ export default function StreetFinderGame() {
               // Click handler
               polyline.on('click', (e) => {
                 window.L.DomEvent.stopPropagation(e);
-
+                // TODO lock behind debug flag
                 console.log('=== STREET CLICKED ===');
                 console.log('Clicked:', street.name);
                 console.log('Target:', currentStreetRef.current?.name);
 
+                //Do nothing if game is over or  not active
                 if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
                   return;
                 }
@@ -148,6 +158,7 @@ export default function StreetFinderGame() {
                   console.log('✗ INCORRECT');
                 }
 
+                // Prevent clicks in between rounds for 2 seconds and reset color
                 setGameActive(false);
 
                 setTimeout(() => {
@@ -167,7 +178,7 @@ export default function StreetFinderGame() {
                 }, 2000);
               });
 
-              // Hover effects
+              // Hover effects, highlight while hovering if the game is active
               polyline.on('mouseover', function () {
                 if (gameActiveRef.current && !gameOverRef.current) {
                   this.setStyle({ weight: 6, opacity: 0.9 });
@@ -183,7 +194,7 @@ export default function StreetFinderGame() {
                 });
               });
 
-              // Store reference
+              // Store polyline references so we can reset / style them later
               if (!polylinesRef.current[street.id]) {
                 polylinesRef.current[street.id] = [];
               }
@@ -193,7 +204,7 @@ export default function StreetFinderGame() {
             });
           }
         });
-
+        // TODO lock behind debug flag
         console.log(`\n✅ Map initialized!`);
         console.log(`   Total streets: ${streetsRef.current.length}`);
         console.log(`   Total polylines drawn: ${totalPolylinesDrawn}`);
@@ -219,6 +230,7 @@ export default function StreetFinderGame() {
       }
     };
 
+    // Try to initialize, if leaflet is unavailable, try at each interval
     initMap();
 
     checkInterval = setInterval(() => {
@@ -228,7 +240,7 @@ export default function StreetFinderGame() {
         clearInterval(checkInterval);
       }
     }, 100);
-
+    // Cleanup when streets change or component unmounts
     return () => {
       if (checkInterval) {
         clearInterval(checkInterval);
@@ -273,6 +285,7 @@ export default function StreetFinderGame() {
     setFeedback('');
   };
 
+  // End game: set flags and snapshot final score
   const endGame = () => {
     setGameOver(true);
     setFinalScore(score);

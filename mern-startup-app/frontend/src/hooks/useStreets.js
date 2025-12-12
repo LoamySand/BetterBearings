@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { streetAPI } from '../services/api';
 
 export function useStreets(count = 5, city = 'Albuquerque') {
