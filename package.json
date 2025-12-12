@@ -8,8 +8,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "start": "node backend/server.js",
-    "install-client": "npm install --prefix client",
-    "build-client": "npm run build --prefix client",
+    "install-client": "npm install --prefix BackOfYourHand/Client",
+    "build-client": "npm run build --prefix BackOfYourHand/Client",
     "heroku-postbuild": "npm run install-client && npm run build-client"
   },
     "engines": {
