@@ -1,0 +1,22 @@
+{
+  "name": "back-of-your-hand",
+  "version": "1.0.0",
+  "description": "MERN application with ESLint and Prettier setup",
+  "private": true,
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.7.4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
