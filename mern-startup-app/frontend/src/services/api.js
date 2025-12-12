@@ -9,6 +9,43 @@ export const api = axios.create({
   },
 });
 
+// Street API
+export const streetAPI = {
+  // Get all cities in database
+  getCities: () => api.get('/streets/cities'),
+  
+  // Get all streets (optionally filter by city)
+  getAll: (city = null) => {
+    const url = city ? `/streets?city=${city}` : '/streets';
+    return api.get(url);
+  },
+  
+  // Get random complete streets for a city
+  getRandomCompleteStreets: (count = 5, city = 'Albuquerque', difficulty = null) => {
+    let url = `/streets/random-complete/${count}?city=${city}`;
+    if (difficulty) {
+      url += `&difficulty=${difficulty}`;
+    }
+    return api.get(url);
+  },
+  
+  // Fetch from OSM
+  fetchCity: (cityName) => api.post(`/streets/fetch-city/${cityName}`),
+  
+  // Add specific streets to a city
+  addStreets: (cityName, streetNames) => 
+    api.post(`/streets/add-streets/${cityName}`, { streetNames }),
+  
+  // Get stats for a city
+  getCityStats: (cityName) => api.get(`/streets/stats/${cityName}`),
+  
+  // Delete all streets for a city
+  deleteCity: (cityName) => api.delete(`/streets/city/${cityName}`),
+  
+  // Delete all streets (all cities)
+  deleteAll: () => api.delete('/streets/all'),
+};
+
 // User API
 export const userAPI = {
   getAll: () => api.get('/users'),
@@ -21,20 +58,4 @@ export const scoreAPI = {
   getLeaderboard: () => api.get('/scores/leaderboard'),
   getUserScore: (userId) => api.get(`/scores/user/${userId}`),
   updateScore: (scoreData) => api.post('/scores/update', scoreData),
-};
-
-// Street API
-export const streetAPI = {
-  getAll: () => api.get('/streets'),
-  getRandomStreets: (count = 5, difficulty = null) => {
-    const url = difficulty 
-      ? `/streets/random/${count}?difficulty=${difficulty}`
-      : `/streets/random/${count}`;
-    return api.get(url);
-  },
-  fetchFromOSM: (count = 20) => api.post('/streets/fetch', { count }),
-  searchStreet: (name) => api.get(`/streets/search/${name}`),
-  getStats: () => api.get('/streets/stats/difficulty'),
-  updateStats: (id, correct) => api.patch(`/streets/${id}/stats`, { correct }),
-  deleteAll: () => api.delete('/streets/all'),
 };

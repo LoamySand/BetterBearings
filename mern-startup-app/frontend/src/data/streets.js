@@ -1,57 +1,129 @@
-// Sample street data for Albuquerque area
-// You can expand this with real street coordinates
-export const streets = [
+// Real street data for Albuquerque - manually curated
+module.exports = [
   {
-    id: 1,
     name: "Central Avenue",
     coordinates: [
-      [35.0844, -106.6504],
+      // West to East - complete street
+      [35.0844, -106.7000],
+      [35.0844, -106.6800],
+      [35.0844, -106.6600],
+      [35.0844, -106.6400],
+      [35.0844, -106.6200],
       [35.0844, -106.6000],
+      [35.0844, -106.5800],
+      [35.0844, -106.5600],
+      [35.0844, -106.5400],
     ],
     difficulty: "easy",
+    type: "primary"
   },
   {
-    id: 2,
     name: "Lomas Boulevard",
     coordinates: [
-      [35.0900, -106.6504],
+      [35.0900, -106.7000],
+      [35.0900, -106.6800],
+      [35.0900, -106.6600],
+      [35.0900, -106.6400],
+      [35.0900, -106.6200],
       [35.0900, -106.6000],
+      [35.0900, -106.5800],
+      [35.0900, -106.5600],
     ],
-    difficulty: "easy",
+    difficulty: "medium",
+    type: "secondary"
   },
   {
-    id: 3,
     name: "San Mateo Boulevard",
     coordinates: [
       [35.1200, -106.5800],
+      [35.1100, -106.5800],
+      [35.1000, -106.5800],
+      [35.0900, -106.5800],
+      [35.0800, -106.5800],
       [35.0700, -106.5800],
     ],
     difficulty: "medium",
+    type: "secondary"
   },
   {
-    id: 4,
     name: "Tramway Boulevard",
     coordinates: [
       [35.1500, -106.5000],
+      [35.1400, -106.5000],
+      [35.1300, -106.5000],
+      [35.1200, -106.5000],
+      [35.1100, -106.5000],
+      [35.1000, -106.5000],
+      [35.0900, -106.5000],
+      [35.0800, -106.5000],
+      [35.0700, -106.5000],
+      [35.0600, -106.5000],
       [35.0500, -106.5000],
     ],
-    difficulty: "medium",
+    difficulty: "hard",
+    type: "primary"
   },
   {
-    id: 5,
     name: "Paseo del Norte",
     coordinates: [
-      [35.1300, -106.6504],
+      [35.1300, -106.7000],
+      [35.1300, -106.6800],
+      [35.1300, -106.6600],
+      [35.1300, -106.6400],
+      [35.1300, -106.6200],
+      [35.1300, -106.6000],
+      [35.1300, -106.5800],
+      [35.1300, -106.5600],
+      [35.1300, -106.5400],
+      [35.1300, -106.5200],
       [35.1300, -106.5000],
     ],
+    difficulty: "easy",
+    type: "primary"
+  },
+  {
+    name: "Coors Boulevard",
+    coordinates: [
+      [35.1400, -106.7000],
+      [35.1300, -106.7000],
+      [35.1200, -106.7000],
+      [35.1100, -106.7000],
+      [35.1000, -106.7000],
+      [35.0900, -106.7000],
+      [35.0800, -106.7000],
+      [35.0700, -106.7000],
+    ],
+    difficulty: "medium",
+    type: "secondary"
+  },
+  {
+    name: "Montgomery Boulevard",
+    coordinates: [
+      [35.1100, -106.7000],
+      [35.1100, -106.6800],
+      [35.1100, -106.6600],
+      [35.1100, -106.6400],
+      [35.1100, -106.6200],
+      [35.1100, -106.6000],
+      [35.1100, -106.5800],
+      [35.1100, -106.5600],
+      [35.1100, -106.5400],
+    ],
+    difficulty: "medium",
+    type: "secondary"
+  },
+  {
+    name: "Louisiana Boulevard",
+    coordinates: [
+      [35.1400, -106.5600],
+      [35.1300, -106.5600],
+      [35.1200, -106.5600],
+      [35.1100, -106.5600],
+      [35.1000, -106.5600],
+      [35.0900, -106.5600],
+      [35.0800, -106.5600],
+    ],
     difficulty: "hard",
+    type: "tertiary"
   },
 ];
-
-export const getRandomStreet = () => {
-  return streets[Math.floor(Math.random() * streets.length)];
-};
-
-export const getStreetsExcept = (excludeId) => {
-  return streets.filter(street => street.id !== excludeId);
-};

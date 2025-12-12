@@ -222,3 +222,23 @@
     min-height: 400px;
   }
 }
+
+/* Add at the end of the file */
+
+/* Clickable street cursor */
+.clickable-street {
+  cursor: pointer;
+}
+
+.leaflet-container {
+  cursor: default;
+}
+
+/* Make street lines more visible */
+.leaflet-interactive {
+  cursor: pointer !important;
+}
+
+.leaflet-interactive:hover {
+  stroke-width: 6 !important;
+}

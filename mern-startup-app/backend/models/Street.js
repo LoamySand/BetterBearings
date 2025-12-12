@@ -3,15 +3,14 @@ const mongoose = require('mongoose');
 const streetSchema = new mongoose.Schema({
   osmId: {
     type: Number,
-    unique: true,
-    sparse: true, // Allows multiple null values
+    sparse: true,
   },
   name: {
     type: String,
     required: true,
   },
   coordinates: {
-    type: [[Number]], // Array of [lat, lng] pairs
+    type: [[Number]],
     required: true,
   },
   difficulty: {
@@ -20,18 +19,22 @@ const streetSchema = new mongoose.Schema({
     default: 'medium',
   },
   type: {
-    type: String, // highway type from OSM (primary, secondary, tertiary)
+    type: String,
   },
   city: {
     type: String,
+    required: true,
     default: 'Albuquerque',
+  },
+  state: {
+    type: String,
   },
   source: {
     type: String,
     default: 'openstreetmap',
   },
   length: {
-    type: Number, // Number of coordinate points
+    type: Number,
   },
   timesPlayed: {
     type: Number,
@@ -41,14 +44,20 @@ const streetSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  importedAt: {
+    type: Date,
+    default: Date.now,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-// Index for faster queries
+// Indexes for faster queries
 streetSchema.index({ difficulty: 1 });
 streetSchema.index({ city: 1 });
+streetSchema.index({ city: 1, name: 1 });
+streetSchema.index({ city: 1, source: 1 });
 
 module.exports = mongoose.model('Street', streetSchema);
