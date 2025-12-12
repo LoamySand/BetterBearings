@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +18,17 @@ app.get('/api', (req, res) => {
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/streets', require('./routes/streetRoutes'));
+
+// Serve static files from the frontend build in production
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '..', 'frontend', 'build');
+  app.use(express.static(buildPath));
+
+  // For client-side routing, return index.html for unknown routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 // MongoDB Connection
