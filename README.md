@@ -149,13 +149,13 @@ npm start
 Project structure
 ```
 /
-backend
+server
     ├─ data/                # test data
     ├─ models/              # MongoDB schemas
     ├─ routers/             # navigation
     ├─ services/            # utility handlers
     ├─ uploads/             # geojson backups, excluded from repository
-frontend
+client
     ├─ src/                 # application source (JS, CSS, assets)
     ├─ public/              # static files
         ├─ components/      # React components
