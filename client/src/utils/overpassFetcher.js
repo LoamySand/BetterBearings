@@ -102,9 +102,47 @@ function tryGetFromLocalStorage(key) {
  */
 function trySetInLocalStorage(key, value) {
   try {
+    // Check if value is too large (>4MB is risky for localStorage)
+    const sizeInMB = new Blob([value]).size / (1024 * 1024);
+    if (sizeInMB > 4) {
+      console.warn(`Response too large to cache (${sizeInMB.toFixed(2)}MB), skipping cache`);
+      return;
+    }
+    
     localStorage.setItem(key, value);
   } catch (e) {
     console.warn('Failed to write to localStorage', e);
+    // If quota exceeded, try clearing all overpass cache and retry once
+    if (e.name === 'QuotaExceededError') {
+      console.log('Clearing all Overpass cache and retrying...');
+      clearAllOverpassCache();
+      try {
+        localStorage.setItem(key, value);
+      } catch (retryError) {
+        console.warn('Still failed after clearing cache, skipping cache', retryError);
+      }
+    }
+  }
+}
+
+/**
+ * Clear all Overpass cache entries
+ */
+function clearAllOverpassCache() {
+  try {
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('overpass-response')) {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+    });
+    console.log('Cleared all Overpass cache');
+  } catch (e) {
+    console.warn('Failed to clear cache', e);
   }
 }
 

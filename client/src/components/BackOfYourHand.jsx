@@ -37,16 +37,22 @@ export default function StreetFinderGame() {
     radius: quizRadius,
     shape: PresetAreaShape.Circle,
     difficulty,
-    numberOfQuestions: 50
+    numberOfQuestions: 15  // Reduced from 50 to stay under localStorage quota
   });
   
   const streetsRef = useRef([]);
   const usedStreetIndices = useRef(new Set());
 
-  // Load streets when quiz area is selected
+  // Load streets when quiz area is selected (only on initial load)
+  const streetsLoadedForCenter = useRef(null);
+  
   useEffect(() => {
-    if (quizCenter && gameMode === 'playing') {
+    // Only load if we don't have streets for this center yet
+    const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng}` : null;
+    
+    if (quizCenter && gameMode === 'playing' && streetsLoadedForCenter.current !== centerKey) {
       loadStreets();
+      streetsLoadedForCenter.current = centerKey;
     }
   }, [quizCenter, gameMode, loadStreets]);
 
@@ -75,6 +81,67 @@ export default function StreetFinderGame() {
   useEffect(() => {
     roundRef.current = round;
   }, [round]);
+
+  // Handle map visibility when transitioning from gameOver back to playing
+  useEffect(() => {
+    console.log('Map visibility effect triggered:', {
+      gameMode,
+      hasMapInstance: !!mapInstanceRef.current,
+      mapInitialized: mapInitialized.current,
+      hasMapRef: !!mapRef.current
+    });
+    
+    if (gameMode === 'playing' && mapInstanceRef.current && mapInitialized.current) {
+      console.log('Game mode changed to playing, refreshing map');
+      // Small delay to ensure DOM has updated
+      const timer = setTimeout(() => {
+        const mapDiv = mapRef.current;
+        const mapInstance = mapInstanceRef.current;
+        
+        console.log('Attempting to refresh map:', {
+          hasMapDiv: !!mapDiv,
+          hasMapInstance: !!mapInstance
+        });
+        
+        if (!mapDiv || !mapInstance) {
+          console.error('Map div or instance missing', {
+            mapDiv: !!mapDiv,
+            mapInstance: !!mapInstance
+          });
+          return;
+        }
+        
+        try {
+          // Check if map is properly attached to container
+          const container = mapInstance.getContainer();
+          console.log('Map container check:', {
+            divExists: !!mapDiv,
+            containerExists: !!container,
+            sameElement: container === mapDiv,
+            divHasLeafletId: !!mapDiv._leaflet_id
+          });
+          
+          // If container is not the current div, we need to reinitialize
+          if (container !== mapDiv) {
+            console.warn('Map container mismatch, need to reinitialize');
+            // This shouldn't happen, but if it does, we'd need to recreate the map
+            return;
+          }
+          
+          mapInstance.invalidateSize();
+          // Also pan to center to ensure tiles load
+          if (quizCenter) {
+            mapInstance.setView([quizCenter.lat, quizCenter.lng], 11.5);
+          }
+          console.log('Map size invalidated and view reset');
+        } catch (e) {
+          console.error('Error refreshing map:', e);
+        }
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameMode, quizCenter]);
 
   // Initialize map once streets are loaded
   useEffect(() => {
@@ -449,7 +516,6 @@ export default function StreetFinderGame() {
     setRound(1);
     setFinalScore(0);
     setFeedback('');
-    setGameMode('playing');
     
     roundRef.current = 1;
     gameOverRef.current = false;
@@ -471,18 +537,15 @@ export default function StreetFinderGame() {
       }
     });
 
-    // Start a new round
+    // Get new street and start playing
     const newStreet = getRandomStreet();
     if (newStreet) {
       setCurrentStreet(newStreet);
       setGameActive(true);
-      
-      setTimeout(() => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.invalidateSize();
-        }
-      }, 50);
     }
+    
+    // Change game mode - this will trigger the useEffect that invalidates map size
+    setGameMode('playing');
   };
 
   // Choose new area
@@ -600,39 +663,39 @@ export default function StreetFinderGame() {
 
   return (
     <div className="game-container">
-      {gameMode !== 'selecting' && (
-        <div className="game-header">
-          <div className="game-info">
-            <h1 className="game-title">
-              <Target size={32} />
-              Back Of Your Hand
-            </h1>
+      <div className="game-header">
+        <div className="game-info">
+          <h1 className="game-title">
+            <Target size={32} />
+            Back Of Your Hand
+          </h1>
+          {gameMode !== 'selecting' && (
             <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
               {difficulty === Difficulty.Tourist && 'Difficulty: Tourist (Major roads)'}
               {difficulty === Difficulty.Resident && 'Difficulty: Resident (+ Tertiary roads)'}
               {difficulty === Difficulty.TaxiDriver && 'Difficulty: Taxi Driver (All roads)'}
               {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
             </div>
+          )}
 
-            {gameMode === 'playing' && (
-              <div className="game-stats">
-                <div className="stat">
-                  <Star size={20} />
-                  <span>Score: {score}</span>
-                </div>
-                <div className="stat">
-                  <Trophy size={20} />
-                  <span>
-                    Round: {round}/{totalRounds}
-                  </span>
-                </div>
+          {gameMode === 'playing' && (
+            <div className="game-stats">
+              <div className="stat">
+                <Star size={20} />
+                <span>Score: {score}</span>
               </div>
-            )}
-          </div>
+              <div className="stat">
+                <Trophy size={20} />
+                <span>
+                  Round: {round}/{totalRounds}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      <div className="game-content" style={{ display: gameMode === 'gameOver' ? 'none' : 'flex' }}>
+      <div className="game-content">
         {gameMode === 'selecting' && (
           <div className="quiz-button-overlay">
             <button onClick={handleQuizThisArea} className="btn-quiz-area">
@@ -678,7 +741,7 @@ export default function StreetFinderGame() {
       </div>
 
       {gameMode === 'gameOver' && (
-        <div className="game-over">
+        <div className="game-over" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000 }}>
           <div className="game-over-content">
             <Award size={64} className="trophy-icon" />
             <h2>Game Over!</h2>
