@@ -21,7 +21,7 @@ app.use('/api/streets', require('./routes/streetRoutes'));
 
 // Serve static files from the frontend build in production
 if (process.env.NODE_ENV === 'production') {
-  const buildPath = path.join(__dirname, '..', 'frontend', 'build');
+  const buildPath = path.join(__dirname, '..', 'client', 'build');
   app.use(express.static(buildPath));
 
   // For client-side routing, return index.html for unknown routes
