@@ -37,9 +37,12 @@ export default function AdminPanel() {
 
       console.log(`Uploading ${file.name} for ${selectedCity}...`);
 
-      const response = await fetch(
-        `http://localhost:5000/api/streets/import-geojson/${selectedCity}`,
+      const API_URL = process.env.NODE_ENV === 'production' 
+        ? '/api' 
+        : 'http://localhost:5000/api';
 
+      const response = await fetch(
+        `${API_URL}/streets/import-geojson/${selectedCity}`,
         {
           method: 'POST',
           body: formData,
