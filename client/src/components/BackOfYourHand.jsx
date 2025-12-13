@@ -1,45 +1,66 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trophy, Target, Star, Award, RefreshCw } from 'lucide-react';
-import { useStreets } from '../hooks/useStreets';
+import { useOverpassStreets } from '../hooks/useOverpassStreets';
+import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
 export default function StreetFinderGame() {
+  // Game mode: 'selecting' | 'playing' | 'gameOver'
+  const [gameMode, setGameMode] = useState('selecting');
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(1);
   const [currentStreet, setCurrentStreet] = useState(null);
   const [gameActive, setGameActive] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [totalRounds] = useState(5);
-  const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
-  const [selectedCity, setSelectedCity] = useState('Albuquerque');
+  
+  // Quiz area settings - will be set when user clicks "Quiz this Area"
+  const [quizCenter, setQuizCenter] = useState(null);
+  const [quizRadius, setQuizRadius] = useState(5000); // 5km default
+  const [difficulty] = useState(Difficulty.Tourist);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const polylinesRef = useRef({});
   const mapInitialized = useRef(false);
+  const selectionMapInitialized = useRef(false);
 
   const gameActiveRef = useRef(false);
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
+  const roundRef = useRef(1);
 
-  //Set number of loaded streets
-  const streetsToLoad = 20;
-
-  // Load streets from API
-  const { streets, loading, error, refreshStreets } = useStreets(streetsToLoad, selectedCity);
+  // Load streets from Overpass API - only when quizCenter is set
+  const { streets, loading, error, loadStreets } = useOverpassStreets({
+    center: quizCenter,
+    radius: quizRadius,
+    shape: PresetAreaShape.Circle,
+    difficulty,
+    numberOfQuestions: 20  // Reduced from 50 to stay under localStorage quota
+  });
+  
   const streetsRef = useRef([]);
-  const usedStreetIndices = useRef(new Set());  // track streets that have been used
+  const usedStreetIndices = useRef(new Set());
 
-  // TODO Make dynamic based on city
-  const center = [35.0844, -106.6504];
+  // Load streets when quiz area is selected (only on initial load)
+  const streetsLoadedForCenter = useRef(null);
+  
+  useEffect(() => {
+    // Only load if we don't have streets for this center yet
+    const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng}` : null;
+    
+    if (quizCenter && gameMode === 'playing' && streetsLoadedForCenter.current !== centerKey) {
+      loadStreets();
+      streetsLoadedForCenter.current = centerKey;
+    }
+  }, [quizCenter, gameMode, loadStreets]);
 
   // Update streets ref when streets change
   useEffect(() => {
     if (streets && streets.length > 0) {
       streetsRef.current = streets;
       usedStreetIndices.current.clear();
-      // TODO lock behind debug flag
       console.log('Streets loaded:', streets.length);
     }
   }, [streets]);
@@ -54,8 +75,73 @@ export default function StreetFinderGame() {
   }, [currentStreet]);
 
   useEffect(() => {
-    gameOverRef.current = gameOver;
-  }, [gameOver]);
+    gameOverRef.current = gameMode === 'gameOver';
+  }, [gameMode]);
+
+  useEffect(() => {
+    roundRef.current = round;
+  }, [round]);
+
+  // Handle map visibility when transitioning from gameOver back to playing
+  useEffect(() => {
+    console.log('Map visibility effect triggered:', {
+      gameMode,
+      hasMapInstance: !!mapInstanceRef.current,
+      mapInitialized: mapInitialized.current,
+      hasMapRef: !!mapRef.current
+    });
+    
+    if (gameMode === 'playing' && mapInstanceRef.current && mapInitialized.current) {
+      console.log('Game mode changed to playing, refreshing map');
+      // Small delay to ensure DOM has updated
+      const timer = setTimeout(() => {
+        const mapDiv = mapRef.current;
+        const mapInstance = mapInstanceRef.current;
+        
+        console.log('Attempting to refresh map:', {
+          hasMapDiv: !!mapDiv,
+          hasMapInstance: !!mapInstance
+        });
+        
+        if (!mapDiv || !mapInstance) {
+          console.error('Map div or instance missing', {
+            mapDiv: !!mapDiv,
+            mapInstance: !!mapInstance
+          });
+          return;
+        }
+        
+        try {
+          // Check if map is properly attached to container
+          const container = mapInstance.getContainer();
+          console.log('Map container check:', {
+            divExists: !!mapDiv,
+            containerExists: !!container,
+            sameElement: container === mapDiv,
+            divHasLeafletId: !!mapDiv._leaflet_id
+          });
+          
+          // If container is not the current div, we need to reinitialize
+          if (container !== mapDiv) {
+            console.warn('Map container mismatch, need to reinitialize');
+            // This shouldn't happen, but if it does, we'd need to recreate the map
+            return;
+          }
+          
+          mapInstance.invalidateSize();
+          // Also pan to center to ensure tiles load
+          if (quizCenter) {
+            mapInstance.setView([quizCenter.lat, quizCenter.lng], 11.5);
+          }
+          console.log('Map size invalidated and view reset');
+        } catch (e) {
+          console.error('Error refreshing map:', e);
+        }
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameMode, quizCenter]);
 
   // Initialize map once streets are loaded
   useEffect(() => {
@@ -79,13 +165,12 @@ export default function StreetFinderGame() {
         clearInterval(checkInterval);
       }
 
-      // TODO lock behind debug flag
       console.log('=== INITIALIZING MAP ===');
       console.log('Streets to draw:', streetsRef.current.length);
 
       try {
         const map = window.L.map(mapRef.current, {
-          center: center,
+          center: [quizCenter.lat, quizCenter.lng],
           zoom: 11.5,
           zoomControl: true,
         });
@@ -100,52 +185,62 @@ export default function StreetFinderGame() {
 
         let totalPolylinesDrawn = 0;
 
-        // Draw all streets
+        // Draw all streets - now using points array from Overpass data
         streetsRef.current.forEach((street, streetIndex) => {
           console.log(`\nStreet ${streetIndex + 1}: ${street.name}`);
-          console.log(`  Segments: ${street.segments?.length || 0}`);
+          console.log(`  Polylines: ${street.points?.length || 0}`);
 
-          // Check for missing segments
-          if (street.segments && street.segments.length > 0) {
-            street.segments.forEach((segment, segmentIndex) => {
-            // TODO lock behind debug flag
+          // street.points is array of polylines (array of LatLng objects)
+          if (street.points && street.points.length > 0) {
+            street.points.forEach((polylinePoints, polylineIndex) => {
               console.log(
-                `  Drawing segment ${segmentIndex + 1}/${street.segments.length} with ${segment.coordinates.length} points`
+                `  Drawing polyline ${polylineIndex + 1}/${street.points.length} with ${polylinePoints.length} points`
               );
 
-              const polyline = window.L.polyline(segment.coordinates, {
+              // Convert {lat, lng} objects to [lat, lng] arrays for Leaflet
+              const leafletCoords = polylinePoints.map(point => [point.lat, point.lng]);
+
+              const polyline = window.L.polyline(leafletCoords, {
                 color: '#3B82F6',
-                weight: 4,
+                weight: street.isEnclosedArea ? 3 : 4,
                 opacity: 0.7,
                 className: 'clickable-street',
+                fillColor: street.isEnclosedArea ? '#3B82F6' : undefined,
+                fillOpacity: street.isEnclosedArea ? 0.1 : undefined
               }).addTo(map);
 
-              polyline.streetId = street.id;
+              // Use street name as ID since Overpass streets don't have IDs
+              polyline.streetId = street.name;
               polyline.streetName = street.name;
 
               // Click handler
               polyline.on('click', (e) => {
                 window.L.DomEvent.stopPropagation(e);
-                // TODO lock behind debug flag
                 console.log('=== STREET CLICKED ===');
                 console.log('Clicked:', street.name);
                 console.log('Target:', currentStreetRef.current?.name);
 
-                //Do nothing if game is over or  not active
+                //Do nothing if game is over or not active
                 if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
                   return;
                 }
 
-                const clickedId = String(street.id);
-                const currentId = String(currentStreetRef.current.id);
-                const isCorrect = clickedId === currentId;
+                // Compare by name instead of ID
+                const clickedName = street.name.toLowerCase();
+                const currentName = currentStreetRef.current.name.toLowerCase();
+                const isCorrect = clickedName === currentName;
 
-                // Visual feedback - flash the clicked street
-                polyline.setStyle({
-                  color: isCorrect ? '#10B981' : '#EF4444',
-                  weight: 6,
-                  opacity: 1,
-                });
+                // Visual feedback - flash ALL segments of the clicked street
+                const allSegments = polylinesRef.current[street.name];
+                if (allSegments) {
+                  allSegments.forEach(segment => {
+                    segment.setStyle({
+                      color: isCorrect ? '#10B981' : '#EF4444',
+                      weight: 6,
+                      opacity: 1,
+                    });
+                  });
+                }
 
                 if (isCorrect) {
                   setScore((prevScore) => prevScore + 10);
@@ -162,14 +257,18 @@ export default function StreetFinderGame() {
                 setGameActive(false);
 
                 setTimeout(() => {
-                  // Reset color back to blue
-                  polyline.setStyle({
-                    color: '#3B82F6',
-                    weight: 4,
-                    opacity: 0.7,
-                  });
+                  // Reset ALL segments of this street back to blue
+                  if (allSegments) {
+                    allSegments.forEach(segment => {
+                      segment.setStyle({
+                        color: '#3B82F6',
+                        weight: 4,
+                        opacity: 0.7,
+                      });
+                    });
+                  }
 
-                  if (round < totalRounds) {
+                  if (roundRef.current < totalRounds) {
                     setRound((prevRound) => prevRound + 1);
                     startNewRound();
                   } else {
@@ -178,27 +277,38 @@ export default function StreetFinderGame() {
                 }, 2000);
               });
 
-              // Hover effects, highlight while hovering if the game is active
+              // Hover effects, highlight ALL segments of this street while hovering
               polyline.on('mouseover', function () {
-                if (gameActiveRef.current && !gameOverRef.current) {
-                  this.setStyle({ weight: 6, opacity: 0.9 });
+              
+                  // Highlight all segments with the same street name
+                  const allSegments = polylinesRef.current[street.name];
+                  if (allSegments) {
+                    allSegments.forEach(segment => {
+                      segment.setStyle({color: "#f1ee30ff", weight: 6, opacity: 0.9 });
+                    });
+                  }
+                }
+              );
+
+              polyline.on('mouseout', function () {
+                // Reset all segments with the same street name back to blue
+                const allSegments = polylinesRef.current[street.name];
+                if (allSegments) {
+                  allSegments.forEach(segment => {
+                    segment.setStyle({
+                      color: '#3B82F6',
+                      weight: 4,
+                      opacity: 0.7,
+                    });
+                  });
                 }
               });
 
-              polyline.on('mouseout', function () {
-                // Always return to blue (no highlighting)
-                this.setStyle({
-                  color: '#3B82F6',
-                  weight: 4,
-                  opacity: 0.7,
-                });
-              });
-
               // Store polyline references so we can reset / style them later
-              if (!polylinesRef.current[street.id]) {
-                polylinesRef.current[street.id] = [];
+              if (!polylinesRef.current[street.name]) {
+                polylinesRef.current[street.name] = [];
               }
-              polylinesRef.current[street.id].push(polyline);
+              polylinesRef.current[street.name].push(polyline);
 
               totalPolylinesDrawn++;
             });
@@ -240,18 +350,25 @@ export default function StreetFinderGame() {
         clearInterval(checkInterval);
       }
     }, 100);
-    // Cleanup when streets change or component unmounts
+    
+    // Cleanup only on unmount
     return () => {
       if (checkInterval) {
         clearInterval(checkInterval);
       }
+    };
+  }, [streets]); // Only depends on streets
+  
+  // Separate cleanup for unmount only
+  useEffect(() => {
+    return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         mapInitialized.current = false;
       }
     };
-  }, [streets]);
+  }, []); // Empty deps - only runs on unmount
 
   const getRandomStreet = () => {
     if (streetsRef.current.length === 0) return null;
@@ -287,16 +404,131 @@ export default function StreetFinderGame() {
 
   // End game: set flags and snapshot final score
   const endGame = () => {
-    setGameOver(true);
+    setGameMode('gameOver');
     setFinalScore(score);
     setGameActive(false);
   };
 
-  const restartGame = () => {
+  // Initialize selection map (before quiz starts)
+  useEffect(() => {
+    if (gameMode !== 'selecting' || selectionMapInitialized.current) {
+      return;
+    }
+
+    let checkInterval;
+
+    const initSelectionMap = () => {
+      if (!window.L || !mapRef.current) {
+        console.log('Waiting for Leaflet or map container...', { 
+          leaflet: !!window.L, 
+          mapRef: !!mapRef.current 
+        });
+        return;
+      }
+
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+
+      console.log('=== INITIALIZING SELECTION MAP ===');
+
+      try {
+        // Ensure container is not already initialized
+        const container = mapRef.current;
+        if (container._leaflet_id) {
+          console.log('Map container already has Leaflet instance, clearing...');
+          // Container already has a map, need to clear it
+          return;
+        }
+
+        const map = window.L.map(container, {
+          center: [35.0844, -106.6504], // Default to Albuquerque
+          zoom: 11.5,
+          zoomControl: true,
+        });
+
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+        selectionMapInitialized.current = true;
+
+        console.log('✅ Selection map initialized');
+        
+        // Ensure map renders properly
+        setTimeout(() => {
+          if (map) {
+            map.invalidateSize();
+          }
+        }, 100);
+      } catch (error) {
+        console.error('❌ Error creating selection map:', error);
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const initialTimeout = setTimeout(() => {
+      initSelectionMap();
+
+      checkInterval = setInterval(() => {
+        if (!selectionMapInitialized.current) {
+          initSelectionMap();
+        } else {
+          clearInterval(checkInterval);
+        }
+      }, 100);
+    }, 50);
+
+    return () => {
+      if (initialTimeout) {
+        clearTimeout(initialTimeout);
+      }
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+    };
+  }, [gameMode]);
+
+  // Handle "Quiz this Area" button click
+  const handleQuizThisArea = () => {
+    if (!mapInstanceRef.current) {
+      console.error('Map not initialized');
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+    const center = map.getCenter();
+    const bounds = map.getBounds();
+    
+    // Calculate radius from bounds (approximate)
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const radiusMeters = Math.round(center.distanceTo(ne));
+
+    console.log('Quiz area selected:', { center, radiusMeters });
+
+    // Remove the selection map before transitioning
+    map.remove();
+    mapInstanceRef.current = null;
+    selectionMapInitialized.current = false;
+
+    setQuizCenter({ lat: center.lat, lng: center.lng });
+    setQuizRadius(radiusMeters);
+    setGameMode('playing');
+  };
+
+  // Play same area again
+  const playSameArea = () => {
     setScore(0);
     setRound(1);
-    setGameOver(false);
     setFinalScore(0);
+    setFeedback('');
+    
+    roundRef.current = 1;
+    gameOverRef.current = false;
+    
     usedStreetIndices.current.clear();
 
     // Reset all polylines to blue
@@ -314,10 +546,45 @@ export default function StreetFinderGame() {
       }
     });
 
-    startNewRound();
+    // Get new street and start playing
+    const newStreet = getRandomStreet();
+    if (newStreet) {
+      setCurrentStreet(newStreet);
+      setGameActive(true);
+    }
+    
+    // Change game mode - this will trigger the useEffect that invalidates map size
+    setGameMode('playing');
   };
 
-  if (loading) {
+  // Choose new area
+  const chooseNewArea = () => {
+    // Clean up existing map
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+    
+    mapInitialized.current = false;
+    selectionMapInitialized.current = false;
+    polylinesRef.current = {};
+    streetsRef.current = [];
+    usedStreetIndices.current.clear();
+    
+    setScore(0);
+    setRound(1);
+    setFinalScore(0);
+    setFeedback('');
+    setCurrentStreet(null);
+    setQuizCenter(null);
+    setGameMode('selecting');
+    
+    roundRef.current = 1;
+    gameOverRef.current = false;
+  };
+
+  // Show loading state only when in playing mode
+  if (gameMode === 'playing' && loading) {
     return (
       <div className="game-container">
         <div
@@ -331,13 +598,17 @@ export default function StreetFinderGame() {
           }}
         >
           <RefreshCw size={48} className="animate-spin" />
-          <p>Loading streets from database...</p>
+          <p>Loading streets from Overpass API...</p>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            This may take 10-30 seconds on first load. Results will be cached.
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  // Show error state only when in playing mode
+  if (gameMode === 'playing' && error) {
     return (
       <div className="game-container">
         <div
@@ -350,9 +621,11 @@ export default function StreetFinderGame() {
             gap: '1rem',
             padding: '2rem',
           }}
+          //TODDO Guarentee that user selects a small enough area
         >
-          <p style={{ color: '#EF4444' }}>Error loading streets: {error}</p>
-          <button onClick={refreshStreets} className="btn-primary">
+          <h1 style={{ color: '#EF4444' }}>Error loading streets, Try a smaller area </h1>
+          <p style={{ color: '#EF4444' }}>Error: {error}</p>
+          <button onClick={loadStreets} className="btn-primary">
             Retry
           </button>
         </div>
@@ -360,7 +633,8 @@ export default function StreetFinderGame() {
     );
   }
 
-  if (streets.length === 0) {
+  // Show error only when in playing mode
+  if (gameMode === 'playing' && streets.length === 0 && !loading) {
     return (
       <div className="game-container">
         <div
@@ -376,11 +650,11 @@ export default function StreetFinderGame() {
           }}
         >
           <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
-            No streets found for {selectedCity}
+            No streets found in this area
           </p>
-          <p style={{ color: '#6b7280' }}>Please upload street data using the Admin Panel</p>
+          <p style={{ color: '#6b7280' }}>Try a different area or zoom level</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={chooseNewArea}
             style={{
               padding: '1rem 2rem',
               background: '#4F46E5',
@@ -391,7 +665,7 @@ export default function StreetFinderGame() {
               fontSize: '1rem',
             }}
           >
-            Reload Page
+            Choose Different Area
           </button>
         </div>
       </div>
@@ -406,47 +680,43 @@ export default function StreetFinderGame() {
             <Target size={32} />
             Back Of Your Hand
           </h1>
-          <select
-            value={selectedCity}
-            onChange={(e) => {
-              setSelectedCity(e.target.value);
-              setGameOver(false);
-              setScore(0);
-              setRound(1);
-              mapInitialized.current = false;
-            }}
-            style={{
-              padding: '0.5rem 1rem',
-              fontSize: '1rem',
-              borderRadius: '8px',
-              border: '2px solid #4F46E5',
-              background: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="Albuquerque">Albuquerque, NM</option>
-            <option value="Santa Fe">Santa Fe, NM</option>
-            <option value="Phoenix">Phoenix, AZ</option>
-            <option value="Denver">Denver, CO</option>
-          </select>
+          {gameMode !== 'selecting' && (
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {difficulty === Difficulty.Tourist && 'Difficulty: Tourist (Major roads)'}
+              {difficulty === Difficulty.Resident && 'Difficulty: Resident (+ Tertiary roads)'}
+              {difficulty === Difficulty.TaxiDriver && 'Difficulty: Taxi Driver (All roads)'}
+              {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
+            </div>
+          )}
 
-          <div className="game-stats">
-            <div className="stat">
-              <Star size={20} />
-              <span>Score: {score}</span>
+          {gameMode === 'playing' && (
+            <div className="game-stats">
+              <div className="stat">
+                <Star size={20} />
+                <span>Score: {score}</span>
+              </div>
+              <div className="stat">
+                <Trophy size={20} />
+                <span>
+                  Round: {round}/{totalRounds}
+                </span>
+              </div>
             </div>
-            <div className="stat">
-              <Trophy size={20} />
-              <span>
-                Round: {round}/{totalRounds}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {!gameOver ? (
-        <div className="game-content">
+      <div className="game-content">
+        {gameMode === 'selecting' && (
+          <div className="quiz-button-overlay">
+            <button onClick={handleQuizThisArea} className="btn-quiz-area">
+              📍 Quiz This Area
+            </button>
+            <p className="quiz-instruction">Pan and zoom the map to select your quiz area</p>
+          </div>
+        )}
+
+        {gameMode === 'playing' && (
           <div className="question-panel">
             {currentStreet ? (
               <>
@@ -467,20 +737,22 @@ export default function StreetFinderGame() {
               <p>Loading...</p>
             )}
           </div>
+        )}
 
-          <div className="map-wrapper">
-            <div
-              ref={mapRef}
-              style={{
-                height: '100%',
-                width: '100%',
-                minHeight: '500px',
-              }}
-            />
-          </div>
+        <div className="map-wrapper">
+          <div
+            ref={mapRef}
+            style={{
+              height: '100%',
+              width: '100%',
+              minHeight: '500px',
+            }}
+          />
         </div>
-      ) : (
-        <div className="game-over">
+      </div>
+
+      {gameMode === 'gameOver' && (
+        <div className="game-over" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000 }}>
           <div className="game-over-content">
             <Award size={64} className="trophy-icon" />
             <h2>Game Over!</h2>
@@ -495,9 +767,14 @@ export default function StreetFinderGame() {
                     : '💪 Keep practicing!'}
               </p>
             </div>
-            <button onClick={restartGame} className="btn-restart">
-              Play Again
-            </button>
+            <div className="game-over-buttons">
+              <button onClick={playSameArea} className="btn-restart">
+                🔄 Play Same Area
+              </button>
+              <button onClick={chooseNewArea} className="btn-restart btn-secondary">
+                🗺️ Choose New Area
+              </button>
+            </div>
           </div>
         </div>
       )}
