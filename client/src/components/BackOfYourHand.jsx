@@ -37,7 +37,7 @@ export default function StreetFinderGame() {
     radius: quizRadius,
     shape: PresetAreaShape.Circle,
     difficulty,
-    numberOfQuestions: 15  // Reduced from 50 to stay under localStorage quota
+    numberOfQuestions: 20  // Reduced from 50 to stay under localStorage quota
   });
   
   const streetsRef = useRef([]);
@@ -230,12 +230,17 @@ export default function StreetFinderGame() {
                 const currentName = currentStreetRef.current.name.toLowerCase();
                 const isCorrect = clickedName === currentName;
 
-                // Visual feedback - flash the clicked street
-                polyline.setStyle({
-                  color: isCorrect ? '#10B981' : '#EF4444',
-                  weight: 6,
-                  opacity: 1,
-                });
+                // Visual feedback - flash ALL segments of the clicked street
+                const allSegments = polylinesRef.current[street.name];
+                if (allSegments) {
+                  allSegments.forEach(segment => {
+                    segment.setStyle({
+                      color: isCorrect ? '#10B981' : '#EF4444',
+                      weight: 6,
+                      opacity: 1,
+                    });
+                  });
+                }
 
                 if (isCorrect) {
                   setScore((prevScore) => prevScore + 10);
@@ -252,12 +257,16 @@ export default function StreetFinderGame() {
                 setGameActive(false);
 
                 setTimeout(() => {
-                  // Reset color back to blue
-                  polyline.setStyle({
-                    color: '#3B82F6',
-                    weight: 4,
-                    opacity: 0.7,
-                  });
+                  // Reset ALL segments of this street back to blue
+                  if (allSegments) {
+                    allSegments.forEach(segment => {
+                      segment.setStyle({
+                        color: '#3B82F6',
+                        weight: 4,
+                        opacity: 0.7,
+                      });
+                    });
+                  }
 
                   if (roundRef.current < totalRounds) {
                     setRound((prevRound) => prevRound + 1);
@@ -270,7 +279,7 @@ export default function StreetFinderGame() {
 
               // Hover effects, highlight ALL segments of this street while hovering
               polyline.on('mouseover', function () {
-                if (gameActiveRef.current && !gameOverRef.current) {
+              
                   // Highlight all segments with the same street name
                   const allSegments = polylinesRef.current[street.name];
                   if (allSegments) {
@@ -279,7 +288,7 @@ export default function StreetFinderGame() {
                     });
                   }
                 }
-              });
+              );
 
               polyline.on('mouseout', function () {
                 // Reset all segments with the same street name back to blue
@@ -612,8 +621,10 @@ export default function StreetFinderGame() {
             gap: '1rem',
             padding: '2rem',
           }}
+          //TODDO Guarentee that user selects a small enough area
         >
-          <p style={{ color: '#EF4444' }}>Error loading streets: {error}</p>
+          <h1 style={{ color: '#EF4444' }}>Error loading streets, Try a smaller area </h1>
+          <p style={{ color: '#EF4444' }}>Error: {error}</p>
           <button onClick={loadStreets} className="btn-primary">
             Retry
           </button>
