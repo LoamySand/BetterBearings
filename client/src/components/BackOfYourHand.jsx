@@ -27,6 +27,7 @@ export default function StreetFinderGame() {
   const gameActiveRef = useRef(false);
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
+  const roundRef = useRef(1);
 
   // Load streets from Overpass API
   const { streets, loading, error, loadStreets } = useOverpassStreets({
@@ -69,6 +70,10 @@ export default function StreetFinderGame() {
   useEffect(() => {
     gameOverRef.current = gameOver;
   }, [gameOver]);
+
+  useEffect(() => {
+    roundRef.current = round;
+  }, [round]);
 
   // Initialize map once streets are loaded
   useEffect(() => {
@@ -186,7 +191,7 @@ export default function StreetFinderGame() {
                     opacity: 0.7,
                   });
 
-                  if (round < totalRounds) {
+                  if (roundRef.current < totalRounds) {
                     setRound((prevRound) => prevRound + 1);
                     startNewRound();
                   } else {
@@ -317,10 +322,17 @@ export default function StreetFinderGame() {
   };
 
   const restartGame = () => {
+    // Update state
     setScore(0);
     setRound(1);
     setGameOver(false);
     setFinalScore(0);
+    setFeedback('');
+    
+    // Update refs immediately
+    roundRef.current = 1;
+    gameOverRef.current = false;
+    
     usedStreetIndices.current.clear();
 
     // Reset all polylines to blue
@@ -338,7 +350,19 @@ export default function StreetFinderGame() {
       }
     });
 
-    startNewRound();
+    // Start a new round immediately, then refresh map size
+    const newStreet = getRandomStreet();
+    if (newStreet) {
+      setCurrentStreet(newStreet);
+      setGameActive(true);
+      
+      // Refresh map after state updates
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 50);
+    }
   };
 
   if (loading) {
@@ -456,41 +480,41 @@ export default function StreetFinderGame() {
         </div>
       </div>
 
-      {!gameOver ? (
-        <div className="game-content">
-          <div className="question-panel">
-            {currentStreet ? (
-              <>
-                <h2 className="question">Find this street:</h2>
-                <h3 className="street-name">{currentStreet.name}</h3>
-                {feedback && (
-                  <div
-                    className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
-                  >
-                    {feedback}
-                  </div>
-                )}
-                <p className="instruction">
-                  {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
-                </p>
-              </>
-            ) : (
-              <p>Loading...</p>
-            )}
-          </div>
-
-          <div className="map-wrapper">
-            <div
-              ref={mapRef}
-              style={{
-                height: '100%',
-                width: '100%',
-                minHeight: '500px',
-              }}
-            />
-          </div>
+      <div className="game-content" style={{ display: gameOver ? 'none' : 'flex' }}>
+        <div className="question-panel">
+          {currentStreet ? (
+            <>
+              <h2 className="question">Find this street:</h2>
+              <h3 className="street-name">{currentStreet.name}</h3>
+              {feedback && (
+                <div
+                  className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
+                >
+                  {feedback}
+                </div>
+              )}
+              <p className="instruction">
+                {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
+              </p>
+            </>
+          ) : (
+            <p>Loading...</p>
+          )}
         </div>
-      ) : (
+
+        <div className="map-wrapper">
+          <div
+            ref={mapRef}
+            style={{
+              height: '100%',
+              width: '100%',
+              minHeight: '500px',
+            }}
+          />
+        </div>
+      </div>
+
+      {gameOver && (
         <div className="game-over">
           <div className="game-over-content">
             <Award size={64} className="trophy-icon" />
