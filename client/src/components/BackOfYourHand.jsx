@@ -39,9 +39,9 @@ export default function StreetFinderGame() {
   
   const streetsRef = useRef([]);
   const usedStreetIndices = useRef(new Set());
-
-  // Convert center back to [lat, lng] array for Leaflet
-  const centerArray = [center.lat, center.lng];
+  
+  // Convert center back to [lat, lng] array for Leaflet (memoize to prevent re-renders)
+  const centerArrayRef = useRef([center.lat, center.lng]);
 
   // Load streets on mount
   useEffect(() => {
@@ -92,13 +92,12 @@ export default function StreetFinderGame() {
         clearInterval(checkInterval);
       }
 
-      // TODO lock behind debug flag
       console.log('=== INITIALIZING MAP ===');
       console.log('Streets to draw:', streetsRef.current.length);
 
       try {
         const map = window.L.map(mapRef.current, {
-          center: centerArray,
+          center: centerArrayRef.current,
           zoom: 11.5,
           zoomControl: true,
         });
@@ -258,18 +257,25 @@ export default function StreetFinderGame() {
         clearInterval(checkInterval);
       }
     }, 100);
-    // Cleanup when streets change or component unmounts
+    
+    // Cleanup only on unmount
     return () => {
       if (checkInterval) {
         clearInterval(checkInterval);
       }
+    };
+  }, [streets]); // Only depends on streets
+  
+  // Separate cleanup for unmount only
+  useEffect(() => {
+    return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         mapInitialized.current = false;
       }
     };
-  }, [streets, centerArray]);
+  }, []); // Empty deps - only runs on unmount
 
   const getRandomStreet = () => {
     if (streetsRef.current.length === 0) return null;

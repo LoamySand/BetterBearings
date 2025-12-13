@@ -3,6 +3,51 @@ import { shouldExcludeStreet } from './exclusions';
 import { matchesDifficulty, isAccessible, usMajorStateRoadRegex } from './difficultySettings';
 import { Difficulty } from './areaTypes';
 
+// Minimum street length in meters (approximately one city block)
+const MIN_STREET_LENGTH_METERS = 150;
+
+/**
+ * Calculate distance between two points using Haversine formula
+ */
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
+}
+
+/**
+ * Calculate total length of a street segment
+ */
+function calculateSegmentLength(geometry) {
+  if (!geometry || geometry.length < 2) return 0;
+  
+  let totalLength = 0;
+  for (let i = 0; i < geometry.length - 1; i++) {
+    const p1 = geometry[i];
+    const p2 = geometry[i + 1];
+    totalLength += calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+  }
+  
+  return totalLength;
+}
+
+/**
+ * Check if element has sufficient length
+ */
+function hasMinimumLength(element) {
+  const length = calculateSegmentLength(element.geometry);
+  return length >= MIN_STREET_LENGTH_METERS;
+}
+
 /**
  * Get street names from Overpass element
  * Returns up to 2 names: main name and alternative name
@@ -93,11 +138,11 @@ function adjustStreetDetails(targetElement, allElements) {
  */
 export function processOverpassElements({ elements, difficulty, numberOfQuestions }) {
   const results = [];
-  const pot = {}; // One entry per unique street name
+  const pot = {}; // Map of street name -> array of all segments with that name
   
   console.log(`Processing ${elements.length} elements for difficulty: ${difficulty}`);
   
-  // Filter and deduplicate by name
+  // Filter and group by name
   for (const element of elements) {
     const key = element.tags.name?.toLowerCase();
     
@@ -118,8 +163,16 @@ export function processOverpassElements({ elements, difficulty, numberOfQuestion
       continue;
     }
     
-    // Only keep one entry per unique name (deduplicate)
-    pot[key] = element;
+    // Filter out segments that are too small (less than a city block)
+    if (!hasMinimumLength(element)) {
+      continue;
+    }
+    
+    // Group all segments with the same name
+    if (!pot[key]) {
+      pot[key] = [];
+    }
+    pot[key].push(element);
   }
   
   const potKeys = Object.keys(pot);
@@ -138,8 +191,9 @@ export function processOverpassElements({ elements, difficulty, numberOfQuestion
     
     if (!key) break;
     
-    // Get the element and combine all segments with same name
-    const targetElement = pot[key];
+    // Get the first element from this group and combine all segments with same name
+    const segmentsForThisStreet = pot[key];
+    const targetElement = segmentsForThisStreet[0];
     const adjustedStreet = adjustStreetDetails(targetElement, elements);
     
     results.push(adjustedStreet);
