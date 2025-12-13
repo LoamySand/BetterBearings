@@ -31,16 +31,20 @@ lint-server:
 # Deploy to production Heroku - runs only on main
 deploy-production:
   stage: deploy
-  image: alpine:latest
+  image: node:${NODE_VERSION}-alpine
   before_script:
     - apk add --no-cache git curl bash
     - curl https://cli-assets.heroku.com/install.sh | bash
+    - export PATH="/usr/local/bin:$PATH"
   script:
+    - git config --global user.email "ci@gitlab.com"
+    - git config --global user.name "GitLab CI"
     - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_PRODUCTION_APP.git || true
     - git push heroku HEAD:main --force
   only:
     - main
   when: on_success
+
 # Deploy to staging Heroku - runs only on staging
 #deploy-staging:
  # stage: deploy
