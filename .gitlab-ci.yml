@@ -40,7 +40,7 @@ deploy-production:
     - git config --global user.email "ci@gitlab.com"
     - git config --global user.name "GitLab CI"
     - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_PRODUCTION_APP.git || true
-    - git push heroku HEAD:main --force
+    - git push heroku HEAD:refs/heads/main --force
   only:
     - main
   when: on_success
