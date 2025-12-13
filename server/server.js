@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
+//require('dotenv').config();
 
 const app = express();
 
@@ -32,9 +32,11 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = process.env.PORT || 5000;
 // MongoDB Connection
+console.log('🔍 MONGODB_URI:', process.env.MONGODB_URI ? 'SET' : 'UNDEFINED');
+console.log('🔍 Using URI:', process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-startup');
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-startup', {})
-  .then(() => console.log('✅ MongoDB Connected'))
+  .then(() => console.log(process.env.MONGODB_URI))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
 app.listen(PORT, () => {
