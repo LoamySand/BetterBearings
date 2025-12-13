@@ -32,11 +32,9 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = process.env.PORT || 5000;
 // MongoDB Connection
-console.log('🔍 MONGODB_URI:', process.env.MONGODB_URI ? 'SET' : 'UNDEFINED');
-console.log('🔍 Using URI:', process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-startup');
 mongoose
-  .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-startup', {})
-  .then(() => console.log(process.env.MONGODB_URI))
+  .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/mern-startup', {})
+  .then(() => console.log('✅ MongoDB Connected'))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
 app.listen(PORT, () => {
