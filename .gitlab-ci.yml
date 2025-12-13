@@ -33,10 +33,10 @@ deploy-production:
   stage: deploy
   image: alpine:latest
   before_script:
-    - apk add --no-cache git curl
-    - curl https://cli-assets.heroku.com/install.sh | sh
+    - apk add --no-cache git curl bash
+    - curl https://cli-assets.heroku.com/install.sh | bash
   script:
-    - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_PRODUCTION_APP.git
+    - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_PRODUCTION_APP.git || true
     - git push heroku HEAD:main --force
   only:
     - main
