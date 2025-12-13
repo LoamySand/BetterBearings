@@ -6,6 +6,17 @@ const path = require('path');
 
 const app = express();
 
+// Force HTTPS redirect in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
