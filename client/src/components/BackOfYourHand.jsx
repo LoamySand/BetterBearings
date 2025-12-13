@@ -761,10 +761,10 @@ export default function StreetFinderGame() {
               <h1>{finalScore}</h1>
               <p className="score-message">
                 {finalScore >= 40
-                  ? '🎉 Excellent!'
+                  ? 'Impressive!'
                   : finalScore >= 25
-                    ? '👏 Good job!'
-                    : '💪 Keep practicing!'}
+                    ? 'Good Try!!'
+                    : 'Keep practicing!'}
               </p>
             </div>
             <div className="game-over-buttons">
