@@ -5,49 +5,50 @@ import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
 export default function StreetFinderGame() {
+  // Game mode: 'selecting' | 'playing' | 'gameOver'
+  const [gameMode, setGameMode] = useState('selecting');
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(1);
   const [currentStreet, setCurrentStreet] = useState(null);
   const [gameActive, setGameActive] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [totalRounds] = useState(5);
-  const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   
-  // Overpass settings
-  const [center] = useState({ lat: 35.0844, lng: -106.6504 }); // Albuquerque
-  const [radius] = useState(5000); // 5km radius
+  // Quiz area settings - will be set when user clicks "Quiz this Area"
+  const [quizCenter, setQuizCenter] = useState(null);
+  const [quizRadius, setQuizRadius] = useState(5000); // 5km default
   const [difficulty] = useState(Difficulty.Tourist);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const polylinesRef = useRef({});
   const mapInitialized = useRef(false);
+  const selectionMapInitialized = useRef(false);
 
   const gameActiveRef = useRef(false);
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
   const roundRef = useRef(1);
 
-  // Load streets from Overpass API
+  // Load streets from Overpass API - only when quizCenter is set
   const { streets, loading, error, loadStreets } = useOverpassStreets({
-    center,
-    radius,
+    center: quizCenter,
+    radius: quizRadius,
     shape: PresetAreaShape.Circle,
     difficulty,
-    numberOfQuestions: 20
+    numberOfQuestions: 50
   });
   
   const streetsRef = useRef([]);
   const usedStreetIndices = useRef(new Set());
-  
-  // Convert center back to [lat, lng] array for Leaflet (memoize to prevent re-renders)
-  const centerArrayRef = useRef([center.lat, center.lng]);
 
-  // Load streets on mount
+  // Load streets when quiz area is selected
   useEffect(() => {
-    loadStreets();
-  }, [loadStreets]);
+    if (quizCenter && gameMode === 'playing') {
+      loadStreets();
+    }
+  }, [quizCenter, gameMode, loadStreets]);
 
   // Update streets ref when streets change
   useEffect(() => {
@@ -68,8 +69,8 @@ export default function StreetFinderGame() {
   }, [currentStreet]);
 
   useEffect(() => {
-    gameOverRef.current = gameOver;
-  }, [gameOver]);
+    gameOverRef.current = gameMode === 'gameOver';
+  }, [gameMode]);
 
   useEffect(() => {
     roundRef.current = round;
@@ -102,7 +103,7 @@ export default function StreetFinderGame() {
 
       try {
         const map = window.L.map(mapRef.current, {
-          center: centerArrayRef.current,
+          center: [quizCenter.lat, quizCenter.lng],
           zoom: 11.5,
           zoomControl: true,
         });
@@ -200,20 +201,31 @@ export default function StreetFinderGame() {
                 }, 2000);
               });
 
-              // Hover effects, highlight while hovering if the game is active
+              // Hover effects, highlight ALL segments of this street while hovering
               polyline.on('mouseover', function () {
                 if (gameActiveRef.current && !gameOverRef.current) {
-                  this.setStyle({ weight: 6, opacity: 0.9 });
+                  // Highlight all segments with the same street name
+                  const allSegments = polylinesRef.current[street.name];
+                  if (allSegments) {
+                    allSegments.forEach(segment => {
+                      segment.setStyle({color: "#f1ee30ff", weight: 6, opacity: 0.9 });
+                    });
+                  }
                 }
               });
 
               polyline.on('mouseout', function () {
-                // Always return to blue (no highlighting)
-                this.setStyle({
-                  color: '#3B82F6',
-                  weight: 4,
-                  opacity: 0.7,
-                });
+                // Reset all segments with the same street name back to blue
+                const allSegments = polylinesRef.current[street.name];
+                if (allSegments) {
+                  allSegments.forEach(segment => {
+                    segment.setStyle({
+                      color: '#3B82F6',
+                      weight: 4,
+                      opacity: 0.7,
+                    });
+                  });
+                }
               });
 
               // Store polyline references so we can reset / style them later
@@ -316,20 +328,129 @@ export default function StreetFinderGame() {
 
   // End game: set flags and snapshot final score
   const endGame = () => {
-    setGameOver(true);
+    setGameMode('gameOver');
     setFinalScore(score);
     setGameActive(false);
   };
 
-  const restartGame = () => {
-    // Update state
+  // Initialize selection map (before quiz starts)
+  useEffect(() => {
+    if (gameMode !== 'selecting' || selectionMapInitialized.current) {
+      return;
+    }
+
+    let checkInterval;
+
+    const initSelectionMap = () => {
+      if (!window.L || !mapRef.current) {
+        console.log('Waiting for Leaflet or map container...', { 
+          leaflet: !!window.L, 
+          mapRef: !!mapRef.current 
+        });
+        return;
+      }
+
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+
+      console.log('=== INITIALIZING SELECTION MAP ===');
+
+      try {
+        // Ensure container is not already initialized
+        const container = mapRef.current;
+        if (container._leaflet_id) {
+          console.log('Map container already has Leaflet instance, clearing...');
+          // Container already has a map, need to clear it
+          return;
+        }
+
+        const map = window.L.map(container, {
+          center: [35.0844, -106.6504], // Default to Albuquerque
+          zoom: 11.5,
+          zoomControl: true,
+        });
+
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+        selectionMapInitialized.current = true;
+
+        console.log('✅ Selection map initialized');
+        
+        // Ensure map renders properly
+        setTimeout(() => {
+          if (map) {
+            map.invalidateSize();
+          }
+        }, 100);
+      } catch (error) {
+        console.error('❌ Error creating selection map:', error);
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const initialTimeout = setTimeout(() => {
+      initSelectionMap();
+
+      checkInterval = setInterval(() => {
+        if (!selectionMapInitialized.current) {
+          initSelectionMap();
+        } else {
+          clearInterval(checkInterval);
+        }
+      }, 100);
+    }, 50);
+
+    return () => {
+      if (initialTimeout) {
+        clearTimeout(initialTimeout);
+      }
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+    };
+  }, [gameMode]);
+
+  // Handle "Quiz this Area" button click
+  const handleQuizThisArea = () => {
+    if (!mapInstanceRef.current) {
+      console.error('Map not initialized');
+      return;
+    }
+
+    const map = mapInstanceRef.current;
+    const center = map.getCenter();
+    const bounds = map.getBounds();
+    
+    // Calculate radius from bounds (approximate)
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const radiusMeters = Math.round(center.distanceTo(ne));
+
+    console.log('Quiz area selected:', { center, radiusMeters });
+
+    // Remove the selection map before transitioning
+    map.remove();
+    mapInstanceRef.current = null;
+    selectionMapInitialized.current = false;
+
+    setQuizCenter({ lat: center.lat, lng: center.lng });
+    setQuizRadius(radiusMeters);
+    setGameMode('playing');
+  };
+
+  // Play same area again
+  const playSameArea = () => {
     setScore(0);
     setRound(1);
-    setGameOver(false);
     setFinalScore(0);
     setFeedback('');
+    setGameMode('playing');
     
-    // Update refs immediately
     roundRef.current = 1;
     gameOverRef.current = false;
     
@@ -350,13 +471,12 @@ export default function StreetFinderGame() {
       }
     });
 
-    // Start a new round immediately, then refresh map size
+    // Start a new round
     const newStreet = getRandomStreet();
     if (newStreet) {
       setCurrentStreet(newStreet);
       setGameActive(true);
       
-      // Refresh map after state updates
       setTimeout(() => {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
@@ -365,7 +485,34 @@ export default function StreetFinderGame() {
     }
   };
 
-  if (loading) {
+  // Choose new area
+  const chooseNewArea = () => {
+    // Clean up existing map
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+    
+    mapInitialized.current = false;
+    selectionMapInitialized.current = false;
+    polylinesRef.current = {};
+    streetsRef.current = [];
+    usedStreetIndices.current.clear();
+    
+    setScore(0);
+    setRound(1);
+    setFinalScore(0);
+    setFeedback('');
+    setCurrentStreet(null);
+    setQuizCenter(null);
+    setGameMode('selecting');
+    
+    roundRef.current = 1;
+    gameOverRef.current = false;
+  };
+
+  // Show loading state only when in playing mode
+  if (gameMode === 'playing' && loading) {
     return (
       <div className="game-container">
         <div
@@ -388,7 +535,8 @@ export default function StreetFinderGame() {
     );
   }
 
-  if (error) {
+  // Show error state only when in playing mode
+  if (gameMode === 'playing' && error) {
     return (
       <div className="game-container">
         <div
@@ -411,7 +559,8 @@ export default function StreetFinderGame() {
     );
   }
 
-  if (streets.length === 0 && !loading) {
+  // Show error only when in playing mode
+  if (gameMode === 'playing' && streets.length === 0 && !loading) {
     return (
       <div className="game-container">
         <div
@@ -429,9 +578,9 @@ export default function StreetFinderGame() {
           <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
             No streets found in this area
           </p>
-          <p style={{ color: '#6b7280' }}>Try increasing the radius or changing the difficulty</p>
+          <p style={{ color: '#6b7280' }}>Try a different area or zoom level</p>
           <button
-            onClick={loadStreets}
+            onClick={chooseNewArea}
             style={{
               padding: '1rem 2rem',
               background: '#4F46E5',
@@ -442,7 +591,7 @@ export default function StreetFinderGame() {
               fontSize: '1rem',
             }}
           >
-            Retry
+            Choose Different Area
           </button>
         </div>
       </div>
@@ -451,56 +600,70 @@ export default function StreetFinderGame() {
 
   return (
     <div className="game-container">
-      <div className="game-header">
-        <div className="game-info">
-          <h1 className="game-title">
-            <Target size={32} />
-            Back Of Your Hand - Albuquerque
-          </h1>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            {difficulty === Difficulty.Tourist && 'Difficulty: Tourist (Major roads)'}
-            {difficulty === Difficulty.Resident && 'Difficulty: Resident (+ Tertiary roads)'}
-            {difficulty === Difficulty.TaxiDriver && 'Difficulty: Taxi Driver (All roads)'}
-            {' • '}
-            {Math.round(radius / 1000)}km radius
-          </div>
-
-          <div className="game-stats">
-            <div className="stat">
-              <Star size={20} />
-              <span>Score: {score}</span>
+      {gameMode !== 'selecting' && (
+        <div className="game-header">
+          <div className="game-info">
+            <h1 className="game-title">
+              <Target size={32} />
+              Back Of Your Hand
+            </h1>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {difficulty === Difficulty.Tourist && 'Difficulty: Tourist (Major roads)'}
+              {difficulty === Difficulty.Resident && 'Difficulty: Resident (+ Tertiary roads)'}
+              {difficulty === Difficulty.TaxiDriver && 'Difficulty: Taxi Driver (All roads)'}
+              {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
             </div>
-            <div className="stat">
-              <Trophy size={20} />
-              <span>
-                Round: {round}/{totalRounds}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="game-content" style={{ display: gameOver ? 'none' : 'flex' }}>
-        <div className="question-panel">
-          {currentStreet ? (
-            <>
-              <h2 className="question">Find this street:</h2>
-              <h3 className="street-name">{currentStreet.name}</h3>
-              {feedback && (
-                <div
-                  className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
-                >
-                  {feedback}
+            {gameMode === 'playing' && (
+              <div className="game-stats">
+                <div className="stat">
+                  <Star size={20} />
+                  <span>Score: {score}</span>
                 </div>
-              )}
-              <p className="instruction">
-                {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
-              </p>
-            </>
-          ) : (
-            <p>Loading...</p>
-          )}
+                <div className="stat">
+                  <Trophy size={20} />
+                  <span>
+                    Round: {round}/{totalRounds}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      )}
+
+      <div className="game-content" style={{ display: gameMode === 'gameOver' ? 'none' : 'flex' }}>
+        {gameMode === 'selecting' && (
+          <div className="quiz-button-overlay">
+            <button onClick={handleQuizThisArea} className="btn-quiz-area">
+              📍 Quiz This Area
+            </button>
+            <p className="quiz-instruction">Pan and zoom the map to select your quiz area</p>
+          </div>
+        )}
+
+        {gameMode === 'playing' && (
+          <div className="question-panel">
+            {currentStreet ? (
+              <>
+                <h2 className="question">Find this street:</h2>
+                <h3 className="street-name">{currentStreet.name}</h3>
+                {feedback && (
+                  <div
+                    className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
+                  >
+                    {feedback}
+                  </div>
+                )}
+                <p className="instruction">
+                  {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
+                </p>
+              </>
+            ) : (
+              <p>Loading...</p>
+            )}
+          </div>
+        )}
 
         <div className="map-wrapper">
           <div
@@ -514,7 +677,7 @@ export default function StreetFinderGame() {
         </div>
       </div>
 
-      {gameOver && (
+      {gameMode === 'gameOver' && (
         <div className="game-over">
           <div className="game-over-content">
             <Award size={64} className="trophy-icon" />
@@ -530,9 +693,14 @@ export default function StreetFinderGame() {
                     : '💪 Keep practicing!'}
               </p>
             </div>
-            <button onClick={restartGame} className="btn-restart">
-              Play Again
-            </button>
+            <div className="game-over-buttons">
+              <button onClick={playSameArea} className="btn-restart">
+                🔄 Play Same Area
+              </button>
+              <button onClick={chooseNewArea} className="btn-restart btn-secondary">
+                🗺️ Choose New Area
+              </button>
+            </div>
           </div>
         </div>
       )}
