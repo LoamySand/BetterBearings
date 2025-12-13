@@ -1,0 +1,54 @@
+stages:
+  - lint
+  - deploy
+
+# Variables
+variables:
+  NODE_VERSION: "24.11.0"
+
+# Lint client - runs on pushes to staging and main
+lint-client:
+  stage: lint
+  image: node:${NODE_VERSION}
+  script:
+    - cd client
+    - npm install
+  only:
+    - main
+    - staging
+
+# Lint server - runs on pushes to staging and main
+lint-server:
+  stage: lint
+  image: node:${NODE_VERSION}
+  script:
+    - cd server
+    - npm install
+  only:
+    - main
+    - staging
+
+# Deploy to production Heroku - runs only on main
+deploy-production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git curl
+    - curl https://cli-assets.heroku.com/install.sh | sh
+  script:
+    - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_PRODUCTION_APP.git
+    - git push heroku HEAD:main --force
+  only:
+    - main
+  when: on_success
+# Deploy to staging Heroku - runs only on staging
+#deploy-staging:
+ # stage: deploy
+ # image: ruby:latest
+ # before_script:
+ #   - gem install dpl
+ # script:
+ #   - dpl --provider=heroku --app=$HEROKU_STAGING_APP --api-key=$HEROKU_API_KEY
+ # only:
+ #   - staging
+ # when: on_success
