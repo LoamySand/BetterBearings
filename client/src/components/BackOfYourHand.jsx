@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trophy, Target, Star, Award, RefreshCw } from 'lucide-react';
-import { useStreets } from '../hooks/useStreets';
+import { useOverpassStreets } from '../hooks/useOverpassStreets';
+import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
 export default function StreetFinderGame() {
@@ -12,7 +13,11 @@ export default function StreetFinderGame() {
   const [totalRounds] = useState(5);
   const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
-  const [selectedCity, setSelectedCity] = useState('Albuquerque');
+  
+  // Overpass settings
+  const [center] = useState({ lat: 35.0844, lng: -106.6504 }); // Albuquerque
+  const [radius] = useState(5000); // 5km radius
+  const [difficulty] = useState(Difficulty.Tourist);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -23,23 +28,31 @@ export default function StreetFinderGame() {
   const currentStreetRef = useRef(null);
   const gameOverRef = useRef(false);
 
-  //Set number of loaded streets
-  const streetsToLoad = 20;
-
-  // Load streets from API
-  const { streets, loading, error, refreshStreets } = useStreets(streetsToLoad, selectedCity);
+  // Load streets from Overpass API
+  const { streets, loading, error, loadStreets } = useOverpassStreets({
+    center,
+    radius,
+    shape: PresetAreaShape.Circle,
+    difficulty,
+    numberOfQuestions: 20
+  });
+  
   const streetsRef = useRef([]);
-  const usedStreetIndices = useRef(new Set());  // track streets that have been used
+  const usedStreetIndices = useRef(new Set());
 
-  // TODO Make dynamic based on city
-  const center = [35.0844, -106.6504];
+  // Convert center back to [lat, lng] array for Leaflet
+  const centerArray = [center.lat, center.lng];
+
+  // Load streets on mount
+  useEffect(() => {
+    loadStreets();
+  }, [loadStreets]);
 
   // Update streets ref when streets change
   useEffect(() => {
     if (streets && streets.length > 0) {
       streetsRef.current = streets;
       usedStreetIndices.current.clear();
-      // TODO lock behind debug flag
       console.log('Streets loaded:', streets.length);
     }
   }, [streets]);
@@ -85,7 +98,7 @@ export default function StreetFinderGame() {
 
       try {
         const map = window.L.map(mapRef.current, {
-          center: center,
+          center: centerArray,
           zoom: 11.5,
           zoomControl: true,
         });
@@ -100,45 +113,50 @@ export default function StreetFinderGame() {
 
         let totalPolylinesDrawn = 0;
 
-        // Draw all streets
+        // Draw all streets - now using points array from Overpass data
         streetsRef.current.forEach((street, streetIndex) => {
           console.log(`\nStreet ${streetIndex + 1}: ${street.name}`);
-          console.log(`  Segments: ${street.segments?.length || 0}`);
+          console.log(`  Polylines: ${street.points?.length || 0}`);
 
-          // Check for missing segments
-          if (street.segments && street.segments.length > 0) {
-            street.segments.forEach((segment, segmentIndex) => {
-            // TODO lock behind debug flag
+          // street.points is array of polylines (array of LatLng objects)
+          if (street.points && street.points.length > 0) {
+            street.points.forEach((polylinePoints, polylineIndex) => {
               console.log(
-                `  Drawing segment ${segmentIndex + 1}/${street.segments.length} with ${segment.coordinates.length} points`
+                `  Drawing polyline ${polylineIndex + 1}/${street.points.length} with ${polylinePoints.length} points`
               );
 
-              const polyline = window.L.polyline(segment.coordinates, {
+              // Convert {lat, lng} objects to [lat, lng] arrays for Leaflet
+              const leafletCoords = polylinePoints.map(point => [point.lat, point.lng]);
+
+              const polyline = window.L.polyline(leafletCoords, {
                 color: '#3B82F6',
-                weight: 4,
+                weight: street.isEnclosedArea ? 3 : 4,
                 opacity: 0.7,
                 className: 'clickable-street',
+                fillColor: street.isEnclosedArea ? '#3B82F6' : undefined,
+                fillOpacity: street.isEnclosedArea ? 0.1 : undefined
               }).addTo(map);
 
-              polyline.streetId = street.id;
+              // Use street name as ID since Overpass streets don't have IDs
+              polyline.streetId = street.name;
               polyline.streetName = street.name;
 
               // Click handler
               polyline.on('click', (e) => {
                 window.L.DomEvent.stopPropagation(e);
-                // TODO lock behind debug flag
                 console.log('=== STREET CLICKED ===');
                 console.log('Clicked:', street.name);
                 console.log('Target:', currentStreetRef.current?.name);
 
-                //Do nothing if game is over or  not active
+                //Do nothing if game is over or not active
                 if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
                   return;
                 }
 
-                const clickedId = String(street.id);
-                const currentId = String(currentStreetRef.current.id);
-                const isCorrect = clickedId === currentId;
+                // Compare by name instead of ID
+                const clickedName = street.name.toLowerCase();
+                const currentName = currentStreetRef.current.name.toLowerCase();
+                const isCorrect = clickedName === currentName;
 
                 // Visual feedback - flash the clicked street
                 polyline.setStyle({
@@ -195,10 +213,10 @@ export default function StreetFinderGame() {
               });
 
               // Store polyline references so we can reset / style them later
-              if (!polylinesRef.current[street.id]) {
-                polylinesRef.current[street.id] = [];
+              if (!polylinesRef.current[street.name]) {
+                polylinesRef.current[street.name] = [];
               }
-              polylinesRef.current[street.id].push(polyline);
+              polylinesRef.current[street.name].push(polyline);
 
               totalPolylinesDrawn++;
             });
@@ -251,7 +269,7 @@ export default function StreetFinderGame() {
         mapInitialized.current = false;
       }
     };
-  }, [streets]);
+  }, [streets, centerArray]);
 
   const getRandomStreet = () => {
     if (streetsRef.current.length === 0) return null;
@@ -331,7 +349,10 @@ export default function StreetFinderGame() {
           }}
         >
           <RefreshCw size={48} className="animate-spin" />
-          <p>Loading streets from database...</p>
+          <p>Loading streets from Overpass API...</p>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            This may take 10-30 seconds on first load. Results will be cached.
+          </p>
         </div>
       </div>
     );
@@ -352,7 +373,7 @@ export default function StreetFinderGame() {
           }}
         >
           <p style={{ color: '#EF4444' }}>Error loading streets: {error}</p>
-          <button onClick={refreshStreets} className="btn-primary">
+          <button onClick={loadStreets} className="btn-primary">
             Retry
           </button>
         </div>
@@ -360,7 +381,7 @@ export default function StreetFinderGame() {
     );
   }
 
-  if (streets.length === 0) {
+  if (streets.length === 0 && !loading) {
     return (
       <div className="game-container">
         <div
@@ -376,11 +397,11 @@ export default function StreetFinderGame() {
           }}
         >
           <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
-            No streets found for {selectedCity}
+            No streets found in this area
           </p>
-          <p style={{ color: '#6b7280' }}>Please upload street data using the Admin Panel</p>
+          <p style={{ color: '#6b7280' }}>Try increasing the radius or changing the difficulty</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={loadStreets}
             style={{
               padding: '1rem 2rem',
               background: '#4F46E5',
@@ -391,7 +412,7 @@ export default function StreetFinderGame() {
               fontSize: '1rem',
             }}
           >
-            Reload Page
+            Retry
           </button>
         </div>
       </div>
@@ -404,31 +425,15 @@ export default function StreetFinderGame() {
         <div className="game-info">
           <h1 className="game-title">
             <Target size={32} />
-            Back Of Your Hand
+            Back Of Your Hand - Albuquerque
           </h1>
-          <select
-            value={selectedCity}
-            onChange={(e) => {
-              setSelectedCity(e.target.value);
-              setGameOver(false);
-              setScore(0);
-              setRound(1);
-              mapInitialized.current = false;
-            }}
-            style={{
-              padding: '0.5rem 1rem',
-              fontSize: '1rem',
-              borderRadius: '8px',
-              border: '2px solid #4F46E5',
-              background: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="Albuquerque">Albuquerque, NM</option>
-            <option value="Santa Fe">Santa Fe, NM</option>
-            <option value="Phoenix">Phoenix, AZ</option>
-            <option value="Denver">Denver, CO</option>
-          </select>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            {difficulty === Difficulty.Tourist && 'Difficulty: Tourist (Major roads)'}
+            {difficulty === Difficulty.Resident && 'Difficulty: Resident (+ Tertiary roads)'}
+            {difficulty === Difficulty.TaxiDriver && 'Difficulty: Taxi Driver (All roads)'}
+            {' • '}
+            {Math.round(radius / 1000)}km radius
+          </div>
 
           <div className="game-stats">
             <div className="stat">
