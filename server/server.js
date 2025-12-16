@@ -8,8 +8,25 @@ require('dotenv').config();
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
+// Security middleware with CSP configuration
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org"],
+        connectSrc: [
+          "'self'",
+          "https://*.tile.openstreetmap.org",
+          "https://overpass-api.de",
+          "https://lz4.overpass-api.de",
+        ],
+      },
+    },
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
