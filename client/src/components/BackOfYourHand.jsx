@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trophy, Target, Star, Award, RefreshCw } from 'lucide-react';
+import { Trophy, Target, Star, Award, RefreshCw, User, LogOut } from 'lucide-react';
 import { useOverpassStreets } from '../hooks/useOverpassStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
@@ -7,6 +7,8 @@ import { useQuizArea } from '../hooks/useQuizArea';
 import { useLeafletMap } from '../hooks/useLeafletMap';
 import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
+import { useAuth } from '../contexts/AuthContext';
+import AuthModal from './AuthModal';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
@@ -14,6 +16,9 @@ export default function StreetFinderGame() {
   const [totalRounds] = useState(5);
   const [difficulty] = useState(Difficulty.Tourist);
   const mapRef = useRef(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const { user, logout, isAuthenticated } = useAuth();
 
   // Game state management
   const {
@@ -49,7 +54,7 @@ export default function StreetFinderGame() {
     radius: quizRadius,
     shape: PresetAreaShape.Circle,
     difficulty,
-    numberOfQuestions: 20  // Reduced from 50 to stay under localStorage quota
+    numberOfQuestions: 75  // Reduced from 50 to stay under localStorage quota
   });
 
   
@@ -125,7 +130,7 @@ export default function StreetFinderGame() {
 
   // Update streets ref when streets change
   useEffect(() => {
-    updateStreetsRef(streets);
+    updateStreetsRef(streets); 
   }, [streets, updateStreetsRef]);
 
   // Handle "Quiz this Area" button click
@@ -253,6 +258,8 @@ export default function StreetFinderGame() {
 
   return (
     <div className="game-container">
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      
       <div className="game-header">
         <div className="game-info">
           <h1 className="game-title">
@@ -261,9 +268,9 @@ export default function StreetFinderGame() {
           </h1>
           {gameMode !== 'selecting' && (
             <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-              {difficulty === Difficulty.Tourist && 'Difficulty: Tourist (Major roads)'}
-              {difficulty === Difficulty.Resident && 'Difficulty: Resident (+ Tertiary roads)'}
-              {difficulty === Difficulty.TaxiDriver && 'Difficulty: Taxi Driver (All roads)'}
+              {difficulty === Difficulty.Tourist && 'Difficulty: Easy (Major roads)'}
+              {difficulty === Difficulty.Resident && 'Difficulty: Medium (+ Tertiary roads)'}
+              {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
               {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
             </div>
           )}
@@ -281,6 +288,26 @@ export default function StreetFinderGame() {
                 </span>
               </div>
             </div>
+          )}
+        </div>
+
+        <div className="auth-buttons">
+          {isAuthenticated ? (
+            <div className="user-info">
+              <span className="username">
+                <User size={18} />
+                {user?.username}
+              </span>
+              <button onClick={logout} className="btn-logout">
+                <LogOut size={18} />
+                Logout
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowAuthModal(true)} className="btn-login">
+              <User size={18} />
+              Sign In
+            </button>
           )}
         </div>
       </div>
