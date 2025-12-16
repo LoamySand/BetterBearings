@@ -26,14 +26,18 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
   
   // Fetch from Overpass API
   const performFetch = () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced from 30s to 25s
+    
     return fetch('https://www.overpass-api.de/api/interpreter', {
       body: `data=${overpassQuery}`,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      method: 'POST'
-    });
+      method: 'POST',
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
   };
   
   console.log('🌐 Fetching from Overpass API...');

@@ -1,8 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+
+// Make Leaflet available globally
+window.L = L;
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

@@ -2,9 +2,47 @@
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-//require('dotenv').config();
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
 const app = express();
+
+// Security middleware with CSP configuration
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org"],
+        connectSrc: [
+          "'self'",
+          "https://*.tile.openstreetmap.org",
+          "https://overpass-api.de",
+          "https://*.overpass-api.de",
+          "https://lz4.overpass-api.de",
+        ],
+      },
+    },
+  })
+);
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+app.use('/api/', limiter);
+
+// Stricter rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5, // limit each IP to 5 auth requests per windowMs
+  message: 'Too many authentication attempts, please try again later.',
+});
 
 // Force HTTPS redirect in production
 if (process.env.NODE_ENV === 'production') {
@@ -17,8 +55,12 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Middleware
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Basic Route
@@ -27,6 +69,7 @@ app.get('/api', (req, res) => {
 });
 
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/streets', require('./routes/streetRoutes'));
 
