@@ -21,6 +21,7 @@ app.use(
           "'self'",
           "https://*.tile.openstreetmap.org",
           "https://overpass-api.de",
+          "https://*.overpass-api.de",
           "https://lz4.overpass-api.de",
         ],
       },
