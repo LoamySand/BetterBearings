@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trophy, Target, Star, Award, RefreshCw, User, LogOut } from 'lucide-react';
+import { Trophy, Target, Star, Award, RefreshCw, User, LogOut, Save } from 'lucide-react';
 import { useOverpassStreets } from '../hooks/useOverpassStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
@@ -10,6 +10,7 @@ import { useStreetPolylines } from '../hooks/useStreetPolylines';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
+import SaveStreetSetModal from './SaveStreetSetModal';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
@@ -18,6 +19,7 @@ export default function StreetFinderGame() {
   const [difficulty] = useState(Difficulty.Tourist);
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const { user, logout, isAuthenticated } = useAuth();
 
@@ -166,6 +168,55 @@ export default function StreetFinderGame() {
     
     streetsLoadedForCenter.current = null;
     setGameMode('selecting');
+  };
+
+  // Save current street set
+  const handleSaveStreetSet = async ({ name, description }) => {
+    if (!isAuthenticated) {
+      alert('Please sign in to save street sets');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        alert('No authentication token found. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          center: quizCenter,
+          radius: quizRadius,
+          streets: streets.map(street => ({
+            osmId: street.osmId,
+            name: street.name,
+            coordinates: street.coordinates,
+            type: street.type,
+            length: street.length,
+            included: true,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save street set');
+      }
+
+      alert('Street set saved successfully!');
+    } catch (err) {
+      console.error('Save error:', err);
+      throw new Error(err.message || 'Failed to save street set');
+    }
   };
 
   // Show loading state only when in playing mode
@@ -330,6 +381,16 @@ export default function StreetFinderGame() {
                 <p className="instruction">
                   {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
                 </p>
+                {isAuthenticated && (
+                  <button 
+                    onClick={() => setShowSaveModal(true)} 
+                    className="btn-save-set"
+                    title="Save as Street Set"
+                  >
+                    <Save size={16} />
+                    Save Set
+                  </button>
+                )}
               </>
             ) : (
               <p>Loading...</p>
@@ -375,6 +436,16 @@ export default function StreetFinderGame() {
             </div>
           </div>
         </div>
+      )}
+
+      {showSaveModal && (
+        <SaveStreetSetModal
+          onClose={() => setShowSaveModal(false)}
+          onSave={handleSaveStreetSet}
+          streets={streets}
+          center={quizCenter}
+          radius={quizRadius}
+        />
       )}
     </div>
   );
