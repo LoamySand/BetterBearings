@@ -31,6 +31,10 @@ const streetItemSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  difficulty: {
+    type: Number,
+    default: 2, // 1=Easy, 2=Medium, 3=Hard
+  },
 }, { _id: false });
 
 const streetSetSchema = new mongoose.Schema({

@@ -222,6 +222,51 @@ export default function StreetFinderGame() {
       console.log('Points type:', typeof activeStreets[0]?.points);
       console.log('Points is array:', Array.isArray(activeStreets[0]?.points));
 
+      // Function to calculate difficulty based on street type
+      const calculateDifficulty = (street) => {
+        const type = street.type?.toLowerCase() || '';
+        const length = street.length || 0;
+
+        console.log(`Calculating difficulty for "${street.name}":`, {
+          type: street.type,
+          typeLower: type,
+          length: length,
+          rawStreet: street
+        });
+
+        let difficulty = 2; // Default to medium
+
+        // Easy = Primary roads (motorway, trunk, primary)
+        if (type.includes('primary') || type.includes('motorway') || type.includes('trunk')) {
+          difficulty = 1;
+          console.log(`  -> Easy (primary road)`);
+        }
+        // Medium = Secondary roads
+        else if (type.includes('secondary')) {
+          difficulty = 2;
+          console.log(`  -> Medium (secondary road)`);
+        }
+        // Hard = Tertiary and smaller roads
+        else if (type.includes('tertiary') || type.includes('residential') || 
+            type.includes('living_street') || type.includes('service') || 
+            type.includes('unclassified')) {
+          difficulty = 3;
+          console.log(`  -> Hard (tertiary/small road)`);
+        } else {
+          console.log(`  -> Default Medium (no match)`);
+        }
+
+        // Very short streets are harder (bump up difficulty)
+        if (length > 0 && length < 1500 && difficulty < 3) {
+          const oldDiff = difficulty;
+          difficulty = Math.min(difficulty + 1, 3);
+          console.log(`  -> Bumped from ${oldDiff} to ${difficulty} (short street: ${length}m)`);
+        }
+
+        console.log(`  -> Final difficulty: ${difficulty}`);
+        return difficulty;
+      };
+
       const streetsToSave = activeStreets.map(street => {
         if (!street.points || !Array.isArray(street.points)) {
           console.warn('Street missing points:', street.name);
@@ -241,6 +286,7 @@ export default function StreetFinderGame() {
           alternativeName: street.alternativeName,
           isEnclosedArea: street.isEnclosedArea,
           included: true,
+          difficulty: calculateDifficulty(street),
         };
       }).filter(s => s !== null);
 

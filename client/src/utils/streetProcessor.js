@@ -123,8 +123,16 @@ function adjustStreetDetails(targetElement, allElements) {
     width = widthsThatExist.reduce((a, b) => a + b, 0) / widthsThatExist.length;
   }
   
+  // Calculate total length of all segments
+  const totalLength = equivalentTargets.reduce((sum, element) => {
+    return sum + calculateSegmentLength(element.geometry);
+  }, 0);
+  
   return {
     ...getNamesFromElement(targetElement),
+    osmId: targetElement.id,
+    type: targetElement.tags.highway,
+    length: totalLength,
     isEnclosedArea: equivalentTargets.some(element =>
       isElementAnEnclosedArea(element, [element.geometry.map(convertOverpassLatLngToLatLng)])
     ),
