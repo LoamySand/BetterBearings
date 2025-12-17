@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, MapPin, Trash2, Eye } from 'lucide-react';
+import { Plus, MapPin, Trash2, Eye, Play } from 'lucide-react';
 import './StreetSets.css';
 
 export default function StreetSets() {
@@ -67,6 +67,60 @@ export default function StreetSets() {
 
   const handleCreateNew = () => {
     navigate('/');
+  };
+
+  const handlePlay = async (streetSet) => {
+    try {
+      // Fetch full street set data including streets
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets/${streetSet._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load street set details');
+      }
+
+      const fullStreetSet = await response.json();
+      
+      if (!fullStreetSet.streets || fullStreetSet.streets.length === 0) {
+        alert('This street set has no streets to play with.');
+        return;
+      }
+      
+      navigate('/', { 
+        state: { 
+          streetSet: {
+            name: fullStreetSet.name,
+            center: fullStreetSet.center,
+            radius: fullStreetSet.radius,
+            streets: fullStreetSet.streets.filter(s => s.included).map(s => ({
+              name: s.name,
+              // Convert coordinates array format [[lat, lng], ...] back to points format [{lat, lng}, ...]
+              points: s.coordinates.map(polyline => 
+                polyline.map(coord => {
+                  // Handle both [lat, lng] array format and {lat, lng} object format
+                  if (Array.isArray(coord)) {
+                    return { lat: coord[0], lng: coord[1] };
+                  }
+                  return coord; // Already in {lat, lng} format
+                })
+              ),
+              osmId: s.osmId,
+              type: s.type,
+              length: s.length,
+              width: s.width,
+              alternativeName: s.alternativeName,
+              isEnclosedArea: s.isEnclosedArea || false
+            }))
+          }
+        } 
+      });
+    } catch (err) {
+      alert('Error loading street set: ' + err.message);
+    }
   };
 
   if (loading) {
@@ -150,6 +204,14 @@ export default function StreetSets() {
                     {set.center.lat.toFixed(4)}, {set.center.lng.toFixed(4)}
                   </span>
                 </div>
+
+                <button 
+                  className="btn-play"
+                  onClick={() => handlePlay(set)}
+                >
+                  <Play size={20} />
+                  Play This Set
+                </button>
               </div>
             ))}
           </div>

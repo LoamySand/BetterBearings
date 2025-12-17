@@ -9,13 +9,23 @@ const streetItemSchema = new mongoose.Schema({
     required: true,
   },
   coordinates: {
-    type: [[Number]],
+    type: [[[Number]]], // Array of polylines, each polyline is array of [lat, lng] pairs
   },
   type: {
     type: String,
   },
   length: {
     type: Number,
+  },
+  width: {
+    type: Number,
+  },
+  alternativeName: {
+    type: String,
+  },
+  isEnclosedArea: {
+    type: Boolean,
+    default: false,
   },
   included: {
     type: Boolean,
