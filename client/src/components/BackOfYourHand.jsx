@@ -9,6 +9,7 @@ import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import ProfileDropdown from './ProfileDropdown';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
@@ -293,16 +294,7 @@ export default function StreetFinderGame() {
 
         <div className="auth-buttons">
           {isAuthenticated ? (
-            <div className="user-info">
-              <span className="username">
-                <User size={18} />
-                {user?.username}
-              </span>
-              <button onClick={logout} className="btn-logout">
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
+            <ProfileDropdown />
           ) : (
             <button onClick={() => setShowAuthModal(true)} className="btn-login">
               <User size={18} />

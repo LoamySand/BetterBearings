@@ -1,0 +1,39 @@
+.street-sets-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.street-sets-container {
+  background: white;
+  padding: 3rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+}
+
+.street-sets-container h1 {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.street-sets-container p {
+  color: #6b7280;
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+}
+
+.coming-soon {
+  font-style: italic;
+  color: #9ca3af;
+  margin-top: 2rem;
+}
