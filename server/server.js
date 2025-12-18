@@ -21,7 +21,10 @@ const corsOptions = {
   origin: function (origin, callback) {
     console.log('CORS request from origin:', origin);
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS: No origin header, allowing request');
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       console.log('CORS ALLOWED:', origin);
@@ -34,6 +37,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Length', 'X-Request-Id'],
   preflightContinue: false,
   optionsSuccessStatus: 204
 };

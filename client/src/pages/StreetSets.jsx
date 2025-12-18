@@ -6,6 +6,10 @@ import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSets.css';
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 export default function StreetSets() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -25,7 +29,7 @@ export default function StreetSets() {
   const fetchStreetSets = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets`, {
+      const response = await fetch(`${API_URL}/street-sets`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -51,7 +55,7 @@ export default function StreetSets() {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets/${id}`, {
+      const response = await fetch(`${API_URL}/street-sets/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,7 +80,7 @@ export default function StreetSets() {
     try {
       // Fetch full street set data including streets
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets/${streetSet._id}`, {
+      const response = await fetch(`${API_URL}/street-sets/${streetSet._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

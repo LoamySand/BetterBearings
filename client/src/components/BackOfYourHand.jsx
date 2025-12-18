@@ -296,7 +296,7 @@ export default function StreetFinderGame() {
       console.log('First saved street coordinates:', streetsToSave[0]?.coordinates);
       console.log('First coordinate sample:', streetsToSave[0]?.coordinates[0]);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets`, {
+      const response = await fetch(`${API_URL}/street-sets`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

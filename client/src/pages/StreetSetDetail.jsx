@@ -6,6 +6,10 @@ import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 export default function StreetSetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -71,7 +75,7 @@ export default function StreetSetDetail() {
   const fetchStreetSet = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets/${id}`, {
+      const response = await fetch(`${API_URL}/street-sets/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -315,7 +319,7 @@ export default function StreetSetDetail() {
     setSaving(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets/${id}`, {
+      const response = await fetch(`${API_URL}/street-sets/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
