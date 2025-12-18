@@ -40,7 +40,7 @@ app.use('/api/', limiter);
 // Stricter rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5, // limit each IP to 5 auth requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 5 : 100, // Relaxed limit for development
   message: 'Too many authentication attempts, please try again later.',
 });
 
@@ -61,7 +61,10 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+
+// Increase payload size limit for street set data with coordinates
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Basic Route
 app.get('/api', (req, res) => {
@@ -72,6 +75,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/scores', require('./routes/scoreRoutes'));
 app.use('/api/streets', require('./routes/streetRoutes'));
+app.use('/api/street-sets', require('./routes/streetSetRoutes'));
 
 // Serve static files from the frontend build in production
 if (process.env.NODE_ENV === 'production') {

@@ -164,7 +164,11 @@ export function useLeafletMap({
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.warn('Map already removed:', e);
+        }
         mapInstanceRef.current = null;
         mapInitialized.current = false;
       }
@@ -173,7 +177,11 @@ export function useLeafletMap({
 
   const removeSelectionMap = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn('Map already removed in removeSelectionMap:', e);
+      }
       mapInstanceRef.current = null;
       selectionMapInitialized.current = false;
     }
@@ -181,7 +189,11 @@ export function useLeafletMap({
 
   const cleanupMap = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn('Map already removed in cleanupMap:', e);
+      }
       mapInstanceRef.current = null;
     }
     mapInitialized.current = false;

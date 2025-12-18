@@ -19,7 +19,11 @@ export function usePlayingMap({
     if (gameMode !== 'playing') {
       if (mapInstanceRef.current) {
         console.log('Cleaning up playing map (not in playing mode)');
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.warn('Map already removed:', e);
+        }
         mapInstanceRef.current = null;
         mapInitialized.current = false;
         setIsMapReady(false);
@@ -111,7 +115,11 @@ export function usePlayingMap({
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.warn('Map already removed on unmount:', e);
+        }
         mapInstanceRef.current = null;
         mapInitialized.current = false;
         setIsMapReady(false);
@@ -121,7 +129,11 @@ export function usePlayingMap({
 
   const cleanupMap = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
+      try {
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn('Map already removed in cleanupMap:', e);
+      }
       mapInstanceRef.current = null;
     }
     mapInitialized.current = false;

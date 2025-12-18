@@ -1,0 +1,91 @@
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  z-index: 2003;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.app-title:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.5rem 0 !important;
+    gap: 0.5rem !important;
+  }
+  
+  .header-content {
+    padding: 0 0.75rem;
+  }
+  
+  .header-actions {
+    padding: 0 0.75rem;
+  }
+  
+  .app-title {
+    font-size: 0.875rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .app-icon,
+  .app-title svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-login {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-login:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+  .btn-login {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
