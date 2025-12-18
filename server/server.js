@@ -39,9 +39,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
-
 // Security middleware with CSP configuration
 app.use(
   helmet({
