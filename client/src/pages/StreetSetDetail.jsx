@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Save, CheckSquare, Square, Play, Star } from 'lucide-react';
+import AppHeader from '../components/AppHeader';
+import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
 
 export default function StreetSetDetail() {
@@ -14,6 +16,7 @@ export default function StreetSetDetail() {
   const [error, setError] = useState(null);
   const [selectAll, setSelectAll] = useState(true);
   const [hoveredStreetIndex, setHoveredStreetIndex] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -372,6 +375,8 @@ export default function StreetSetDetail() {
   if (loading) {
     return (
       <div className="street-set-detail-page">
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+        <AppHeader onSignIn={() => setShowAuthModal(true)} />
         <div className="detail-container">
           <p>Loading...</p>
         </div>
@@ -381,22 +386,10 @@ export default function StreetSetDetail() {
 
   if (error) {
     return (
-      <div className="header-actions">
-          <button 
-            onClick={handleSave} 
-            className="btn-save"
-            disabled={saving}
-          >
-            <Save size={20} />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button 
-            onClick={handlePlay} 
-            className="btn-play-set"
-          >
-            <Play size={20} />
-            Play This Set
-          </button>
+      <div className="street-set-detail-page">
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+        <AppHeader onSignIn={() => setShowAuthModal(true)} />
+        <div className="error-message">{error}</div>
       </div>
     );
   }
@@ -409,6 +402,9 @@ export default function StreetSetDetail() {
 
   return (
     <div className="street-set-detail-page">
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      <AppHeader onSignIn={() => setShowAuthModal(true)} />
+      
       <div className="detail-header">
         <button onClick={() => navigate('/street-sets')} className="btn-back">
           <ArrowLeft size={20} />
@@ -441,7 +437,8 @@ export default function StreetSetDetail() {
       </div>
 
       <div className="detail-container">
-        <div className="content-split">
+        <div>
+          <div className="content-split">
           <div className="left-panel">
             <div className="select-all-section">
               <button 
@@ -490,6 +487,7 @@ export default function StreetSetDetail() {
               className="detail-map"
             />
           </div>
+        </div>
         </div>
       </div>
     </div>
