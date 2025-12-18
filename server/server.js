@@ -56,11 +56,15 @@ app.use(
   })
 );
 
-// Rate limiting
+// Handle OPTIONS requests for CORS preflight
+app.options('*', cors(corsOptions));
+
+// Rate limiting - skip OPTIONS requests
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => req.method === 'OPTIONS',
 });
 app.use('/api/', limiter);
 
@@ -69,6 +73,7 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'production' ? 5 : 100, // Relaxed limit for development
   message: 'Too many authentication attempts, please try again later.',
+  skip: (req) => req.method === 'OPTIONS',
 });
 
 // Force HTTPS redirect in production
