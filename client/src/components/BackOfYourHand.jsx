@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trophy, Target, Star, Award, RefreshCw, User, LogOut } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Trophy, Target, Star, Award, RefreshCw, User, LogOut, Save } from 'lucide-react';
 import { useOverpassStreets } from '../hooks/useOverpassStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
@@ -9,14 +10,20 @@ import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import ProfileDropdown from './ProfileDropdown';
+import SaveStreetSetModal from './SaveStreetSetModal';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
 export default function StreetFinderGame() {
+  const location = useLocation();
   const [totalRounds] = useState(5);
   const [difficulty] = useState(Difficulty.Tourist);
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [preloadedStreets, setPreloadedStreets] = useState(null);
+  const [streetSetName, setStreetSetName] = useState(null);
 
   const { user, logout, isAuthenticated } = useAuth();
 
@@ -44,18 +51,23 @@ export default function StreetFinderGame() {
   const {
     quizCenter,
     quizRadius,
+    setQuizCenter,
+    setQuizRadius,
     handleQuizThisArea,
     resetQuizArea,
   } = useQuizArea();
 
-  // Load streets from Overpass API - only when quizCenter is set
+  // Load streets from Overpass API - only when quizCenter is set and no preloaded streets
   const { streets, loading, error, loadStreets } = useOverpassStreets({
-    center: quizCenter,
+    center: preloadedStreets ? null : quizCenter,
     radius: quizRadius,
     shape: PresetAreaShape.Circle,
     difficulty,
     numberOfQuestions: 75  // Reduced from 50 to stay under localStorage quota
   });
+
+  // Use preloaded streets if available, otherwise use fetched streets
+  const activeStreets = preloadedStreets || streets;
 
   
   // Game refs
@@ -85,7 +97,7 @@ export default function StreetFinderGame() {
   } = usePlayingMap({
     gameMode,
     quizCenter,
-    streets,
+    streets: activeStreets,
     mapRef,
   });
 
@@ -97,7 +109,7 @@ export default function StreetFinderGame() {
     resetPolylineColors,
     clearPolylines,
   } = useStreetPolylines({
-    streets,
+    streets: activeStreets,
     quizCenter,
     mapRef,
     mapInstanceRef: playingMapInstanceRef,
@@ -119,19 +131,38 @@ export default function StreetFinderGame() {
   const streetsLoadedForCenter = useRef(null);
   
   useEffect(() => {
-    // Only load if we don't have streets for this center yet
+    // Only load if we don't have streets for this center yet and no preloaded streets
     const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng}` : null;
     
-    if (quizCenter && gameMode === 'playing' && streetsLoadedForCenter.current !== centerKey) {
+    if (quizCenter && gameMode === 'playing' && streetsLoadedForCenter.current !== centerKey && !preloadedStreets) {
       loadStreets();
       streetsLoadedForCenter.current = centerKey;
     }
-  }, [quizCenter, gameMode, loadStreets]);
+  }, [quizCenter, gameMode, loadStreets, preloadedStreets]);
 
   // Update streets ref when streets change
   useEffect(() => {
-    updateStreetsRef(streets); 
-  }, [streets, updateStreetsRef]);
+    updateStreetsRef(activeStreets); 
+  }, [activeStreets, updateStreetsRef]);
+
+  // Handle preloaded street set from navigation
+  useEffect(() => {
+    if (location.state?.streetSet) {
+      const { streetSet } = location.state;
+      console.log('Loading street set:', streetSet.name);
+      console.log('Streets loaded:', streetSet.streets);
+      console.log('First street points format:', streetSet.streets[0]?.points);
+      setPreloadedStreets(streetSet.streets);
+      setStreetSetName(streetSet.name);
+      // Set the quiz area to match the street set
+      setQuizCenter(streetSet.center);
+      setQuizRadius(streetSet.radius);
+      // Switch to playing mode
+      setGameMode('playing');
+      // Clear the navigation state to prevent reloading on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, setQuizCenter, setQuizRadius, setGameMode]);
 
   // Handle "Quiz this Area" button click
   const handleQuizThisAreaClick = () => {
@@ -164,7 +195,131 @@ export default function StreetFinderGame() {
     resetQuizArea();
     
     streetsLoadedForCenter.current = null;
+    setPreloadedStreets(null);
+    setStreetSetName(null);
     setGameMode('selecting');
+  };
+
+  // Save current street set
+  const handleSaveStreetSet = async ({ name, description }) => {
+    if (!isAuthenticated) {
+      alert('Please sign in to save street sets');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        alert('No authentication token found. Please log in again.');
+        return;
+      }
+
+      console.log('=== SAVING STREET SET ===');
+      console.log('Active streets count:', activeStreets.length);
+      console.log('First street sample:', activeStreets[0]);
+      console.log('First street points:', activeStreets[0]?.points);
+      console.log('Points type:', typeof activeStreets[0]?.points);
+      console.log('Points is array:', Array.isArray(activeStreets[0]?.points));
+
+      // Function to calculate difficulty based on street type
+      const calculateDifficulty = (street) => {
+        const type = street.type?.toLowerCase() || '';
+        const length = street.length || 0;
+
+        console.log(`Calculating difficulty for "${street.name}":`, {
+          type: street.type,
+          typeLower: type,
+          length: length,
+          rawStreet: street
+        });
+
+        let difficulty = 2; // Default to medium
+
+        // Easy = Primary roads (motorway, trunk, primary)
+        if (type.includes('primary') || type.includes('motorway') || type.includes('trunk')) {
+          difficulty = 1;
+          console.log(`  -> Easy (primary road)`);
+        }
+        // Medium = Secondary roads
+        else if (type.includes('secondary')) {
+          difficulty = 2;
+          console.log(`  -> Medium (secondary road)`);
+        }
+        // Hard = Tertiary and smaller roads
+        else if (type.includes('tertiary') || type.includes('residential') || 
+            type.includes('living_street') || type.includes('service') || 
+            type.includes('unclassified')) {
+          difficulty = 3;
+          console.log(`  -> Hard (tertiary/small road)`);
+        } else {
+          console.log(`  -> Default Medium (no match)`);
+        }
+
+        // Very short streets are harder (bump up difficulty)
+        if (length > 0 && length < 1500 && difficulty < 3) {
+          const oldDiff = difficulty;
+          difficulty = Math.min(difficulty + 1, 3);
+          console.log(`  -> Bumped from ${oldDiff} to ${difficulty} (short street: ${length}m)`);
+        }
+
+        console.log(`  -> Final difficulty: ${difficulty}`);
+        return difficulty;
+      };
+
+      const streetsToSave = activeStreets.map(street => {
+        if (!street.points || !Array.isArray(street.points)) {
+          console.warn('Street missing points:', street.name);
+          return null;
+        }
+        
+        return {
+          osmId: street.osmId,
+          name: street.name,
+          // Convert from [{lat, lng}, ...] to [[lat, lng], ...]
+          coordinates: street.points.map(polyline => 
+            Array.isArray(polyline) ? polyline.map(point => [point.lat, point.lng]) : []
+          ),
+          type: street.type,
+          length: street.length,
+          width: street.width,
+          alternativeName: street.alternativeName,
+          isEnclosedArea: street.isEnclosedArea,
+          included: true,
+          difficulty: calculateDifficulty(street),
+        };
+      }).filter(s => s !== null);
+
+      console.log('Streets to save count:', streetsToSave.length);
+      console.log('First saved street sample:', streetsToSave[0]);
+      console.log('First saved street coordinates:', streetsToSave[0]?.coordinates);
+      console.log('First coordinate sample:', streetsToSave[0]?.coordinates[0]);
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/street-sets`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          center: quizCenter,
+          radius: quizRadius,
+          streets: streetsToSave,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save street set');
+      }
+
+      alert('Street set saved successfully!');
+    } catch (err) {
+      console.error('Save error:', err);
+      throw new Error(err.message || 'Failed to save street set');
+    }
   };
 
   // Show loading state only when in playing mode
@@ -218,7 +373,7 @@ export default function StreetFinderGame() {
   }
 
   // Show error only when in playing mode
-  if (gameMode === 'playing' && streets.length === 0 && !loading) {
+  if (gameMode === 'playing' && activeStreets.length === 0 && !loading && !preloadedStreets) {
     return (
       <div className="game-container">
         <div
@@ -268,6 +423,19 @@ export default function StreetFinderGame() {
           </h1>
           {gameMode !== 'selecting' && (
             <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {streetSetName && (
+                <span style={{ 
+                  display: 'inline-block',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '6px',
+                  fontWeight: '600',
+                  marginRight: '0.5rem'
+                }}>
+                  📚 {streetSetName}
+                </span>
+              )}
               {difficulty === Difficulty.Tourist && 'Difficulty: Easy (Major roads)'}
               {difficulty === Difficulty.Resident && 'Difficulty: Medium (+ Tertiary roads)'}
               {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
@@ -293,16 +461,7 @@ export default function StreetFinderGame() {
 
         <div className="auth-buttons">
           {isAuthenticated ? (
-            <div className="user-info">
-              <span className="username">
-                <User size={18} />
-                {user?.username}
-              </span>
-              <button onClick={logout} className="btn-logout">
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
+            <ProfileDropdown />
           ) : (
             <button onClick={() => setShowAuthModal(true)} className="btn-login">
               <User size={18} />
@@ -338,6 +497,16 @@ export default function StreetFinderGame() {
                 <p className="instruction">
                   {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
                 </p>
+                {isAuthenticated && !streetSetName && (
+                  <button 
+                    onClick={() => setShowSaveModal(true)} 
+                    className="btn-save-set"
+                    title="Save as Street Set"
+                  >
+                    <Save size={16} />
+                    Save Set
+                  </button>
+                )}
               </>
             ) : (
               <p>Loading...</p>
@@ -383,6 +552,16 @@ export default function StreetFinderGame() {
             </div>
           </div>
         </div>
+      )}
+
+      {showSaveModal && (
+        <SaveStreetSetModal
+          onClose={() => setShowSaveModal(false)}
+          onSave={handleSaveStreetSet}
+          streets={streets}
+          center={quizCenter}
+          radius={quizRadius}
+        />
       )}
     </div>
   );

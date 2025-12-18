@@ -25,11 +25,22 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
   }
   
   // Fetch from Overpass API
+  const OVERPASS_ENDPOINTS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter'
+  ];
+  
+  let endpointIndex = 0;
+  
   const performFetch = () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // Reduced from 30s to 25s
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     
-    return fetch('https://www.overpass-api.de/api/interpreter', {
+    const endpoint = OVERPASS_ENDPOINTS[endpointIndex];
+    console.log(`🌐 Trying endpoint: ${endpoint}`);
+    
+    return fetch(endpoint, {
       body: `data=${overpassQuery}`,
       headers: {
         'Accept': 'application/json',
@@ -43,16 +54,23 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
   console.log('🌐 Fetching from Overpass API...');
   let response = await performFetch();
   
-  // Handle errors with retry logic
+  // Handle errors with retry logic on different endpoints
   if (!response.ok) {
     if (response.status >= 500 && response.status < 600) {
-      if (response.status === 504) {
-        console.warn('⚠️ Overpass timeout, retrying...');
+      if (response.status === 504 && endpointIndex < OVERPASS_ENDPOINTS.length - 1) {
+        console.warn('⚠️ Overpass timeout, trying alternative endpoint...');
+        endpointIndex++;
         response = await performFetch();
+        
+        if (!response.ok && endpointIndex < OVERPASS_ENDPOINTS.length - 1) {
+          console.warn('⚠️ Second endpoint failed, trying final fallback...');
+          endpointIndex++;
+          response = await performFetch();
+        }
         
         if (!response.ok) {
           throw new Error(
-            `Failed to retrieve street data. Overpass API has timed out (${response.status}). ` +
+            `Failed to retrieve street data. All Overpass API endpoints timed out (${response.status}). ` +
             'They could be experiencing a temporary outage, please try again later'
           );
         }

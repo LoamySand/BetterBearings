@@ -118,7 +118,7 @@ export function useStreetPolylines({
             allSegments.forEach(segment => {
               segment.setStyle({
                 color: '#3B82F6',
-                weight: 4,
+                weight: 6,
                 opacity: 0.7,
               });
             });
@@ -142,7 +142,7 @@ export function useStreetPolylines({
             } else {
               segment.setStyle({
                 color: '#3B82F6',
-                weight: 4,
+                weight: 6,
                 opacity: 0.7,
               });
             }
@@ -168,7 +168,7 @@ export function useStreetPolylines({
 
           const polyline = window.L.polyline(leafletCoords, {
             color: '#3B82F6',
-            weight: street.isEnclosedArea ? 3 : 4,
+            weight: street.isEnclosedArea ? 3 : 6,
             opacity: 0.7,
             className: 'clickable-street',
             fillColor: street.isEnclosedArea ? '#3B82F6' : undefined,
