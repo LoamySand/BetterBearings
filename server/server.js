@@ -14,16 +14,18 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org"],
         connectSrc: [
           "'self'",
+          "https://backofyourhand.herokuapp.com",
           "https://*.tile.openstreetmap.org",
           "https://overpass-api.de",
           "https://*.overpass-api.de",
           "https://lz4.overpass-api.de",
         ],
+        fontSrc: ["'self'", "data:"],
       },
     },
   })
