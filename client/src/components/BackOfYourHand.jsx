@@ -9,6 +9,7 @@ import { useLeafletMap } from '../hooks/useLeafletMap';
 import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
 import { useAuth } from '../contexts/AuthContext';
+import AppHeader from './AppHeader';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
@@ -415,34 +416,22 @@ export default function StreetFinderGame() {
     <div className="game-container">
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
       
-      <div className="game-header">
-        <div className="game-info">
-          <h1 className="game-title">
-            <Target size={32} />
-            Back Of Your Hand
-          </h1>
-          {gameMode !== 'selecting' && (
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-              {streetSetName && (
-                <span style={{ 
-                  display: 'inline-block',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '6px',
-                  fontWeight: '600',
-                  marginRight: '0.5rem'
-                }}>
-                  📚 {streetSetName}
-                </span>
-              )}
-              {difficulty === Difficulty.Tourist && 'Difficulty: Easy (Major roads)'}
-              {difficulty === Difficulty.Resident && 'Difficulty: Medium (+ Tertiary roads)'}
-              {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
-              {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
-            </div>
+      <AppHeader onSignIn={() => setShowAuthModal(true)} />
+      
+      {gameMode !== 'selecting' && (
+        <div className="game-info-bar">
+          {streetSetName && (
+            <span className="street-set-badge">
+              📚 {streetSetName}
+            </span>
           )}
-
+          <span className="game-meta">
+            {difficulty === Difficulty.Tourist && 'Difficulty: Easy (Major roads)'}
+            {difficulty === Difficulty.Resident && 'Difficulty: Medium (+ Tertiary roads)'}
+            {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
+            {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
+          </span>
+          
           {gameMode === 'playing' && (
             <div className="game-stats">
               <div className="stat">
@@ -458,18 +447,7 @@ export default function StreetFinderGame() {
             </div>
           )}
         </div>
-
-        <div className="auth-buttons">
-          {isAuthenticated ? (
-            <ProfileDropdown />
-          ) : (
-            <button onClick={() => setShowAuthModal(true)} className="btn-login">
-              <User size={18} />
-              Sign In
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       <div className="game-content">
         {gameMode === 'selecting' && (
