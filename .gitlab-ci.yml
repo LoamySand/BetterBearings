@@ -49,21 +49,21 @@ deploy-production:
     GIT_DEPTH: 0
 
 # Deploy to staging Heroku - runs only on staging
-deploy-staging:
-  stage: deploy
-  image: node:${NODE_VERSION}-alpine
-  before_script:
-    - apk add --no-cache git curl bash
-    - curl https://cli-assets.heroku.com/install.sh | bash
-    - export PATH="/usr/local/bin:$PATH"
-  script:
-    - git config --global user.email "ci@gitlab.com"
-    - git config --global user.name "GitLab CI"
-    - git fetch --unshallow || true
-    - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_STAGING_APP.git || true
-    - git push heroku HEAD:refs/heads/main --force
-  only:
-    - staging
-  when: on_success
-  variables:
-    GIT_DEPTH: 0
+#deploy-staging:
+#  stage: deploy
+#  image: node:${NODE_VERSION}-alpine
+#  before_script:
+ #   - apk add --no-cache git curl bash
+ #   - curl https://cli-assets.heroku.com/install.sh | bash
+#    - export PATH="/usr/local/bin:$PATH"
+ # script:
+ #   - git config --global user.email "ci@gitlab.com"
+#    - git config --global user.name "GitLab CI"
+#    - git fetch --unshallow || true
+ #   - git remote add heroku https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_STAGING_APP.git || true
+ #   - git push heroku HEAD:refs/heads/main --force
+ # only:
+#    - staging
+ # when: on_success
+#  variables:
+#    GIT_DEPTH: 0
