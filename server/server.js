@@ -113,11 +113,6 @@ app.use('/api/street-sets', require('./routes/streetSetRoutes'));
 if (process.env.NODE_ENV === 'production') {
   const buildPath = path.join(__dirname, '..', 'client', 'build');
   app.use(express.static(buildPath));
-
-  // For client-side routing, return index.html for unknown routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(buildPath, 'index.html'));
-  });
 }
 
 const PORT = process.env.PORT || 5000;
