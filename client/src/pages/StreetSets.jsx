@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, MapPin, Trash2, Eye, Play } from 'lucide-react';
+import AppHeader from '../components/AppHeader';
+import AuthModal from '../components/AuthModal';
 import './StreetSets.css';
 
 export default function StreetSets() {
@@ -10,6 +12,7 @@ export default function StreetSets() {
   const [streetSets, setStreetSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -126,6 +129,8 @@ export default function StreetSets() {
   if (loading) {
     return (
       <div className="street-sets-page">
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+        <AppHeader onSignIn={() => setShowAuthModal(true)} />
         <div className="street-sets-container">
           <p>Loading...</p>
         </div>
@@ -135,6 +140,9 @@ export default function StreetSets() {
 
   return (
     <div className="street-sets-page">
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      <AppHeader onSignIn={() => setShowAuthModal(true)} />
+      
       <div className="street-sets-header">
         <div className="header-content">
           <h1>My Street Sets</h1>

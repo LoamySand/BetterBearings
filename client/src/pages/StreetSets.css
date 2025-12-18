@@ -1,12 +1,16 @@
 .street-sets-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .street-sets-header {
   max-width: 1200px;
   margin: 0 auto 2rem;
+  padding: 2rem 2rem 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -14,17 +18,37 @@
   flex-wrap: wrap;
 }
 
-.header-content h1 {
+@media (max-width: 768px) {
+  .street-sets-header {
+    padding: 1rem 1rem 0;
+    margin: 0 auto 1rem;
+    gap: 1rem;
+  }
+}
+
+.street-sets-header .header-content h1 {
   font-size: 2.5rem;
   color: white;
   margin: 0 0 0.5rem 0;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.subtitle {
+@media (max-width: 768px) {
+  .street-sets-header .header-content h1 {
+    font-size: 1.75rem;
+  }
+}
+
+.street-sets-header .subtitle {
   color: rgba(255, 255, 255, 0.9);
   font-size: 1.125rem;
   margin: 0;
+}
+
+@media (max-width: 768px) {
+  .street-sets-header .subtitle {
+    font-size: 0.95rem;
+  }
 }
 
 .btn-create-new {
@@ -51,6 +75,16 @@
 .street-sets-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 2rem 2rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .street-sets-container {
+    padding: 0 1rem 1rem;
+  }
 }
 
 .error-message {
