@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, MapPin, Trash2, Eye, Play } from 'lucide-react';
 import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
+import CreateStreetSetModal from '../components/CreateStreetSetModal';
 import './StreetSets.css';
 
 const API_URL = process.env.NODE_ENV === 'production' 
   ? '/api' 
-  : process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
 
 export default function StreetSets() {
   const { user, isAuthenticated } = useAuth();
@@ -17,6 +18,7 @@ export default function StreetSets() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -73,7 +75,81 @@ export default function StreetSets() {
   };
 
   const handleCreateNew = () => {
-    navigate('/');
+    setShowCreateModal(true);
+  };
+
+  const handleSaveStreetSet = async (streetSetData) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      console.log('handleSaveStreetSet called with:', streetSetData);
+      console.log('First street in streetSetData:', streetSetData.streets[0]);
+      console.log('First street points:', streetSetData.streets[0]?.points);
+      
+      // Map difficulty string to numeric value
+      const difficultyMap = {
+        'easy': 1,
+        'medium': 2,
+        'hard': 3,
+      };
+      const difficultyLevel = difficultyMap[streetSetData.difficulty] || 2;
+      
+      // Prepare streets for saving
+      const streetsToSave = streetSetData.streets.map(street => {
+        if (!street.points || !Array.isArray(street.points)) {
+          console.warn('Street missing points:', street.name, 'points:', street.points);
+          return null;
+        }
+        
+        console.log(`Converting street "${street.name}", points length:`, street.points.length, 'first point:', street.points[0]);
+        
+        return {
+          osmId: street.osmId,
+          name: street.name,
+          // Convert from [{lat, lng}, ...] to [[lat, lng], ...]
+          coordinates: street.points.map(polyline => 
+            Array.isArray(polyline) ? polyline.map(point => [point.lat, point.lng]) : []
+          ),
+          type: street.type,
+          length: street.length,
+          width: street.width,
+          alternativeName: street.alternativeName,
+          isEnclosedArea: street.isEnclosedArea,
+          included: true,
+          difficulty: difficultyLevel, // Use the selected difficulty level
+        };
+      }).filter(s => s !== null);
+
+      console.log('Streets to save:', streetsToSave[0]);
+
+      const response = await fetch(`${API_URL}/street-sets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: streetSetData.name,
+          description: streetSetData.description,
+          center: streetSetData.center,
+          radius: streetSetData.radius,
+          streets: streetsToSave,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save street set');
+      }
+
+      const savedSet = await response.json();
+      setShowCreateModal(false);
+      
+      // Navigate to StreetSetDetail editor
+      navigate(`/street-sets/${savedSet._id}`);
+    } catch (err) {
+      alert('Error saving street set: ' + err.message);
+      throw err;
+    }
   };
 
   const handlePlay = async (streetSet) => {
@@ -145,6 +221,12 @@ export default function StreetSets() {
   return (
     <div className="street-sets-page">
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {showCreateModal && (
+        <CreateStreetSetModal
+          onClose={() => setShowCreateModal(false)}
+          onSave={handleSaveStreetSet}
+        />
+      )}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
       
       <div className="street-sets-header">

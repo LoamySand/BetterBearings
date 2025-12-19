@@ -371,13 +371,13 @@
 /* Quiz area selection button */
 .quiz-button-overlay {
   position: absolute;
-  top: 15%;
-  left: 50%;
+  top: 40%;
+  left: 82%;
   transform: translate(-50%, -50%);
   z-index: 1000;
   text-align: center;
   background: rgba(255, 255, 255, 0.98);
-  padding: 2rem 3rem;
+  padding: 0.5rem 0.5rem;
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
@@ -485,7 +485,17 @@
 
 @media (max-width: 768px) {
   .quiz-button-overlay {
-    padding: 1.5rem 2rem;
+    top: 24%;
+    left: 40%;
+    right: 0;
+    transform: translateY(-50%);
+    margin: 0 auto;
+    width: 55vw;
+    max-width: 100%;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
   }
 
   .btn-quiz-area {
