@@ -9,11 +9,12 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? '/api' 
   : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
 
-export default function CreateStreetSetModal({ onClose, onSave, mapRef }) {
+export default function CreateStreetSetModal({ onClose, onSave }) {
   const [step, setStep] = useState('selectArea'); // 'selectArea' or 'savingSet'
   const [selectedDifficulty, setSelectedDifficulty] = useState('easy');
   const [quizCenter, setQuizCenter] = useState(null);
   const [quizRadius, setQuizRadius] = useState(null);
+  const mapRef = useRef(null); // Create the ref inside the component
   const mapInstanceRef = useRef(null);
 
   // Difficulty map
@@ -42,17 +43,32 @@ export default function CreateStreetSetModal({ onClose, onSave, mapRef }) {
 
   // Initialize map
   useEffect(() => {
-    if (!mapRef?.current || mapInstanceRef.current) {
+    if (!mapRef?.current) {
+      console.log('Map ref not ready yet');
+      return;
+    }
+
+    // Check if map is already initialized
+    if (mapRef.current._leaflet_id) {
+      console.log('Map already initialized');
       return;
     }
 
     let checkInterval;
     const initMap = () => {
       if (!window.L) {
+        console.log('Leaflet not loaded yet');
         return;
       }
 
       try {
+        // Ensure the container exists and is in the DOM
+        if (!mapRef.current || !document.body.contains(mapRef.current)) {
+          console.log('Container not in DOM yet');
+          return;
+        }
+
+        console.log('Initializing map...');
         const map = window.L.map(mapRef.current).setView([40, -95], 4);
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
@@ -60,6 +76,7 @@ export default function CreateStreetSetModal({ onClose, onSave, mapRef }) {
         }).addTo(map);
         
         mapInstanceRef.current = map;
+        console.log('Map initialized successfully');
         clearInterval(checkInterval);
       } catch (err) {
         console.error('Error initializing map:', err);
@@ -74,32 +91,38 @@ export default function CreateStreetSetModal({ onClose, onSave, mapRef }) {
 
   const handleSelectArea = () => {
     if (!mapInstanceRef.current) {
-      alert('Map not initialized. Please try again.');
+      console.error('Map instance not initialized:', mapInstanceRef.current);
+      alert('Map not initialized. Please wait a moment and try again.');
       return;
     }
 
-    const map = mapInstanceRef.current;
-    const bounds = map.getBounds();
-    const center = bounds.getCenter();
+    try {
+      const map = mapInstanceRef.current;
+      const bounds = map.getBounds();
+      const center = bounds.getCenter();
 
-    // Calculate radius from bounds
-    const maxDist = Math.max(
-      map.distance(center, bounds.getNorthWest()),
-      map.distance(center, bounds.getNorthEast()),
-      map.distance(center, bounds.getSouthWest()),
-      map.distance(center, bounds.getSouthEast())
-    );
+      // Calculate radius from bounds
+      const maxDist = Math.max(
+        map.distance(center, bounds.getNorthWest()),
+        map.distance(center, bounds.getNorthEast()),
+        map.distance(center, bounds.getSouthWest()),
+        map.distance(center, bounds.getSouthEast())
+      );
 
-    const radius = Math.min(maxDist, 5000);
+      const radius = Math.min(maxDist, 5000);
 
-    if (radius < 500) {
-      alert('Area too small. Please zoom out more.');
-      return;
+      if (radius < 500) {
+        alert('Area too small. Please zoom out more.');
+        return;
+      }
+
+      setQuizCenter({ lat: center.lat, lng: center.lng });
+      setQuizRadius(radius);
+      setStep('savingSet');
+    } catch (err) {
+      console.error('Error selecting area:', err);
+      alert('Error selecting area. Please try again.');
     }
-
-    setQuizCenter({ lat: center.lat, lng: center.lng });
-    setQuizRadius(radius);
-    setStep('savingSet');
   };
 
   const handleSaveStreetSet = async (config) => {

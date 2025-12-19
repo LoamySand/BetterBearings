@@ -14,7 +14,6 @@ const API_URL = process.env.NODE_ENV === 'production'
 export default function StreetSets() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const mapRef = useRef(null);
   const [streetSets, setStreetSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -226,7 +225,6 @@ export default function StreetSets() {
         <CreateStreetSetModal
           onClose={() => setShowCreateModal(false)}
           onSave={handleSaveStreetSet}
-          mapRef={mapRef}
         />
       )}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
