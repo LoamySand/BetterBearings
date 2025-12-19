@@ -15,6 +15,7 @@ const allowedOrigins = [
   'https://www.backofyourhand.org',
   'https://backofyourhand.org',
   'https://backofyourhand-7074dc055b01.herokuapp.com',
+  'https://backofyourhandstg-f59e2db931c3.herokuapp.com',
   process.env.CLIENT_URL
 ].filter(Boolean);
 
