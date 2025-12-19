@@ -13,17 +13,19 @@ import AppHeader from './AppHeader';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
+import QuizAreaModule from './QuizAreaModule';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
 
 const API_URL = process.env.NODE_ENV === 'production' 
   ? '/api' 
-  : process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
 
 export default function StreetFinderGame() {
   const location = useLocation();
   const [totalRounds] = useState(5);
   const [difficulty] = useState(Difficulty.Tourist);
+  const [streetSets, setStreetSets] = useState([]);
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -169,7 +171,57 @@ export default function StreetFinderGame() {
     }
   }, [location.state, setQuizCenter, setQuizRadius, setGameMode]);
 
-  // Handle "Quiz this Area" button click
+  // Load user's street sets on mount
+  useEffect(() => {
+    const fetchStreetSets = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_URL}/street-sets`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStreetSets(data);
+        }
+      } catch (err) {
+        console.error('Failed to load street sets:', err);
+      }
+    };
+
+    fetchStreetSets();
+  }, [isAuthenticated]);
+
+  // Handle quiz module start
+  const handleQuizModuleStart = async (config) => {
+    if (config.streetSet === 'current-location') {
+      // Use current map center and radius
+      setQuizCenter(config.center);
+      setQuizRadius(config.radius);
+    } else {
+      // Load streets from selected street set
+      const selectedSet = streetSets.find(s => s._id === config.streetSet);
+      if (selectedSet) {
+        setQuizCenter(selectedSet.center);
+        setQuizRadius(selectedSet.radius);
+        setPreloadedStreets(selectedSet.streets);
+        setStreetSetName(selectedSet.name);
+      }
+    }
+
+    // Remove selection map and transition to playing mode
+    if (selectionMapInstanceRef.current) {
+      selectionMapInstanceRef.current.remove();
+      selectionMapInstanceRef.current = null;
+    }
+    setGameMode('playing');
+  };
+
+  // Handle "Quiz this Area" button click (legacy)
   const handleQuizThisAreaClick = () => {
     handleQuizThisArea(mapInstanceRef.current, () => {
       // Remove selection map and transition to playing mode
@@ -456,10 +508,12 @@ export default function StreetFinderGame() {
       <div className="game-content">
         {gameMode === 'selecting' && (
           <div className="quiz-button-overlay">
-            <button onClick={handleQuizThisAreaClick} className="btn-quiz-area">
-              📍 Quiz This Area
-            </button>
-            <p className="quiz-instruction">Pan and zoom the map to select your quiz area</p>
+            <QuizAreaModule 
+              streetSets={streetSets}
+              onQuizStart={handleQuizModuleStart}
+              mapCenter={quizCenter}
+              mapRadius={quizRadius}
+            />
           </div>
         )}
 

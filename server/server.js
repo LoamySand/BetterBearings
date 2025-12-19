@@ -11,6 +11,7 @@ const app = express();
 // CORS configuration - MUST come first
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:5000',
   'https://www.backofyourhand.org',
   'https://backofyourhand.org',
   'https://backofyourhand-7074dc055b01.herokuapp.com',
@@ -59,6 +60,8 @@ app.use(
           "https://overpass-api.de",
           "https://*.overpass-api.de",
           "https://lz4.overpass-api.de",
+          "http://localhost:5000",
+
         ],
         fontSrc: ["'self'", "data:"],
       },
