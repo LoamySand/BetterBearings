@@ -22,6 +22,7 @@ export function useStreetPolylines({
   endGame,
 }) {
   const polylinesRef = useRef({});
+  const firstRoundStartedRef = useRef(false);
 
   // Draw streets on map once it's initialized
   useEffect(() => {
@@ -207,8 +208,9 @@ export function useStreetPolylines({
     console.log(`   Total streets: ${streets.length}`);
     console.log(`   Total polylines drawn: ${totalPolylinesDrawn}`);
 
-    // Start the first round after drawing streets
-    if (startNewRound) {
+    // Start the first round after drawing streets (only once)
+    if (startNewRound && !firstRoundStartedRef.current) {
+      firstRoundStartedRef.current = true;
       setTimeout(() => {
         console.log('🎮 Starting first round...');
         startNewRound();
@@ -246,6 +248,7 @@ export function useStreetPolylines({
       }
     });
     polylinesRef.current = {};
+    firstRoundStartedRef.current = false; // Reset so next round can start
   };
 
   return {

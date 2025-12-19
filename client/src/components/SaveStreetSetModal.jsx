@@ -2,28 +2,38 @@ import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import './SaveStreetSetModal.css';
 
-export default function SaveStreetSetModal({ onClose, onSave, streets, center, radius }) {
+export default function SaveStreetSetModal({ onClose, onSave, streets, center, radius, isCreating = false, loading = false, error = null }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [difficulty, setDifficulty] = useState('easy');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setSubmitError('');
 
     if (!name.trim()) {
-      setError('Please enter a name for this street set');
+      setSubmitError('Please enter a name for this street set');
+      return;
+    }
+
+    if (isCreating && streets.length === 0) {
+      setSubmitError('No streets were loaded. Please try selecting a different area.');
       return;
     }
 
     setSaving(true);
 
     try {
-      await onSave({ name: name.trim(), description: description.trim() });
+      await onSave({ 
+        name: name.trim(), 
+        description: description.trim(),
+        difficulty: isCreating ? difficulty : undefined
+      });
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to save street set');
+      setSubmitError(err.message || 'Failed to save street set');
     } finally {
       setSaving(false);
     }
@@ -38,10 +48,28 @@ export default function SaveStreetSetModal({ onClose, onSave, streets, center, r
 
         <h2>Save Street Set</h2>
         <p className="modal-subtitle">
-          Save these {streets?.length || 0} streets for future practice
+          {loading ? (
+            'Loading streets from map area...'
+          ) : (
+            `Save these ${streets?.length || 0} streets for future practice`
+          )}
         </p>
 
-        <form onSubmit={handleSubmit}>
+        {error && (
+          <div className="error-message" style={{ marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="loading-message">
+            <div className="spinner"></div>
+            Fetching streets from Overpass API...
+          </div>
+        )}
+
+        {!loading && (
+          <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="name">Name *</label>
             <input
@@ -68,18 +96,19 @@ export default function SaveStreetSetModal({ onClose, onSave, streets, center, r
             />
           </div>
 
-          {error && <div className="error-message">{error}</div>}
+          {submitError && <div className="error-message">{submitError}</div>}
 
           <div className="modal-actions">
-            <button type="button" onClick={onClose} className="btn-cancel">
+            <button type="button" onClick={onClose} className="btn-cancel" disabled={loading}>
               Cancel
             </button>
-            <button type="submit" className="btn-save" disabled={saving}>
+            <button type="submit" className="btn-save" disabled={saving || loading}>
               <Save size={18} />
               {saving ? 'Saving...' : 'Save Street Set'}
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

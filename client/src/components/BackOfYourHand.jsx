@@ -23,7 +23,7 @@ const API_URL = process.env.NODE_ENV === 'production'
 
 export default function StreetFinderGame() {
   const location = useLocation();
-  const [totalRounds] = useState(5);
+  const [totalRounds, setTotalRounds] = useState(5);
   const [difficulty] = useState(Difficulty.Tourist);
   const [streetSets, setStreetSets] = useState([]);
   const mapRef = useRef(null);
@@ -64,17 +64,25 @@ export default function StreetFinderGame() {
     resetQuizArea,
   } = useQuizArea();
 
-  // Load streets from Overpass API - only when quizCenter is set and no preloaded streets
+  // Load streets from Overpass API - only when no preloaded streets
+  // For 'creating' mode, fetch more streets (50). For 'playing' mode, use totalRounds.
+  const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : totalRounds;
+  
   const { streets, loading, error, loadStreets } = useOverpassStreets({
-    center: preloadedStreets ? null : quizCenter,
+    center: !preloadedStreets ? quizCenter : null,
     radius: quizRadius,
     shape: PresetAreaShape.Circle,
     difficulty,
-    numberOfQuestions: 75  // Reduced from 50 to stay under localStorage quota
+    numberOfQuestions: numberOfQuestionsForAPI
   });
 
   // Use preloaded streets if available, otherwise use fetched streets
-  const activeStreets = preloadedStreets || streets;
+  // For 'creating' mode, don't limit. For 'playing' mode, limit to totalRounds.
+  const activeStreets = preloadedStreets 
+    ? preloadedStreets.slice(0, totalRounds)
+    : gameMode === 'creating'
+      ? streets
+      : streets.slice(0, totalRounds);
 
   
   // Game refs
@@ -141,8 +149,17 @@ export default function StreetFinderGame() {
     // Only load if we don't have streets for this center yet and no preloaded streets
     const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng}` : null;
     
-    if (quizCenter && gameMode === 'playing' && streetsLoadedForCenter.current !== centerKey && !preloadedStreets) {
+    // ONLY load from Overpass if:
+    // 1. We have a quiz center
+    // 2. We're in playing or creating mode
+    // 3. We haven't loaded for this center yet
+    // 4. We do NOT have preloaded streets
+    if (quizCenter && (gameMode === 'playing' || gameMode === 'creating') && streetsLoadedForCenter.current !== centerKey && !preloadedStreets) {
+      console.log('🔄 Calling loadStreets for center:', centerKey);
       loadStreets();
+      streetsLoadedForCenter.current = centerKey;
+    } else if (preloadedStreets) {
+      console.log('✅ Using preloaded streets, skipping Overpass API call');
       streetsLoadedForCenter.current = centerKey;
     }
   }, [quizCenter, gameMode, loadStreets, preloadedStreets]);
@@ -198,27 +215,175 @@ export default function StreetFinderGame() {
 
   // Handle quiz module start
   const handleQuizModuleStart = async (config) => {
-    if (config.streetSet === 'current-location') {
-      // Use current map center and radius
-      setQuizCenter(config.center);
-      setQuizRadius(config.radius);
-    } else {
-      // Load streets from selected street set
-      const selectedSet = streetSets.find(s => s._id === config.streetSet);
-      if (selectedSet) {
-        setQuizCenter(selectedSet.center);
-        setQuizRadius(selectedSet.radius);
-        setPreloadedStreets(selectedSet.streets);
-        setStreetSetName(selectedSet.name);
+    try {
+      // Map difficulty string to enum
+      const difficultyMap = {
+        'easy': Difficulty.Tourist,
+        'medium': Difficulty.Resident,
+        'hard': Difficulty.TaxiDriver,
+      };
+
+      if (config.streetSet === 'current-location') {
+        // Get current map bounds
+        if (!selectionMapInstanceRef.current) {
+          alert('Map not initialized. Please try again.');
+          return;
+        }
+
+        const map = selectionMapInstanceRef.current;
+        const bounds = map.getBounds();
+        const center = bounds.getCenter();
+        
+        // Calculate radius from bounds (max distance from center to corner)
+        const maxDist = Math.max(
+          map.distance(center, bounds.getNorthWest()),
+          map.distance(center, bounds.getNorthEast()),
+          map.distance(center, bounds.getSouthWest()),
+          map.distance(center, bounds.getSouthEast())
+        );
+
+        // Cap radius at 5km for performance
+        const radius = Math.min(maxDist, 5000);
+
+        if (radius < 500) {
+          alert('Area too small. Please zoom out more.');
+          return;
+        }
+
+        // Set center as object {lat, lng}, not array
+        setQuizCenter({ lat: center.lat, lng: center.lng });
+        setQuizRadius(radius);
+        setStreetSetName(`${Math.round(radius / 1000)}km area`);
+        setPreloadedStreets(null); // No preloaded streets for current location
+      } else {
+        // Load streets from selected street set
+        const selectedSet = streetSets.find(s => s._id === config.streetSet);
+        if (selectedSet) {
+          try {
+            // Fetch the full street set with streets data
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`${API_URL}/street-sets/${config.streetSet}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch full street set');
+            
+            const fullStreetSet = await response.json();
+            setQuizCenter(fullStreetSet.center);
+            setQuizRadius(fullStreetSet.radius);
+            setStreetSetName(fullStreetSet.name);
+
+            // Filter to only included streets and convert format
+            const includedStreets = fullStreetSet.streets?.filter(s => s.included !== false) || [];
+            
+            if (includedStreets.length > 0) {
+              // Convert database format to game format
+              const convertedStreets = includedStreets.map(street => ({
+                ...street,
+                // Convert coordinates [[lat, lng], ...] to points [{lat, lng}, ...]
+                points: street.coordinates?.map(coordArray => 
+                  Array.isArray(coordArray) && coordArray.length >= 2
+                    ? coordArray.map(point => 
+                        Array.isArray(point) 
+                          ? { lat: point[0], lng: point[1] }
+                          : point
+                      )
+                    : []
+                ) || [],
+              }));
+              
+              // Randomly select streets based on numQuestions
+              const shuffled = convertedStreets.sort(() => Math.random() - 0.5);
+              const selectedStreets = shuffled.slice(0, config.numQuestions);
+              setPreloadedStreets(selectedStreets);
+              console.log('✅ Converted and selected streets:', selectedStreets.length);
+            }
+          } catch (err) {
+            console.error('Error loading street set:', err);
+            alert('Error loading street set. Please try again.');
+            return;
+          }
+        }
+      }
+
+      // Set total rounds from selected number of questions
+      setTotalRounds(config.numQuestions);
+
+      // Remove selection map and transition to playing mode
+      if (selectionMapInstanceRef.current) {
+        selectionMapInstanceRef.current.remove();
+        selectionMapInstanceRef.current = null;
+      }
+      setGameMode('playing');
+    } catch (err) {
+      console.error('Error starting quiz:', err);
+      alert('Error starting quiz. Please try again.');
+    }
+  };
+
+  // Handle creating a new street set from selected area
+  const handleCreateStreetSet = (config) => {
+    console.log('handleCreateStreetSet called with config:', config);
+    console.log('selectionMapInstanceRef.current:', selectionMapInstanceRef.current);
+    console.log('quizCenter:', quizCenter, 'quizRadius:', quizRadius);
+
+    let center = config.center || quizCenter;
+    let radius = config.radius || quizRadius;
+
+    // If user hasn't explicitly selected an area, get current map bounds
+    if (!center || !radius) {
+      if (!selectionMapInstanceRef.current) {
+        alert('Map not initialized. Please try again.');
+        return;
+      }
+
+      try {
+        const map = selectionMapInstanceRef.current;
+        const bounds = map.getBounds();
+        const mapCenter = bounds.getCenter();
+        
+        console.log('Got map bounds, center:', mapCenter);
+
+        // Calculate radius from bounds
+        const maxDist = Math.max(
+          map.distance(mapCenter, bounds.getNorthWest()),
+          map.distance(mapCenter, bounds.getNorthEast()),
+          map.distance(mapCenter, bounds.getSouthWest()),
+          map.distance(mapCenter, bounds.getSouthEast())
+        );
+
+        // Cap radius at 5km
+        radius = Math.min(maxDist, 5000);
+
+        if (radius < 500) {
+          alert('Area too small. Please zoom out more.');
+          return;
+        }
+
+        center = { lat: mapCenter.lat, lng: mapCenter.lng };
+        console.log('Calculated center and radius:', center, radius);
+      } catch (err) {
+        console.error('Error getting map bounds:', err);
+        alert('Could not get map bounds. Please try again.');
+        return;
       }
     }
 
-    // Remove selection map and transition to playing mode
-    if (selectionMapInstanceRef.current) {
-      selectionMapInstanceRef.current.remove();
-      selectionMapInstanceRef.current = null;
-    }
-    setGameMode('playing');
+    console.log('Creating street set with center:', center, 'radius:', radius);
+    setQuizCenter(center);
+    setQuizRadius(radius);
+    
+    // Trigger the Overpass API call by removing preloaded streets
+    setPreloadedStreets(null);
+    
+    // Set a flag so we know to open save modal after streets load
+    setStreetSetName(null);
+    
+    // Start loading the streets - this will trigger the useEffect to call loadStreets
+    // Once streets are loaded, we'll open the save modal
+    setGameMode('creating');
   };
 
   // Handle "Quiz this Area" button click (legacy)
@@ -593,6 +758,20 @@ export default function StreetFinderGame() {
       {showSaveModal && (
         <SaveStreetSetModal
           onClose={() => setShowSaveModal(false)}
+          onSave={handleSaveStreetSet}
+          streets={streets}
+          center={quizCenter}
+          radius={quizRadius}
+        />
+      )}
+
+      {gameMode === 'creating' && streets && streets.length > 0 && (
+        <SaveStreetSetModal
+          onClose={() => {
+            setGameMode('selecting');
+            setQuizCenter(null);
+            setQuizRadius(null);
+          }}
           onSave={handleSaveStreetSet}
           streets={streets}
           center={quizCenter}

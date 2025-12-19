@@ -87,6 +87,8 @@ export default function StreetSetDetail() {
 
       const data = await response.json();
       setStreetSet(data);
+      console.log('Loaded street set:', data);
+      console.log('First street:', data.streets[0]);
       
       // Check if all streets are included
       const allIncluded = data.streets.every(s => s.included);
