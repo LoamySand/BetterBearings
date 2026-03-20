@@ -5,7 +5,7 @@ Finally, a learning experience for the directionally challenged.
 
 Back Of Your Hand is a MERN-stack geography game that challenges players to locate streets on a map. The game is fast, fun, and focused on improving map knowledge and spatial recall. Click the correct street on the interactive map to score points.
 
-[![Build Status](https://img.shields.io/badge/build-pending-lightgrey)](https://github.com/LoamySand/BackOfYourHand/actions)
+[![Build Status](https://img.shields.io/badge/build-success-green)](https://github.com/LoamySand/BackOfYourHand/actions)
 [![JavaScript](https://img.shields.io/badge/language-JavaScript-yellowgreen)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![Top Language](https://img.shields.io/github/languages/top/LoamySand/BackOfYourHand)](https://github.com/LoamySand/BackOfYourHand)
 
