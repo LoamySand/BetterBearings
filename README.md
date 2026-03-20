@@ -3,10 +3,7 @@
 
 Finally, a learning experience for the directionally challenged.
 
-
-Currently functional only for the Albuquerque area, with future plans to add other metropolitan areas. 
-
-Back Of Your Hand is a MERN-stack geography game that challenges players to locate streets on a map. The game is fast, fun, and focused on improving map knowledge and spatial recall. The UI prioritizes clarity and speed — click the correct street on the interactive map to score points.
+Back Of Your Hand is a MERN-stack geography game that challenges players to locate streets on a map. The game is fast, fun, and focused on improving map knowledge and spatial recall. Click the correct street on the interactive map to score points.
 
 [![Build Status](https://img.shields.io/badge/build-pending-lightgrey)](https://github.com/LoamySand/BackOfYourHand/actions)
 [![JavaScript](https://img.shields.io/badge/language-JavaScript-yellowgreen)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
@@ -19,6 +16,7 @@ Back Of Your Hand is a MERN-stack geography game that challenges players to loca
 - Score and round tracking
 - Responsive UI for desktop and mobile
 - Backend service provides city/street datasets and game logic
+- Create custom study sets 
 
 
 ## Demo & Screenshots
@@ -35,16 +33,16 @@ Screenshot
 Framework overview
 - Frontend: React, JavaScript, CSS, HTML
 - Backend: Node.js + Express
-- Database: MongoDB (Atlas or local)
-- ORM: Mongoose (recommended)
-- Maps: Leaflet + OpenStreetMap tiles (screenshot shows Leaflet attribution)
+- Database: MongoDB
+- ORM: Mongoose 
+- Maps: Leaflet + OpenStreetMap tiles
 - Package manager: npm
 --- 
 Architecture overview
 
-- /server — Express API, authentication (optional), game endpoints, data seeding
+- /server — Express API, authentication, game endpoints, data seeding
 - /client — React frontend (or other framework), Leaflet map, UI components
-- MongoDB — stores cities, streets, user scores (if leaderboards are enabled)
+- MongoDB — stores cities, streets, user details
 
 
 
@@ -52,7 +50,7 @@ Architecture overview
 
 - This project roadmap is organized into phases with concrete features and measurable milestones. The initial plan you've provided is incorporated and expanded with suggested sub-tasks and acceptance criteria.
 
-Phase 1 — Expand city coverage (short term)
+Phase 1 — Expand city coverage 
 - Add several additional cities beyond the initial seed set (example: 10–20 regional/capital cities).
 - Tasks:
   - Create/import city datasets (GeoJSON or street-line data) for each target city.
@@ -60,7 +58,7 @@ Phase 1 — Expand city coverage (short term)
   - Verify game rounds work for newly added cities.
 - Acceptance criteria:
   - Player can select any newly added city and play a full round without errors.
-  - Streets display and are clickable; scoring is recorded correctly.
+  - Streets display and are clickable, scoring is recorded correctly.
 
 Phase 2 — All U.S. cities (medium term)
 - Expand dataset to cover every incorporated city in the United States (or a curated set).
@@ -70,7 +68,7 @@ Phase 2 — All U.S. cities (medium term)
   - Add server endpoints for paginated city listing and cities-by-region queries.
 - Acceptance criteria:
   - The app supports selecting from a large list of cities with acceptable performance.
-  - Gameplay remains responsive; map rendering and street interactions scale.
+  - Gameplay remains responsive, map rendering and street interactions scale.
 
 Phase 3 — Challenge modes & social features (long term)
 - Add multiple challenge modes and leaderboards to increase replayability:
@@ -91,7 +89,7 @@ Phase 3 — Challenge modes & social features (long term)
   - Leaderboards display correct rankings and can be filtered by city/mode.
 
 Phase 4 — Polishing & growth (optional)
-- Localization, accessibility improvements, mobile optimizations.
+- Accessibility improvements, mobile optimizations.
 - Analytics (privacy-first) to track engagement, then use metrics to guide city additions and difficulty tuning.
 
 
