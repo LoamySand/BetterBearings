@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Play, MapPin } from 'lucide-react';
 import './QuizAreaModule.css';
-
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
+import { API_URL } from '../config';
 
 export default function QuizAreaModule({ 
   streetSets, 

@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
@@ -94,11 +94,10 @@ const authLimiter = rateLimit({
 // Force HTTPS redirect in production
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
-    } else {
-      next();
-    }
+    if (req.header('x-forwarded-proto') === 'http') {
+    return res.redirect(301, `https://${req.header('host')}${req.url}`);
+  }
+  next();
   });
 }
 
@@ -116,8 +115,9 @@ app.use('/api/street-sets', require('./routes/streetSetRoutes'));
 
 // Serve static files from the frontend build in production
 if (process.env.NODE_ENV === 'production') {
-  const buildPath = path.join(__dirname, '..', 'client', 'build');
+  const buildPath = path.join(__dirname, '..', 'client', 'dist');
   app.use(express.static(buildPath));
+  app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
 }
 
 const PORT = process.env.PORT || 5000;

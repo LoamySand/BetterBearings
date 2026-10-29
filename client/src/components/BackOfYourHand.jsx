@@ -16,10 +16,8 @@ import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import './BackOfYourHand.css';
+import { API_URL } from '../config';
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
 
 export default function StreetFinderGame() {
   const location = useLocation();

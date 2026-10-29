@@ -5,10 +5,7 @@ import { ArrowLeft, Save, CheckSquare, Square, Play, Star } from 'lucide-react';
 import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
-
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
+import { API_URL } from '../config';
 
 export default function StreetSetDetail() {
   const { id } = useParams();
