@@ -13,7 +13,7 @@ export default function AppHeader({ onSignIn }) {
       <div className="header-content">
         <h1 className="app-title" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <Target className="app-icon" />
-          Back Of Your Hand
+          BetterBearings
         </h1>
       </div>
 

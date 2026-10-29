@@ -15,7 +15,7 @@ import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
-import './BackOfYourHand.css';
+import './Game.css';
 import { API_URL } from '../config';
 
 

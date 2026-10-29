@@ -1,5 +1,5 @@
-import BackOfYourHand from '../components/BackOfYourHand';
+import Game from '../components/Game';
 
 export default function Home() {
-  return <BackOfYourHand />;
+  return <Game />;
 }

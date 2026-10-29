@@ -14,10 +14,8 @@ BetterBearings (formerly BackOfYourHand) is a street-learning game: you're shown
 
 ```bash
 git clone https://github.com/LoamySand/BackOfYourHand.git
-cd BackOfYourHand
-npm install                  # root: lint and format tools
-npm install --prefix server
-npm install --prefix client
+cd BetterBearings
+npm install && npm install --prefix server && npm install --prefix client
 ```
 
 ### Database
@@ -105,7 +103,7 @@ The server then serves the built app at http://localhost:5000. Use this build fo
 
 ```
 client/src/
-├── components/BackOfYourHand.jsx   main game
+├── components/Game.jsx   main game
 ├── components/QuizAreaModule.jsx   area picker for the game
 ├── pages/StreetSets.jsx            saved street sets
 ├── pages/StreetSetDetail.jsx       one street set
