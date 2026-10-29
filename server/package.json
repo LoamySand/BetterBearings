@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "migrate": "node-pg-migrate -m migrations --envPath .env --migration-file-language sql",
+    "migrate:create": "node-pg-migrate create -m migrations --migration-file-language sql"
   },
   "keywords": [],
   "author": "",
@@ -20,12 +22,14 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.1"
+    "mongoose": "^9.0.1",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "node-pg-migrate": "^9.0.0",
     "nodemon": "^3.1.11"
   },
   "engines": {
-  "node": "24.x"
+    "node": "24.x"
   }
 }
