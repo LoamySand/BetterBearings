@@ -14,7 +14,7 @@
     "heroku-postbuild": "npm run install-server && npm run install-client && npm run build-client"
   },
     "engines": {
-    "node": "18.x"
+    "node": "24.x"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
