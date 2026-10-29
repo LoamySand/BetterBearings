@@ -1,185 +1,119 @@
-# Quick Start Guide - Overpass Integration
+# Quick Start
 
-## What Changed
+BetterBearings (formerly BackOfYourHand) is a street-learning game: you're shown a street name and click it on the map. Street data comes from OpenStreetMap's Overpass API, fetched in the browser. Accounts, scores and saved street sets live in the database.
 
-Your game now fetches street data **client-side** from OpenStreetMap's Overpass API instead of using a database. This means:
+> **Temporary setup.** This guide covers the MongoDB version. Sprint 1 moves the database to Postgres; this file will be rewritten then.
 
-✅ No server needed for street data  
-✅ Works for any location worldwide  
-✅ Automatic caching in browser  
-✅ Better street grouping (no duplicates)  
-✅ POI support (historic sites, museums)  
+## Prerequisites
 
-## How to Run
+- **Node.js 24 LTS** (`node -v`). Using nvm: `nvm install 24 && nvm use 24`
+- **Podman or Docker** to run the database container. On Fedora, Podman is preinstalled; substitute `docker` for `podman` below if you use Docker.
+- **Git**
 
-### 1. Start the React App
+## Setup
 
 ```bash
-cd client
-npm start
+git clone https://github.com/LoamySand/BackOfYourHand.git
+cd BackOfYourHand
+npm install                  # root: lint and format tools
+npm install --prefix server
+npm install --prefix client
 ```
 
-The app will open at http://localhost:3000
+### Database
 
-### 2. First Load
-
-- **Wait 10-30 seconds** - The app is fetching streets from Overpass API
-- You'll see: "Loading streets from Overpass API..."
-- This only happens ONCE - results are cached in localStorage
-
-### 3. Play the Game
-
-- Streets will appear on the map in blue
-- You'll be shown a street name
-- Click the correct street on the map
-- Get points for correct answers!
-
-### 4. Subsequent Loads
-
-- Instant - uses cached data from localStorage
-- No wait time!
-
-## What You'll See
-
-```
-🔍 Loading streets from Overpass API...
-✅ Fetched 156 elements from Overpass
-Processing 156 elements for difficulty: tourist
-After filtering: 42 unique street names
-Selected 20 streets for game
-✅ Loaded 20 streets
+```bash
+podman run -d --name bb-mongo -p 27017:27017 docker.io/library/mongo:7
 ```
 
-## Area Settings (Currently in Code)
+Later sessions only need `podman start bb-mongo`.
 
-Located in [BackOfYourHand.jsx](client/src/components/BackOfYourHand.jsx):
+### Environment
 
-```javascript
-const [center] = useState({ lat: 35.0844, lng: -106.6504 }); // Albuquerque
-const [radius] = useState(5000); // 5km radius
-const [difficulty] = useState(Difficulty.Tourist); // Major roads only
+```bash
+cp server/.env.example server/.env
 ```
 
-### To Change Location:
-1. Open `client/src/components/BackOfYourHand.jsx`
-2. Change the `center` coordinates:
-   ```javascript
-   const [center] = useState({ lat: 40.7128, lng: -74.0060 }); // New York
-   ```
+Then set `JWT_SECRET` in `server/.env`:
 
-### To Change Radius:
-```javascript
-const [radius] = useState(10000); // 10km radius
+```bash
+openssl rand -hex 32
 ```
 
-### To Change Difficulty:
-```javascript
-import { Difficulty } from '../utils/areaTypes';
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `JWT_SECRET` | Yes | none | Signs login tokens. Street-set routes fail without it. |
+| `MONGO_URI` | No | `mongodb://localhost:27017/mern-startup` | Use `127.0.0.1`, not `localhost` (see Troubleshooting) |
+| `PORT` | No | `5000` | API port |
+| `CLIENT_URL` | No | none | Extra allowed CORS origin |
 
-const [difficulty] = useState(Difficulty.Resident); // More streets
-// Options: Difficulty.Tourist | Difficulty.Resident | Difficulty.TaxiDriver
+The client needs no `.env` in development; it calls `http://localhost:5000/api`.
+
+## Run
+
+Two terminals, from the repo root:
+
+```bash
+npm run dev --prefix server   # API on http://localhost:5000 (auto-restarts on change)
+npm start --prefix client     # app on http://localhost:3000
 ```
 
-## Difficulty Levels
+The server is ready when it prints `MongoDB Connected`.
 
-- **Tourist** - Major roads only (motorway, primary, secondary, trunk)
-- **Resident** - Adds tertiary roads and cycleways
-- **Taxi Driver** - All roads including residential streets
+## Smoke test
+
+Run this after setup or any large change:
+
+1. Play a round logged out (random street mode).
+2. Sign up for an account.
+3. Create a street set. Keep the radius at 1 to 2 km while testing; 5 km queries are slow.
+4. Refresh the street-set page; the set should still be there.
+5. Play a round from the saved set and confirm the score updates.
+
+## Production build
+
+```bash
+npm run build --prefix client
+NODE_ENV=production PORT=5000 node server/server.js
+```
+
+The server then serves the built app at http://localhost:5000. Use this build for Lighthouse audits; the dev server scores poorly on performance for reasons that don't apply in production.
 
 ## Troubleshooting
 
-### "No streets found"
-- Increase the radius
-- Change difficulty to include more roads (e.g., Difficulty.TaxiDriver)
-- Try a different location
+**`MongooseServerSelectionError: read ECONNRESET` or `ECONNREFUSED`**
+- Check the container is up: `podman ps -a`. If it exited, `podman logs bb-mongo` says why.
+- Wait about 10 seconds after starting the container, then restart the server.
+- Use `127.0.0.1` in `MONGO_URI`. Node resolves `localhost` to IPv6 (`::1`) first, and rootless Podman only forwards the port on IPv4.
+- Mongo 5.0+ needs a CPU with AVX. If `grep -c avx /proc/cpuinfo` prints `0`, use `mongo:4.4`.
 
-### Overpass API Timeout
-- The API is experiencing high load
-- Wait a minute and refresh
-- Try reducing the radius
+**`docker: command not found`**
+- On Fedora use `podman`, or `sudo dnf install podman-docker` for a `docker` alias.
 
-### Cache Issues
-- Open DevTools (F12)
-- Go to Application → Local Storage
-- Clear items starting with "overpass-response"
-- Refresh the page
+**Overpass errors (502, 504, 429) or timeouts**
+- The public Overpass servers are volunteer-run and overload regularly. The app tries each server in `client/src/utils/overpassFetcher.js` before failing.
+- Check load: `curl -s https://overpass-api.de/api/status`. `0 slots available` means wait.
+- Reduce the radius.
 
-## Browser Console
+**Stale street data**
+- Responses are cached in the browser. In DevTools, open Application (Storage in Firefox), then Local Storage, and delete keys starting with `overpass-response`.
 
-Watch the console for detailed logging:
-- Streets fetched
-- Filtering progress
-- Map initialization
-- Game events
+**Login works but street sets fail with 401 or 403**
+- `JWT_SECRET` is missing from `server/.env`.
 
-## Demo Component
-
-To see the demo with interactive controls:
-
-Edit `src/App.js`:
-```javascript
-import OverpassGameExample from './components/OverpassGameExample';
-
-// Replace <StreetFinderGame /> with:
-<OverpassGameExample />
-```
-
-This gives you sliders and dropdowns to test different settings!
-
-## Next Steps
-
-### Add UI Controls (Future Enhancement)
-
-Add these state setters to BackOfYourHand.jsx:
-```javascript
-const [center, setCenter] = useState({ lat: 35.0844, lng: -106.6504 });
-const [radius, setRadius] = useState(5000);
-const [difficulty, setDifficulty] = useState(Difficulty.Tourist);
-```
-
-Then add controls in the UI to let users adjust them!
-
-### Server Still Available
-
-The old server-side approach is still there if needed:
-- Database routes still work
-- Admin panel still functional
-- Can use both approaches side-by-side
-
-## File Structure
+## Project layout
 
 ```
 client/src/
-├── components/
-│   ├── BackOfYourHand.jsx          ← Main game (now uses Overpass)
-│   └── OverpassGameExample.jsx     ← Demo with controls
-├── hooks/
-│   ├── useStreets.js               ← Old database approach
-│   └── useOverpassStreets.js       ← New Overpass approach ✨
-└── utils/
-    ├── areaTypes.js                ← Constants and enums
-    ├── geometryUtils.js            ← Geometry calculations
-    ├── exclusions.js               ← Street filtering
-    ├── difficultySettings.js       ← Highway filtering
-    ├── overpassQuery.js            ← Query builder
-    ├── overpassFetcher.js          ← API fetching
-    └── streetProcessor.js          ← Street grouping
+├── components/BackOfYourHand.jsx   main game
+├── components/QuizAreaModule.jsx   area picker for the game
+├── pages/StreetSets.jsx            saved street sets
+├── pages/StreetSetDetail.jsx       one street set
+├── contexts/AuthContext.js         login state
+├── hooks/useOverpassStreets.js     loads streets for an area
+└── utils/                          Overpass query, fetch, street processing
+server/
+├── server.js                       Express app, security middleware
+├── routes/                         auth, scores, street sets
+└── models/                         User, Score, StreetSet
 ```
-
-## Key Improvements
-
-### Before (Database)
-- ❌ Required server running
-- ❌ Limited to pre-loaded cities
-- ❌ Could get duplicate streets
-- ❌ Manual data imports
-
-### After (Overpass)
-- ✅ No server needed
-- ✅ Any location worldwide
-- ✅ No duplicates (grouped by name)
-- ✅ Auto-fetches on demand
-- ✅ Includes POIs (monuments, museums)
-- ✅ Cached locally
-
-Enjoy your refactored game! 🎮

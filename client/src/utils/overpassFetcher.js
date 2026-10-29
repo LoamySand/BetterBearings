@@ -24,69 +24,46 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
     pruneOldCacheEntries(localStorageKey);
   }
   
-  // Fetch from Overpass API
+    // Fetch from Overpass API, trying each endpoint until one succeeds
   const OVERPASS_ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
-    'https://lz4.overpass-api.de/api/interpreter',
-    'https://z.overpass-api.de/api/interpreter'
+    'https://overpass.private.coffee/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   ];
-  
-  let endpointIndex = 0;
-  
-  const performFetch = () => {
+  const TIMEOUT_MS = 60000;
+
+  let response;
+  let lastError;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    
-    const endpoint = OVERPASS_ENDPOINTS[endpointIndex];
-    console.log(`🌐 Trying endpoint: ${endpoint}`);
-    
-    return fetch(endpoint, {
-      body: `data=${overpassQuery}`,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      method: 'POST',
-      signal: controller.signal
-    }).finally(() => clearTimeout(timeoutId));
-  };
-  
-  console.log('🌐 Fetching from Overpass API...');
-  let response = await performFetch();
-  
-  // Handle errors with retry logic on different endpoints
-  if (!response.ok) {
-    if (response.status >= 500 && response.status < 600) {
-      if (response.status === 504 && endpointIndex < OVERPASS_ENDPOINTS.length - 1) {
-        console.warn('⚠️ Overpass timeout, trying alternative endpoint...');
-        endpointIndex++;
-        response = await performFetch();
-        
-        if (!response.ok && endpointIndex < OVERPASS_ENDPOINTS.length - 1) {
-          console.warn('⚠️ Second endpoint failed, trying final fallback...');
-          endpointIndex++;
-          response = await performFetch();
-        }
-        
-        if (!response.ok) {
-          throw new Error(
-            `Failed to retrieve street data. All Overpass API endpoints timed out (${response.status}). ` +
-            'They could be experiencing a temporary outage, please try again later'
-          );
-        }
-      } else {
-        throw new Error(
-          `Failed to retrieve street data. Overpass API has errored (${response.status}). ` +
-          'They could be experiencing a temporary outage, please try again later'
-        );
-      }
-    } else {
-      throw new Error(
-        `Failed to retrieve street data from Overpass API (${response.status})`
-      );
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(overpassQuery),
+        signal: controller.signal,
+      });
+      if (response.ok) break;
+      lastError = new Error(`${endpoint} returned ${response.status}`);
+      // 4xx other than 429 means a bad query; another server won't fix it
+      if (response.status < 500 && response.status !== 429) break;
+    } catch (err) {
+      lastError = err.name === 'AbortError'
+        ? new Error(`${endpoint} timed out after ${TIMEOUT_MS / 1000}s`)
+        : err;
+    } finally {
+      clearTimeout(timeoutId);
     }
+    response = undefined;
   }
-  
+
+  if (!response?.ok) {
+    throw new Error(
+      `Failed to retrieve street data from every Overpass server. Last error: ${lastError?.message}`
+    );
+  }
+
   // Parse response
   let result;
   try {
