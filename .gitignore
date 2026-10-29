@@ -392,3 +392,9 @@ yarn-error.log*
 
 
 .sln
+
+# Node / React build output
+client/build/
+client/dist/
+node_modules/
+.env

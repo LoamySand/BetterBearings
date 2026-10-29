@@ -111,10 +111,7 @@ app.get('/api', (req, res) => {
   res.json({ message: 'How local are you?' });
 });
 
-app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
-app.use('/api/scores', require('./routes/scoreRoutes'));
-app.use('/api/streets', require('./routes/streetRoutes'));
 app.use('/api/street-sets', require('./routes/streetSetRoutes'));
 
 // Serve static files from the frontend build in production
