@@ -8,40 +8,26 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
-// CORS configuration - MUST come first
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5000',
-  'https://www.backofyourhand.org',
-  'https://backofyourhand.org',
-  'https://backofyourhand-7074dc055b01.herokuapp.com',
-  'https://backofyourhandstg-f59e2db931c3.herokuapp.com',
-  process.env.CLIENT_URL
-].filter(Boolean);
+// Comma-separated list, e.g. "https://betterbearings.net,https://www.betterbearings.net"
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGINS) {
+  console.error('CORS_ORIGINS must be set in production');
+  process.exit(1);
+}
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    console.log('CORS request from origin:', origin);
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('CORS: No origin header, allowing request');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('CORS ALLOWED:', origin);
-      callback(null, true);
-    } else {
-      console.log('CORS BLOCKED:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
+  origin(origin, callback) {
+    // No Origin header: same-origin GETs, curl, health checks
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false); // browser blocks it; no 500
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Length', 'X-Request-Id'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
 
