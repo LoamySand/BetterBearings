@@ -1,6 +1,6 @@
 # Quick Start
 
-BetterBearings (formerly BackOfYourHand) is a street-learning game: you're shown a street name and click it on the map. Street data comes from OpenStreetMap's Overpass API, fetched in the browser. Accounts, scores and saved street sets live in the database.
+BetterBearings is a street-learning game: you're shown a street name and click it on the map. Street data comes from OpenStreetMap's Overpass API, fetched in the browser. Accounts, scores and saved street sets live in the database.
 
 > **Temporary setup.** This guide covers the MongoDB version. Sprint 1 moves the database to Postgres; this file will be rewritten then.
 
@@ -13,7 +13,7 @@ BetterBearings (formerly BackOfYourHand) is a street-learning game: you're shown
 ## Setup
 
 ```bash
-git clone https://github.com/LoamySand/BackOfYourHand.git
+git clone https://github.com/LoamySand/BetterBearings.git
 cd BetterBearings
 npm install && npm install --prefix server && npm install --prefix client
 ```
