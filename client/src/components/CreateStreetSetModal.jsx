@@ -67,7 +67,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
         console.log('Initializing map...');
         const map = window.L.map(mapRef.current).setView([40, -95], 4);
-        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',  {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19,
         }).addTo(map);

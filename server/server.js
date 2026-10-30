@@ -19,6 +19,9 @@ if (!Number.isInteger(trustProxy) || trustProxy < 0) {
   process.exit(1);
 }
 app.set('trust proxy', trustProxy);
+
+const isProd = process.env.NODE_ENV === 'production';
+
 app.use(pinoHttp({
   logger,
   autoLogging: { ignore: (req) => req.url === '/healthz' }, // ready for KAN-28
@@ -50,34 +53,33 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Security middleware with CSP configuration
+// HTTPS only reaches us through the tunnel (TRUST_PROXY > 0). A local production run is plain http,
+// where upgrade-insecure-requests would rewrite asset URLs to https and break the page.
+const servedOverHttps = isProd && trustProxy > 0;
+
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https://*.tile.openstreetmap.org"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org'],
         connectSrc: [
           "'self'",
-          "https://backofyourhand.herokuapp.com",
-          "https://*.tile.openstreetmap.org",
-          "https://overpass-api.de",
-          "https://*.overpass-api.de",
-          "https://lz4.overpass-api.de",
-          "http://localhost:5000",
-
+          // Overpass endpoints, tried in order by client/src/utils/overpassFetcher.js
+          'https://overpass-api.de',
+          'https://overpass.private.coffee',
+          'https://maps.mail.ru',
         ],
-        fontSrc: ["'self'", "data:"],
+        fontSrc: ["'self'"],
+        upgradeInsecureRequests: servedOverHttps ? [] : null, // null removes helmet's default
       },
     },
+    strictTransportSecurity: servedOverHttps ? { maxAge: 31536000, includeSubDomains: true } : false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
-
-
-const isProd = process.env.NODE_ENV === 'production';
 
 const limiterDefaults = {
   windowMs: 15 * 60 * 1000,
