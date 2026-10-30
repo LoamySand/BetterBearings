@@ -1,10 +1,12 @@
 ﻿const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { pool } = require('./db/pool'); // Postgres Connection
+
+
 
 const app = express();
 
@@ -107,12 +109,12 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 5000;
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI || 'mongodb://localhost:27017/mern-startup', {})
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+pool.query('SELECT 1')
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch((err) => {
+    console.error('Postgres connection failed:', err.message);
+    process.exit(1);
+  });

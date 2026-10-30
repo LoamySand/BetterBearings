@@ -65,7 +65,7 @@ export default function StreetSets() {
         throw new Error('Failed to delete street set');
       }
 
-      setStreetSets(streetSets.filter(set => set._id !== id));
+      setStreetSets(streetSets.filter(set => set.id !== id));
     } catch (err) {
       alert('Error deleting street set: ' + err.message);
     }
@@ -142,7 +142,7 @@ export default function StreetSets() {
       setShowCreateModal(false);
       
       // Navigate to StreetSetDetail editor
-      navigate(`/street-sets/${savedSet._id}`);
+      navigate(`/street-sets/${savedSet.id}`);
     } catch (err) {
       alert('Error saving street set: ' + err.message);
       throw err;
@@ -153,7 +153,7 @@ export default function StreetSets() {
     try {
       // Fetch full street set data including streets
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_URL}/street-sets/${streetSet._id}`, {
+      const response = await fetch(`${API_URL}/street-sets/${streetSet.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -253,20 +253,20 @@ export default function StreetSets() {
         ) : (
           <div className="street-sets-grid">
             {streetSets.map((set) => (
-              <div key={set._id} className="street-set-card">
+              <div key={set.id} className="street-set-card">
                 <div className="card-header">
                   <h3>{set.name}</h3>
                   <div className="card-actions">
                     <button
                       className="btn-icon"
-                      onClick={() => navigate(`/street-sets/${set._id}`)}
+                      onClick={() => navigate(`/street-sets/${set.id}`)}
                       title="View details"
                     >
                       <Eye size={18} />
                     </button>
                     <button
                       className="btn-icon btn-delete"
-                      onClick={() => handleDelete(set._id)}
+                      onClick={() => handleDelete(set.id)}
                       title="Delete"
                     >
                       <Trash2 size={18} />

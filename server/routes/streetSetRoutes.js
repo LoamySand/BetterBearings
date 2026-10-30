@@ -1,170 +1,68 @@
 const express = require('express');
+const { authenticateToken } = require('../middleware/auth');
+const streetSets = require('../db/streetSets');
+
 const router = express.Router();
-const StreetSet = require('../models/StreetSet');
-const jwt = require('jsonwebtoken');
+router.use(authenticateToken);
 
-// Middleware to verify JWT token
-const authenticateToken = (req, res, next) => {
-  console.log('Auth middleware called');
-  console.log('Headers:', req.headers);
-  
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    console.log('No token found');
-    return res.status(401).json({ message: 'Access token required' });
+// Non-numeric ids (old ObjectIds, typos) are a 404, not a Postgres cast error
+router.param('id', (req, res, next, id) => {
+  if (!/^\d+$/.test(id)) {
+    return res.status(404).json({ message: 'Street set not found' });
   }
+  next();
+});
 
-  console.log('Token found, verifying...');
-  console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-  
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.log('Token verification error:', err);
-      return res.status(403).json({ message: 'Invalid or expired token' });
-    }
-    console.log('Token verified, user:', user);
-    req.user = user;
-    next();
-  });
+const notFound = (res) => res.status(404).json({ message: 'Street set not found' });
+const serverError = (res, label, err) => {
+  console.error(`${label}:`, err);
+  res.status(500).json({ message: 'Server error' });
 };
 
-// Get all street sets for the authenticated user
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const streetSets = await StreetSet.find({ userId: req.user.userId })
-      .select('-streets') // Exclude streets array for list view
-      .sort({ updatedAt: -1 });
-    
-    res.json(streetSets);
-  } catch (error) {
-    console.error('Error fetching street sets:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.json(await streetSets.listStreetSets(req.user.userId));
+  } catch (err) {
+    serverError(res, 'List street sets', err);
   }
 });
 
-// Get a single street set by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const streetSet = await StreetSet.findOne({
-      _id: req.params.id,
-      userId: req.user.userId,
-    });
-
-    if (!streetSet) {
-      return res.status(404).json({ message: 'Street set not found' });
-    }
-
-    res.json(streetSet);
-  } catch (error) {
-    console.error('Error fetching street set:', error);
-    res.status(500).json({ message: 'Server error' });
+    const set = await streetSets.getStreetSet(req.user.userId, req.params.id);
+    return set ? res.json(set) : notFound(res);
+  } catch (err) {
+    serverError(res, 'Get street set', err);
   }
 });
 
-// Create a new street set
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
+  const { name, center, radius, streets } = req.body;
+  if (!name || !center || !radius || !Array.isArray(streets)) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
   try {
-    const { name, description, center, radius, streets } = req.body;
-
-    console.log('Received request body:', JSON.stringify(req.body, null, 2));
-    console.log('Streets type:', typeof streets);
-    console.log('Streets is array:', Array.isArray(streets));
-    console.log('First street:', streets?.[0]);
-
-    if (!name || !center || !radius || !streets) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const streetSet = new StreetSet({
-      userId: req.user.userId,
-      name,
-      description,
-      center,
-      radius,
-      streets,
-    });
-
-    await streetSet.save();
-    res.status(201).json(streetSet);
-  } catch (error) {
-    console.error('Error creating street set:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(201).json(await streetSets.createStreetSet(req.user.userId, req.body));
+  } catch (err) {
+    serverError(res, 'Create street set', err);
   }
 });
 
-// Update a street set
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
-    const { name, description, streets } = req.body;
-
-    const streetSet = await StreetSet.findOne({
-      _id: req.params.id,
-      userId: req.user.userId,
-    });
-
-    if (!streetSet) {
-      return res.status(404).json({ message: 'Street set not found' });
-    }
-
-    if (name) streetSet.name = name;
-    if (description !== undefined) streetSet.description = description;
-    if (streets) streetSet.streets = streets;
-
-    await streetSet.save();
-    res.json(streetSet);
-  } catch (error) {
-    console.error('Error updating street set:', error);
-    res.status(500).json({ message: 'Server error' });
+    const set = await streetSets.updateStreetSet(req.user.userId, req.params.id, req.body);
+    return set ? res.json(set) : notFound(res);
+  } catch (err) {
+    serverError(res, 'Update street set', err);
   }
 });
 
-// Toggle a street's included status
-router.patch('/:id/streets/:streetIndex', authenticateToken, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const { id, streetIndex } = req.params;
-    const { included } = req.body;
-
-    const streetSet = await StreetSet.findOne({
-      _id: id,
-      userId: req.user.userId,
-    });
-
-    if (!streetSet) {
-      return res.status(404).json({ message: 'Street set not found' });
-    }
-
-    if (streetIndex >= streetSet.streets.length) {
-      return res.status(400).json({ message: 'Invalid street index' });
-    }
-
-    streetSet.streets[streetIndex].included = included;
-    await streetSet.save();
-
-    res.json(streetSet);
-  } catch (error) {
-    console.error('Error toggling street:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Delete a street set
-router.delete('/:id', authenticateToken, async (req, res) => {
-  try {
-    const streetSet = await StreetSet.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.userId,
-    });
-
-    if (!streetSet) {
-      return res.status(404).json({ message: 'Street set not found' });
-    }
-
-    res.json({ message: 'Street set deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting street set:', error);
-    res.status(500).json({ message: 'Server error' });
+    const deleted = await streetSets.deleteStreetSet(req.user.userId, req.params.id);
+    return deleted ? res.json({ message: 'Street set deleted successfully' }) : notFound(res);
+  } catch (err) {
+    serverError(res, 'Delete street set', err);
   }
 });
 

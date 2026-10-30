@@ -76,7 +76,7 @@ export default function QuizAreaModule({
               >
                 <option value="current-location">📍 Current Location</option>
                 {streetSets.map(set => (
-                  <option key={set._id} value={set._id}>
+                  <option key={set.id} value={set.id}>
                     📚 {set.name}
                   </option>
                 ))}

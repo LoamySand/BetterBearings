@@ -255,7 +255,7 @@ export default function StreetFinderGame() {
         setPreloadedStreets(null); // No preloaded streets for current location
       } else {
         // Load streets from selected street set
-        const selectedSet = streetSets.find(s => s._id === config.streetSet);
+        const selectedSet = streetSets.find(s => s.id === config.streetSet);
         if (selectedSet) {
           try {
             // Fetch the full street set with streets data

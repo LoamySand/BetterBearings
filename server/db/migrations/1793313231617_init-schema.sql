@@ -3,11 +3,13 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE users (
   id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  username      text        NOT NULL UNIQUE,
+  username      text        NOT NULL ,
   email         text        NOT NULL UNIQUE CHECK (email = lower(email)),
   password_hash text        NOT NULL,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX ON users (lower(username));
 
 CREATE TABLE street_sets (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

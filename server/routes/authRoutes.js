@@ -1,148 +1,86 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { pool } = require('../db/pool');
+const { authenticateToken } = require('../middleware/auth');
 
-// POST /api/auth/signup - Register new user
+const router = express.Router();
+
+const signToken = (userId) =>
+  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+const toApiUser = (u) => ({ id: u.id, username: u.username, email: u.email });
+
 router.post('/signup', async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters' });
+  }
+
   try {
-    const { username, email, password } = req.body;
-
-    // Validation
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res.status(400).json({ 
-        message: existingUser.email === email 
-          ? 'Email already registered' 
-          : 'Username already taken' 
-      });
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    const user = new User({
-      username,
-      email,
-      password: hashedPassword,
-    });
-
-    await user.save();
-
-    // Create token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-      { expiresIn: '7d' }
+    const hash = await bcrypt.hash(password, 10);
+    const { rows } = await pool.query(
+      `INSERT INTO users (username, email, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id, username, email`,
+      [username.trim(), email.trim().toLowerCase(), hash]
     );
-
+    const user = rows[0];
     res.status(201).json({
       message: 'User created successfully',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        totalScore: user.totalScore,
-        highScore: user.highScore,
-      },
+      token: signToken(user.id),
+      user: toApiUser(user),
     });
   } catch (err) {
+    if (err.code === '23505') {
+      const message = err.constraint === 'users_email_key'
+        ? 'Email already registered'
+        : 'Username already taken';
+      return res.status(400).json({ message });
+    }
     console.error('Signup error:', err);
     res.status(500).json({ message: 'Server error during signup' });
   }
 });
 
-// POST /api/auth/login - Login user
 router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
   try {
-    const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Create token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-      { expiresIn: '7d' }
+    const { rows } = await pool.query(
+      'SELECT id, username, email, password_hash FROM users WHERE email = $1',
+      [email.trim().toLowerCase()]
     );
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        totalScore: user.totalScore,
-        highScore: user.highScore,
-      },
-    });
+    const user = rows[0];
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+    res.json({ message: 'Login successful', token: signToken(user.id), user: toApiUser(user) });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ message: 'Server error during login' });
   }
 });
 
-// GET /api/auth/me - Get current user (requires auth)
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+    const { rows } = await pool.query(
+      'SELECT id, username, email FROM users WHERE id = $1',
+      [req.user.userId]
     );
-
-    const user = await User.findById(decoded.userId).select('-password');
-    
-    if (!user) {
+    if (rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
-
-    res.json({
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        totalScore: user.totalScore,
-        highScore: user.highScore,
-      },
-    });
+    res.json({ user: toApiUser(rows[0]) });
   } catch (err) {
-    console.error('Auth verification error:', err);
-    res.status(401).json({ message: 'Invalid or expired token' });
+    console.error('Me error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
