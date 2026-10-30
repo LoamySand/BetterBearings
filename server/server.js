@@ -10,6 +10,15 @@ const { pool } = require('./db/pool'); // Postgres Connection
 
 const app = express();
 
+// Proxies in front of Express: 0 locally, 1 behind the Cloudflare Tunnel.
+// Only safe if Express is reachable solely through that proxy; otherwise X-Forwarded-For is spoofable.
+const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
+if (!Number.isInteger(trustProxy) || trustProxy < 0) {
+  console.error('TRUST_PROXY must be a non-negative integer');
+  process.exit(1);
+}
+app.set('trust proxy', trustProxy);
+
 // Comma-separated list, e.g. "https://betterbearings.net,https://www.betterbearings.net"
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
   .split(',')
@@ -55,27 +64,48 @@ app.use(
         fontSrc: ["'self'", "data:"],
       },
     },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
 
 
+const isProd = process.env.NODE_ENV === 'production';
 
-// Rate limiting - skip OPTIONS requests
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-  skip: (req) => req.method === 'OPTIONS',
-});
-app.use('/api/', limiter);
-
-// Stricter rate limiting for auth endpoints
-const authLimiter = rateLimit({
+const limiterDefaults = {
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 5 : 100, // Relaxed limit for development
-  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+};
+const tooMany = (message) => ({ message }); // JSON body, which the client can parse
+
+// All API traffic: 300 per 15 min (20/min) per IP
+const apiLimiter = rateLimit({
+  ...limiterDefaults,
+  limit: 300,
   skip: (req) => req.method === 'OPTIONS',
+  message: tooMany('Too many requests, please try again later.'),
 });
+
+// Street-set writes: each can be ~1 MB and hundreds of inserted rows
+const writeLimiter = rateLimit({
+  ...limiterDefaults,
+  limit: isProd ? 30 : 300,
+  skip: (req) => ['GET', 'HEAD', 'OPTIONS'].includes(req.method),
+  message: tooMany('Too many saves, please try again later.'),
+});
+
+// Login and signup: only failed attempts count
+const authLimiter = rateLimit({
+  ...limiterDefaults,
+  limit: isProd ? 10 : 100,
+  skipSuccessfulRequests: true,
+  skip: (req) => req.method === 'OPTIONS',
+  message: tooMany('Too many failed attempts, please try again in 15 minutes.'),
+});
+
+app.use('/api/', apiLimiter);
+app.use(['/api/auth/login', '/api/auth/signup'], authLimiter);
+app.use('/api/street-sets', writeLimiter);
 
 // Force HTTPS redirect in production
 if (process.env.NODE_ENV === 'production') {
@@ -96,7 +126,7 @@ app.get('/api', (req, res) => {
   res.json({ message: 'How local are you?' });
 });
 
-app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/street-sets', require('./routes/streetSetRoutes'));
 
 

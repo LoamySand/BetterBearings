@@ -25,16 +25,15 @@ export function AuthProvider({ children }) {
           'Authorization': `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
-      } else {
-        localStorage.removeItem('authToken');
-      }
+          setUser(data.user);
+        } else if (response.status === 401) {
+          localStorage.removeItem('authToken');
+        }
     } catch (err) {
+      // Network error or server down: keep the token, try again next load
       console.error('Token verification failed:', err);
-      localStorage.removeItem('authToken');
     } finally {
       setLoading(false);
     }
