@@ -130,6 +130,27 @@ if (process.env.NODE_ENV === 'production') {
 app.use('/api/street-sets', express.json({ limit: '1.5mb' })); // set from measurement
 app.use(express.json({ limit: '10kb' }));
 
+
+// Health check for the Cloudflare Tunnel and container. Outside /api, so no rate limit.
+app.get('/healthz', async (req, res) => {
+  let timer;
+  res.set('Cache-Control', 'no-store');
+  try {
+    await Promise.race([
+      pool.query('SELECT 1'),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Database check timed out')), 2000);
+      }),
+    ]);
+    res.json({ status: 'ok' });
+  } catch (err) {
+    req.log.warn({ err }, 'Health check failed');
+    res.status(503).json({ status: 'unavailable' });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
 // Basic Route
 app.get('/api', (req, res) => {
   res.json({ message: 'How local are you?' });
