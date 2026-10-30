@@ -5,7 +5,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { pool } = require('./db/pool'); // Postgres Connection
-
+const logger = require('./logger');
+const pinoHttp = require('pino-http');
 
 
 const app = express();
@@ -14,10 +15,17 @@ const app = express();
 // Only safe if Express is reachable solely through that proxy; otherwise X-Forwarded-For is spoofable.
 const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
 if (!Number.isInteger(trustProxy) || trustProxy < 0) {
-  console.error('TRUST_PROXY must be a non-negative integer');
+  logger.fatal('TRUST_PROXY must be a non-negative integer');
   process.exit(1);
 }
 app.set('trust proxy', trustProxy);
+app.use(pinoHttp({
+  logger,
+  autoLogging: { ignore: (req) => req.url === '/healthz' }, // ready for KAN-28
+  customProps: (req) => ({ ip: req.ip }), // the client IP resolved through trust proxy, not the tunnel's
+  customLogLevel: (req, res, err) =>
+    err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
+}));
 
 // Comma-separated list, e.g. "https://betterbearings.net,https://www.betterbearings.net"
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
@@ -26,7 +34,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000')
   .filter(Boolean);
 
 if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGINS) {
-  console.error('CORS_ORIGINS must be set in production');
+  logger.fatal('CORS_ORIGINS must be set in production');
   process.exit(1);
 }
 
@@ -145,7 +153,7 @@ app.use((err, req, res, next) => {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ message: 'Malformed JSON' });
   }
-  console.error(err);
+  req.log.error({ err }, 'Unhandled error');
   res.status(500).json({ message: 'Server error' });
 });
 
@@ -153,9 +161,11 @@ const PORT = process.env.PORT || 5000;
 
 pool.query('SELECT 1')
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    app.listen(PORT, () => logger.info({ port: PORT }, 'Server listening'));
   })
   .catch((err) => {
-    console.error('Postgres connection failed:', err.message);
+    logger.fatal({ err }, 'Postgres connection failed');
     process.exit(1);
   });
+
+  

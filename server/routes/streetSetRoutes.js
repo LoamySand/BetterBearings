@@ -15,7 +15,7 @@ router.param('id', (req, res, next, id) => {
 
 const notFound = (res) => res.status(404).json({ message: 'Street set not found' });
 const serverError = (res, label, err) => {
-  console.error(`${label}:`, err);
+  res.req.log.error({ err }, label);
   res.status(500).json({ message: 'Server error' });
 };
 

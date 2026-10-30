@@ -41,7 +41,7 @@ router.post('/signup', async (req, res) => {
         : 'Username already taken';
       return res.status(400).json({ message });
     }
-    console.error('Signup error:', err);
+    req.log.error({ err }, 'Signup error');
     res.status(500).json({ message: 'Server error during signup' });
   }
 });
@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
     }
     res.json({ message: 'Login successful', token: signToken(user.id), user: toApiUser(user) });
   } catch (err) {
-    console.error('Login error:', err);
+    req.log.error({ err }, 'Login error');
     res.status(500).json({ message: 'Server error during login' });
   }
 });
@@ -79,7 +79,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     }
     res.json({ user: toApiUser(rows[0]) });
   } catch (err) {
-    console.error('Me error:', err);
+    req.log.error({ err }, 'Me error');
     res.status(500).json({ message: 'Server error' });
   }
 });

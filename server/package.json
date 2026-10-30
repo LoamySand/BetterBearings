@@ -22,11 +22,14 @@
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0"
   },
   "devDependencies": {
     "node-pg-migrate": "^9.0.0",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "pino-pretty": "^13.2.0"
   },
   "engines": {
     "node": "24.x"

@@ -1,10 +1,11 @@
 const { Pool } = require('pg');
-
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const logger = require('../logger');
 
 pool.on('error', (err) => {
-  console.error('Unexpected Postgres pool error:', err);
+  logger.error({ err }, 'Unexpected Postgres pool error');
 });
+
 
 async function withTransaction(fn) {
   const client = await pool.connect();
