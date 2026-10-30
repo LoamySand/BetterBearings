@@ -70,6 +70,8 @@ export default function AuthModal({ onClose }) {
                 onChange={handleChange}
                 required={!isLogin}
                 placeholder="Choose a username"
+                minLength={3}
+                maxLength={30}
               />
             </div>
           )}
@@ -96,8 +98,9 @@ export default function AuthModal({ onClose }) {
               value={formData.password}
               onChange={handleChange}
               required
-              minLength={6}
-              placeholder="At least 6 characters"
+              minLength={isLogin ? undefined : 12}
+              maxLength={72}
+              placeholder={isLogin ? 'Your password' : 'At least 12 characters'}
             />
           </div>
 

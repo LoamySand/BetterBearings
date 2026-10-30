@@ -1,8 +1,10 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
 const streetSets = require('../db/streetSets');
-
 const router = express.Router();
+const { validate } = require('../middleware/validate');
+const { createStreetSetSchema, updateStreetSetSchema } = require('./schema');
+
 router.use(authenticateToken);
 
 // Non-numeric ids (old ObjectIds, typos) are a 404, not a Postgres cast error
@@ -36,11 +38,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
-  const { name, center, radius, streets } = req.body;
-  if (!name || !center || !radius || !Array.isArray(streets)) {
-    return res.status(400).json({ message: 'Missing required fields' });
-  }
+
+router.post('/', validate(createStreetSetSchema), async (req, res) => {
   try {
     res.status(201).json(await streetSets.createStreetSet(req.user.userId, req.body));
   } catch (err) {
@@ -48,7 +47,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate(updateStreetSetSchema), async (req, res) => {
   try {
     const set = await streetSets.updateStreetSet(req.user.userId, req.params.id, req.body);
     return set ? res.json(set) : notFound(res);

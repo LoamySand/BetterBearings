@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db/pool');
 const { authenticateToken } = require('../middleware/auth');
-
+const { validate } = require('../middleware/validate');
+const { signupSchema, loginSchema } = require('./schema');
 const router = express.Router();
 
 const signToken = (userId) =>
@@ -11,23 +12,17 @@ const signToken = (userId) =>
 
 const toApiUser = (u) => ({ id: u.id, username: u.username, email: u.email });
 
-router.post('/signup', async (req, res) => {
+router.post('/signup', validate(signupSchema), async (req, res) => {
   const { username, email, password } = req.body;
-  if (!username || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ message: 'Password must be at least 6 characters' });
-  }
-
   try {
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await pool.query(
       `INSERT INTO users (username, email, password_hash)
        VALUES ($1, $2, $3)
        RETURNING id, username, email`,
-      [username.trim(), email.trim().toLowerCase(), hash]
+      [username, email, hash]
     );
+
     const user = rows[0];
     res.status(201).json({
       message: 'User created successfully',
@@ -46,16 +41,12 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', validate(loginSchema), async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required' });
-  }
-
   try {
     const { rows } = await pool.query(
       'SELECT id, username, email, password_hash FROM users WHERE email = $1',
-      [email.trim().toLowerCase()]
+      [email]
     );
     const user = rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {

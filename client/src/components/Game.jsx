@@ -240,8 +240,8 @@ export default function StreetFinderGame() {
           map.distance(center, bounds.getSouthEast())
         );
 
-        // Cap radius at 5km for performance
-        const radius = Math.min(maxDist, 5000);
+        // Cap radius at 3km for performance
+        const radius = Math.min(maxDist, 3000);
 
         if (radius < 500) {
           alert('Area too small. Please zoom out more.');
@@ -352,8 +352,8 @@ export default function StreetFinderGame() {
           map.distance(mapCenter, bounds.getSouthEast())
         );
 
-        // Cap radius at 5km
-        radius = Math.min(maxDist, 5000);
+        // Cap radius at 3km
+        radius = Math.min(maxDist, 3000);
 
         if (radius < 500) {
           alert('Area too small. Please zoom out more.');
