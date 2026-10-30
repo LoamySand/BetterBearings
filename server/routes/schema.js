@@ -9,6 +9,7 @@ const MAX_STREETS = 200;
 const MAX_LINES_PER_STREET = 500;  // 94 measured at ~2 km; long arterials scale with diameter
 const MAX_POINTS_PER_LINE = 2000;  // OSM's limit on nodes per way
 
+
 // ---- Auth ----
 
 const email = z.string({ error: 'Email is required' })
@@ -36,6 +37,9 @@ const loginSchema = z.object({
   email: z.string({ error: 'Email is required' }).trim().toLowerCase().min(1, { error: 'Email is required' }).max(254),
   password: z.string({ error: 'Password is required' }).min(1, { error: 'Password is required' }).max(1024),
 });
+
+// Re-confirm the password before destructive account actions
+const deleteAccountSchema = z.object({ password: loginSchema.shape.password });
 
 // ---- Street sets ----
 
@@ -81,4 +85,4 @@ const updateStreetSetSchema = z.object({
   streets: streets.optional(),
 });
 
-module.exports = { signupSchema, loginSchema, createStreetSetSchema, updateStreetSetSchema };
+module.exports = { signupSchema, loginSchema, createStreetSetSchema, updateStreetSetSchema, deleteAccountSchema };

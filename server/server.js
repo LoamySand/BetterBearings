@@ -114,6 +114,7 @@ const authLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use(['/api/auth/login', '/api/auth/signup'], authLimiter);
 app.use('/api/street-sets', writeLimiter);
+app.delete('/api/auth/me', authLimiter); // password re-check; GET /me stays unthrottled
 
 // Force HTTPS redirect in production
 if (process.env.NODE_ENV === 'production') {

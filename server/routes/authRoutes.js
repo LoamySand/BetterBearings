@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../db/pool');
 const { authenticateToken } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
-const { signupSchema, loginSchema } = require('./schema');
+const { signupSchema, loginSchema, deleteAccountSchema } = require('./schema');
 const router = express.Router();
 
 const signToken = (userId) =>
@@ -66,11 +66,31 @@ router.get('/me', authenticateToken, async (req, res) => {
       [req.user.userId]
     );
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'Account no longer exists' });
     }
     res.json({ user: toApiUser(rows[0]) });
   } catch (err) {
     req.log.error({ err }, 'Me error');
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/me', authenticateToken, validate(deleteAccountSchema), async (req, res) => {
+  const { userId } = req.user;
+  try {
+    const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+    if (rows.length === 0) {
+      return res.status(401).json({ message: 'Account no longer exists' });
+    }
+    if (!(await bcrypt.compare(req.body.password, rows[0].password_hash))) {
+      return res.status(403).json({ message: 'Incorrect password' });
+    }
+    // Street sets and their streets go with it via ON DELETE CASCADE
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    req.log.info({ userId }, 'Account deleted');
+    res.status(204).end();
+  } catch (err) {
+    req.log.error({ err }, 'Delete account error');
     res.status(500).json({ message: 'Server error' });
   }
 });
