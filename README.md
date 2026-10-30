@@ -5,7 +5,7 @@ Finally, a learning experience for the directionally challenged.
 
 BetterBearings is a MERN-stack geography game that challenges players to locate streets on a map. The game is fast, fun, and focused on improving map knowledge and spatial recall. Click the correct street on the interactive map to score points.
 
-[![Build Status](https://img.shields.io/badge/build-success-green)](https://github.com/LoamySand/BetterBearings/actions)
+[![CI](https://github.com/LoamySand/BetterBearings/actions/workflows/ci.yml/badge.svg?branch=Apple)](https://github.com/LoamySand/BetterBearings/actions/workflows/ci.yml?query=branch%3AApple)
 [![JavaScript](https://img.shields.io/badge/language-JavaScript-yellowgreen)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![Top Language](https://img.shields.io/github/languages/top/LoamySand/BetterBearings)](https://github.com/LoamySand/BetterBearings)
 
