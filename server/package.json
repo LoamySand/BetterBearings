@@ -4,11 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --env-file-if-exists=.env.test --test-concurrency=1 --test 'test/**/*.test.js'",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "migrate": "node-pg-migrate -m db/migrations --envPath .env --migration-file-language sql",
     "migrate:create": "node-pg-migrate create -m db/migrations --migration-file-language sql"
+    
   },
   "keywords": [],
   "author": "",
@@ -30,7 +31,8 @@
   "devDependencies": {
     "node-pg-migrate": "^9.0.0",
     "nodemon": "^3.1.11",
-    "pino-pretty": "^13.2.0"
+    "pino-pretty": "^13.2.0",
+    "supertest": "^7.3.1"
   },
   "engines": {
     "node": "24.x"

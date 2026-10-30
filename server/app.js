@@ -3,13 +3,15 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { pool } = require('./db/pool'); // Postgres Connection
 const logger = require('./logger');
 const pinoHttp = require('pino-http');
-const app = express();
+
 
 function createApp() {
+  
+  const app = express();
+
   // Fail on startup if missing secret
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET must be set');
