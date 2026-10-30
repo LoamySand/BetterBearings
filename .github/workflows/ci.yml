@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [Apple]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch cancels the run still in progress
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  server-tests:
+    name: Server tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5 # same versions as bb-postgres
+        env:
+          POSTGRES_USER: bb
+          POSTGRES_PASSWORD: bb_ci
+          POSTGRES_DB: betterbearings_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bb -d betterbearings_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values for a throwaway database; not GitHub secrets
+    env:
+      DATABASE_URL: postgres://bb:bb_ci@localhost:5432/betterbearings_test
+      JWT_SECRET: ci-only-jwt-secret
+      LOG_LEVEL: silent
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - run: npm ci --prefix server
+
+      - name: Run migrations
+        run: npm run migrate --prefix server -- up
+
+      - run: npm test --prefix server
+
+  client-build:
+    name: Client build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - run: npm ci --prefix client
+
+      - run: npm run build --prefix client
