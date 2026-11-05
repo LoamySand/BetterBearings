@@ -9,7 +9,8 @@ on:
 # A newer push to the same branch cancels the run still in progress
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel stale PR runs, but never a push run: that could kill a deploy halfway
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -113,4 +114,36 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max      
+          cache-to: type=gha,mode=max     
+  deploy:
+    name: Deploy
+    needs: image
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # main deploys production; release branches deploy staging
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write # lets Tailscale verify this job with a GitHub OIDC token; no stored Tailscale secret
+
+    steps:
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: ${{ vars.DEPLOY_HOST }}
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          TARGET: ${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The key's forced command runs deploy.sh; this string is its only input
+          ssh -i ~/.ssh/deploy -o BatchMode=yes "loamy@$DEPLOY_HOST" "$TARGET sha-${GITHUB_SHA::7}"           
