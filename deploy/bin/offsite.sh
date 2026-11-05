@@ -28,3 +28,8 @@ SIZE="$(rclone size --json "$REMOTE/$NAME" | grep -o '"bytes":[0-9]*' | cut -d: 
 
 rclone delete --min-age "${KEEP_DAYS}d" "$REMOTE"
 echo "ok uploaded $REMOTE/$NAME ($SIZE bytes)"
+
+# Heartbeat for Uptime Kuma. Only a successful run reaches this line, so a missing heartbeat is the alert.
+if [ -n "${BACKUP_PUSH_URL:-}" ]; then
+  curl -fsS -m 10 -o /dev/null "$BACKUP_PUSH_URL?status=up&msg=ok" || echo "heartbeat to Uptime Kuma failed" >&2
+fi

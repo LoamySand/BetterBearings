@@ -27,3 +27,8 @@ mv "$FILE.partial" "$FILE"
 find "$DEST" -name '*.dump' -mtime +$((KEEP_DAYS - 1)) -delete
 
 echo "ok $FILE $(du -h "$FILE" | cut -f1), $(find "$DEST" -name '*.dump' | wc -l) dumps kept"
+
+# Heartbeat for Uptime Kuma. Only a successful run reaches this line, so a missing heartbeat is the alert.
+if [ -n "${BACKUP_PUSH_URL:-}" ]; then
+  curl -fsS -m 10 -o /dev/null "$BACKUP_PUSH_URL?status=up&msg=ok" || echo "heartbeat to Uptime Kuma failed" >&2
+fi
