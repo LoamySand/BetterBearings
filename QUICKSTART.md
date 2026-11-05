@@ -1,185 +1,165 @@
-# Quick Start Guide - Overpass Integration
+# Quick Start
 
-## What Changed
+BetterBearings is a street-learning game: you're shown a street name and click it on the map. Street data comes from OpenStreetMap's Overpass API, fetched in the browser. Accounts and saved street sets live in PostgreSQL with PostGIS.
 
-Your game now fetches street data **client-side** from OpenStreetMap's Overpass API instead of using a database. This means:
+## Prerequisites
 
-✅ No server needed for street data  
-✅ Works for any location worldwide  
-✅ Automatic caching in browser  
-✅ Better street grouping (no duplicates)  
-✅ POI support (historic sites, museums)  
+- **Node.js 24 LTS** (`node -v`). Using nvm: `nvm install 24 && nvm use 24`
+- **Podman or Docker** to run the database container. On Fedora, Podman is preinstalled; substitute `docker` for `podman` below if you use Docker.
+- **Git**
+- **psql** (optional) for poking at the database: `sudo dnf install postgresql` installs the client only.
 
-## How to Run
-
-### 1. Start the React App
+## Setup
 
 ```bash
-cd client
-npm start
+git clone https://github.com/LoamySand/BetterBearings.git
+cd BetterBearings
+npm install && npm install --prefix server && npm install --prefix client
 ```
 
-The app will open at http://localhost:3000
+### Environment
 
-### 2. First Load
-
-- **Wait 10-30 seconds** - The app is fetching streets from Overpass API
-- You'll see: "Loading streets from Overpass API..."
-- This only happens ONCE - results are cached in localStorage
-
-### 3. Play the Game
-
-- Streets will appear on the map in blue
-- You'll be shown a street name
-- Click the correct street on the map
-- Get points for correct answers!
-
-### 4. Subsequent Loads
-
-- Instant - uses cached data from localStorage
-- No wait time!
-
-## What You'll See
-
-```
-🔍 Loading streets from Overpass API...
-✅ Fetched 156 elements from Overpass
-Processing 156 elements for difficulty: tourist
-After filtering: 42 unique street names
-Selected 20 streets for game
-✅ Loaded 20 streets
+```bash
+cp server/.env.example server/.env
 ```
 
-## Area Settings (Currently in Code)
+Then set `JWT_SECRET` in `server/.env`:
 
-Located in [BackOfYourHand.jsx](client/src/components/BackOfYourHand.jsx):
-
-```javascript
-const [center] = useState({ lat: 35.0844, lng: -106.6504 }); // Albuquerque
-const [radius] = useState(5000); // 5km radius
-const [difficulty] = useState(Difficulty.Tourist); // Major roads only
+```bash
+openssl rand -hex 32
 ```
 
-### To Change Location:
-1. Open `client/src/components/BackOfYourHand.jsx`
-2. Change the `center` coordinates:
-   ```javascript
-   const [center] = useState({ lat: 40.7128, lng: -74.0060 }); // New York
-   ```
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `JWT_SECRET` | Yes | none | Signs login tokens. The server exits at startup without it. |
+| `DATABASE_URL` | Yes | none | Postgres connection string. The example value matches the container below. Use `127.0.0.1`, not `localhost` (see Troubleshooting). |
+| `CORS_ORIGINS` | Production only | `http://localhost:3000` | Comma-separated allowed origins. The server exits in production without it. |
+| `PORT` | No | `5000` | API port |
 
-### To Change Radius:
-```javascript
-const [radius] = useState(10000); // 10km radius
+The client needs no `.env`. In development, Vite proxies `/api` to the server on port 5000.
+
+### Database
+
+```bash
+podman volume create bb-pgdata
+podman run -d --name bb-postgres \
+  -p 5432:5432 \
+  -e POSTGRES_USER=bb \
+  -e POSTGRES_PASSWORD=bb_dev \
+  -e POSTGRES_DB=betterbearings \
+  -v bb-pgdata:/var/lib/postgresql/data \
+  docker.io/postgis/postgis:17-3.5
 ```
 
-### To Change Difficulty:
-```javascript
-import { Difficulty } from '../utils/areaTypes';
+Create the tables:
 
-const [difficulty] = useState(Difficulty.Resident); // More streets
-// Options: Difficulty.Tourist | Difficulty.Resident | Difficulty.TaxiDriver
+```bash
+npm run migrate up --prefix server
 ```
 
-## Difficulty Levels
+Later sessions only need `podman start bb-postgres`. Data survives container restarts because it lives in the `bb-pgdata` volume.
 
-- **Tourist** - Major roads only (motorway, primary, secondary, trunk)
-- **Resident** - Adds tertiary roads and cycleways
-- **Taxi Driver** - All roads including residential streets
+To start over with an empty database:
+
+```bash
+podman rm -f bb-postgres && podman volume rm bb-pgdata
+```
+
+Then repeat this section.
+
+### Schema changes
+
+Migrations are plain SQL files in `server/db/migrations`, applied in filename order. `node-pg-migrate` records applied files in the `pgmigrations` table, so `migrate up` only runs new ones.
+
+```bash
+npm run migrate:create --prefix server -- add-something   # new file in server/db/migrations
+npm run migrate up --prefix server
+npm run migrate down --prefix server                      # rolls back the latest one
+```
+
+Never edit a migration that has been pushed and run anywhere else. Add a new one instead.
+
+## Run
+
+Two terminals, from the repo root:
+
+```bash
+npm run dev --prefix server   # API on http://localhost:5000 (auto-restarts on change)
+npm start --prefix client     # app on http://localhost:3000
+```
+
+The server checks the database connection before listening. It's ready when it prints `Server running on port 5000`.
+
+## Smoke test
+
+Run this after setup or any large change:
+
+1. Play a round logged out (random street mode).
+2. Sign up for an account. Log out, then log back in with the email in different capitalization.
+3. Create a street set. Keep the radius at 1 to 2 km while testing; 5 km queries are slow.
+4. Refresh the street-set page; the set should still be there.
+5. Play a round from the saved set and confirm the score updates.
+6. Turn a few streets off, save, and check that the counts on the list page change.
+7. Delete the set.
+
+## Production build
+
+```bash
+npm run build --prefix client
+NODE_ENV=production CORS_ORIGINS=http://localhost:5000 node server/server.js
+```
+
+The server then serves the built app at http://localhost:5000. Stop the Vite dev server first. Use this build for Lighthouse audits; the dev server scores poorly on performance for reasons that don't apply in production.
+
+Production allows 5 login or signup attempts per 15 minutes. Restarting the server resets the count.
 
 ## Troubleshooting
 
-### "No streets found"
-- Increase the radius
-- Change difficulty to include more roads (e.g., Difficulty.TaxiDriver)
-- Try a different location
+**`Postgres connection failed: connect ECONNREFUSED`**
+- Check the container is up: `podman ps -a`. If it exited, `podman logs bb-postgres` says why.
+- On first start, Postgres takes a few seconds to initialize. Wait, then restart the server.
+- Use `127.0.0.1` in `DATABASE_URL`. Node resolves `localhost` to IPv6 (`::1`) first, and rootless Podman only forwards the port on IPv4.
 
-### Overpass API Timeout
-- The API is experiencing high load
-- Wait a minute and refresh
-- Try reducing the radius
+**`password authentication failed for user "bb"`**
+- `DATABASE_URL` doesn't match the `POSTGRES_USER` and `POSTGRES_PASSWORD` the container was created with. Those values only apply when the volume is first initialized, so changing them later does nothing. Fix the URL, or reset the database (see Database).
 
-### Cache Issues
-- Open DevTools (F12)
-- Go to Application → Local Storage
-- Clear items starting with "overpass-response"
-- Refresh the page
+**`relation "users" does not exist`**
+- The migrations haven't run: `npm run migrate up --prefix server`.
 
-## Browser Console
+**`Missing required environment variable: ...`**
+- Set that variable in `server/.env`.
 
-Watch the console for detailed logging:
-- Streets fetched
-- Filtering progress
-- Map initialization
-- Game events
+**Login works but street sets fail with 401**
+- Your saved token is from an older build or was signed with a different `JWT_SECRET`. Log out and back in.
 
-## Demo Component
+**`docker: command not found`**
+- On Fedora use `podman`, or `sudo dnf install podman-docker` for a `docker` alias.
 
-To see the demo with interactive controls:
+**Overpass errors (502, 504, 429) or timeouts**
+- The public Overpass servers are volunteer-run and overload regularly. The app tries each server in `client/src/utils/overpassFetcher.js` before failing.
+- Check load: `curl -s https://overpass-api.de/api/status`. `0 slots available` means wait.
+- Reduce the radius.
 
-Edit `src/App.js`:
-```javascript
-import OverpassGameExample from './components/OverpassGameExample';
+**Stale street data**
+- Responses are cached in the browser. In DevTools, open Application (Storage in Firefox), then Local Storage, and delete keys starting with `overpass-response`.
 
-// Replace <StreetFinderGame /> with:
-<OverpassGameExample />
-```
-
-This gives you sliders and dropdowns to test different settings!
-
-## Next Steps
-
-### Add UI Controls (Future Enhancement)
-
-Add these state setters to BackOfYourHand.jsx:
-```javascript
-const [center, setCenter] = useState({ lat: 35.0844, lng: -106.6504 });
-const [radius, setRadius] = useState(5000);
-const [difficulty, setDifficulty] = useState(Difficulty.Tourist);
-```
-
-Then add controls in the UI to let users adjust them!
-
-### Server Still Available
-
-The old server-side approach is still there if needed:
-- Database routes still work
-- Admin panel still functional
-- Can use both approaches side-by-side
-
-## File Structure
+## Project layout
 
 ```
 client/src/
-├── components/
-│   ├── BackOfYourHand.jsx          ← Main game (now uses Overpass)
-│   └── OverpassGameExample.jsx     ← Demo with controls
-├── hooks/
-│   ├── useStreets.js               ← Old database approach
-│   └── useOverpassStreets.js       ← New Overpass approach ✨
-└── utils/
-    ├── areaTypes.js                ← Constants and enums
-    ├── geometryUtils.js            ← Geometry calculations
-    ├── exclusions.js               ← Street filtering
-    ├── difficultySettings.js       ← Highway filtering
-    ├── overpassQuery.js            ← Query builder
-    ├── overpassFetcher.js          ← API fetching
-    └── streetProcessor.js          ← Street grouping
+├── components/Game.jsx             main game
+├── components/QuizAreaModule.jsx   area picker for the game
+├── pages/StreetSets.jsx            saved street sets
+├── pages/StreetSetDetail.jsx       one street set
+├── contexts/AuthContext.js         login state
+├── hooks/useOverpassStreets.js     loads streets for an area
+└── utils/                          Overpass query, fetch, street processing
+server/
+├── server.js                       Express app, security middleware, startup checks
+├── routes/                         auth, street sets
+├── middleware/auth.js              JWT check shared by both route files
+└── db/
+    ├── pool.js                     shared pg Pool and transaction helper
+    ├── streetSets.js               street-set SQL and row-to-API mapping
+    └── migrations/                 versioned schema (node-pg-migrate, plain SQL)
 ```
-
-## Key Improvements
-
-### Before (Database)
-- ❌ Required server running
-- ❌ Limited to pre-loaded cities
-- ❌ Could get duplicate streets
-- ❌ Manual data imports
-
-### After (Overpass)
-- ✅ No server needed
-- ✅ Any location worldwide
-- ✅ No duplicates (grouped by name)
-- ✅ Auto-fetches on demand
-- ✅ Includes POIs (monuments, museums)
-- ✅ Cached locally
-
-Enjoy your refactored game! 🎮

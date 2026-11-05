@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly BetterBearings backup (%i)
+
+[Timer]
+OnCalendar=*-*-* 03:20
+RandomizedDelaySec=10m
+# If the ProDesk was off at 03:20, run at next boot instead of skipping the night
+Persistent=true
+
+[Install]
+WantedBy=timers.target

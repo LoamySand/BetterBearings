@@ -4,10 +4,7 @@ import { useOverpassStreets } from '../hooks/useOverpassStreets';
 import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import './CreateStreetSetModal.css';
-
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`;
+import { API_URL } from '../config';
 
 export default function CreateStreetSetModal({ onClose, onSave }) {
   const [step, setStep] = useState('selectArea'); // 'selectArea' or 'savingSet'
@@ -70,7 +67,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
         console.log('Initializing map...');
         const map = window.L.map(mapRef.current).setView([40, -95], 4);
-        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',  {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19,
         }).addTo(map);

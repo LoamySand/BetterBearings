@@ -1,0 +1,10 @@
+[Unit]
+Description=BetterBearings pg_dump (%i)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=loamy
+EnvironmentFile=-/srv/betterbearings/%i/monitor.env
+ExecStart=/srv/betterbearings/bin/backup.sh %i

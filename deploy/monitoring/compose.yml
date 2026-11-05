@@ -1,0 +1,18 @@
+# Uptime Kuma for the ProDesk. Runs from /srv/uptime-kuma as its own compose project,
+# so app deploys never restart it.
+name: uptime-kuma
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    volumes:
+      - data:/app/data
+    # Localhost only: reach the UI over the Tailscale Nginx proxy or an SSH tunnel.
+    # Backup scripts on the host push heartbeats here.
+    ports:
+      - "127.0.0.1:3001:3001"
+    mem_limit: 256m
+
+volumes:
+  data:
