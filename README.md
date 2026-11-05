@@ -1,6 +1,6 @@
 # BetterBearings
 
-Finally, a learning experience for the directionally challenged.
+Finally, a learning experience for the directionally challenged. 
 
 BetterBearings is a street-learning game built on the PERN stack (PostgreSQL, Express, React, Node). You're shown a street name and click that street on the map. Play a random area without an account, or sign up to save street sets for the neighborhoods you want to learn.
 
