@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly BetterBearings offsite copy (%i)
+
+[Timer]
+# Sunday, after that night's 03:20 backup
+OnCalendar=Sun *-*-* 04:40
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

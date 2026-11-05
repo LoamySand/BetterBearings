@@ -1,0 +1,9 @@
+[Unit]
+Description=BetterBearings encrypted offsite copy (%i)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=loamy
+ExecStart=/srv/betterbearings/bin/offsite.sh %i
