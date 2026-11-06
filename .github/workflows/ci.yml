@@ -57,7 +57,23 @@ jobs:
         run: npm run migrate --prefix server -- up
 
       - run: npm test --prefix server
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
 
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
   client-build:
     name: Client build
     runs-on: ubuntu-24.04
@@ -78,7 +94,7 @@ jobs:
 
   image:
     name: Build and push image
-    needs: [server-tests, client-build]
+    needs: [lint, server-tests, client-build]
     # Pushes to release branches and main only; PRs stop after tests and build
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04

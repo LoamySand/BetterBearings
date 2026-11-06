@@ -3,28 +3,20 @@ const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
 const prettierConfig = require('eslint-config-prettier');
 const prettierPlugin = require('eslint-plugin-prettier');
+const globals = require('globals');
 
 module.exports = [
   {
-    ignores: ['node_modules/', 'dist/', 'build/', 'coverage/', '*.min.js', '.cache/'],
+    ignores: [
+      '**/node_modules/',
+      '**/dist/',
+      '**/build/',
+      '**/coverage/',
+      '**/*.min.js',
+      '**/.cache/',
+    ],
   },
   js.configs.recommended,
-  {
-    files: ['**/*.test.{js,jsx}', '**/*.spec.{js,jsx}'],
-    languageOptions: {
-      globals: {
-        test: 'readonly',
-        expect: 'readonly',
-        describe: 'readonly',
-        it: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        jest: 'readonly',
-      },
-    },
-  },
   {
     files: ['**/*.{js,jsx,mjs,cjs}'],
     plugins: {
@@ -40,30 +32,10 @@ module.exports = [
           jsx: true,
         },
       },
-      globals: {
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        fetch: 'readonly',
-        FormData: 'readonly',
-        alert: 'readonly',
-        process: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        exports: 'readonly',
-        global: 'readonly',
-      },
     },
     settings: {
       react: {
-        version: 'detect',
+        version: '19.2', // react lives in client/node_modules, which the root lint can't see
       },
     },
     rules: {
@@ -76,6 +48,19 @@ module.exports = [
       'react/jsx-uses-react': 'off',
       'no-console': 'warn',
       'no-unused-vars': 'warn',
+      // React 19 no longer checks propTypes at runtime, so the rule only adds noise
+      'react/prop-types': 'off',
+      // React Compiler rules (react-hooks v7). Real refactors, done as Phase 3 touches these files; warn so CI gates on the rest
+      'react-hooks/immutability': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
     },
+  },
+  {
+    files: ['client/**/*.{js,jsx}'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    files: ['server/**/*.js', '*.js'],
+    languageOptions: { sourceType: 'commonjs', globals: globals.node },
   },
 ];
