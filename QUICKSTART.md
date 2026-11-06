@@ -178,6 +178,7 @@ docker compose exec -T db createdb -U bb --maintenance-db=postgres -T template0 
 docker compose exec -T db pg_restore -U bb -d betterbearings --no-owner --exit-on-error < /srv/backups/betterbearings/prod/<file>.dump
 docker compose up -d
 ```
+Pause the environment's `/healthz` monitor in Uptime Kuma first; the app is down for the restore and will otherwise alert. Unpause it after `docker compose up -d`.
 
 `template0` gives an empty database; the dump recreates PostGIS and every table, the same way `restore-test.sh` does.
 
