@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [Apple, main]
+    branches: [Banana, main]
   pull_request:
   workflow_dispatch:
 

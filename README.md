@@ -4,9 +4,14 @@ Finally, a learning experience for the directionally challenged.
 
 BetterBearings is a street-learning game built on the PERN stack (PostgreSQL, Express, React, Node). You're shown a street name and click that street on the map. Play a random area without an account, or sign up to save street sets for the neighborhoods you want to learn.
 
-[![CI](https://github.com/LoamySand/BetterBearings/actions/workflows/ci.yml/badge.svg?branch=Apple)](https://github.com/LoamySand/BetterBearings/actions/workflows/ci.yml?query=branch%3AApple)
+[![CI](https://github.com/LoamySand/BetterBearings/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/LoamySand/BetterBearings/actions/workflows/ci.yml?query=branch%3Amain)
 ![Node 24](https://img.shields.io/badge/node-24-339933)
 ![PostgreSQL 17 + PostGIS](https://img.shields.io/badge/PostgreSQL_17-PostGIS_3.5-336791)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+
+**Play it at [betterbearings.net](https://betterbearings.net).**
+
+![BetterBearings game screen: a street name prompt over a Leaflet map](docs/screenshot.png)
 
 ## Features
 
@@ -22,6 +27,7 @@ BetterBearings is a street-learning game built on the PERN stack (PostgreSQL, Ex
 | Server       | Node 24, Express 5, zod validation, pino logging, helmet (strict CSP), express-rate-limit                             |
 | Database     | PostgreSQL 17 + PostGIS 3.5 through node-postgres, with parameterized SQL and no ORM; migrations with node-pg-migrate |
 | Tests and CI | node:test and supertest against a PostGIS service container in GitHub Actions                                         |
+| Deploy       | Docker image on GHCR, Docker Compose on a home server behind Cloudflare Tunnel, deployed from CI over Tailscale        |
 
 ## How it works
 
@@ -30,10 +36,12 @@ BetterBearings is a street-learning game built on the PERN stack (PostgreSQL, Ex
 - **Request limits come from measured data.** A dense 200-street set is about 313 KB, so street-set bodies are capped at 1.5 MB, and every other endpoint at 10 KB.
 - **Street sets are scoped to their owner.** Another user's set returns 404, not 403, so its existence isn't revealed.
 - **Deleting an account** requires the password again and cascades to the user's sets and streets through foreign keys.
+- **Production runs on a home server with no open router ports.** Cloudflare Tunnel carries public traffic, Postgres has no published port, and CI deploys over Tailscale with an SSH key that can only run the deploy script. A push to `main` deploys production; other release branches deploy staging. A failed health check rolls back to the previous image.
+- **Backups are tested.** Nightly `pg_dump` with 14 days kept, a weekly age-encrypted copy to Google Drive, and a script that restores the newest dump into a throwaway container and compares row counts with the live database.
 
 ## Running locally
 
-See [QUICKSTART.md](QUICKSTART.md) for setup: Node 24, the PostGIS container, environment variables, migrations, and troubleshooting.
+See [QUICKSTART.md](QUICKSTART.md) for setup: Node 24, the PostGIS container, environment variables, migrations, production deploys, restoring a backup, and troubleshooting.
 
 Common commands, from the repo root:
 
@@ -62,5 +70,14 @@ server/
   middleware/      JWT auth, zod validation
   routes/          auth and street-set routes, zod schemas
   test/            API tests
-.github/workflows/ CI
+deploy/
+  compose.yml      db, migrate, app, cloudflared (one project per environment)
+  bin/             deploy, backup, restore test, offsite copy, systemd units
+  monitoring/      Uptime Kuma
+Dockerfile         three-stage build, runs as non-root node
+.github/workflows/ CI: tests, client build, image push, deploy
 ```
+
+## License
+
+[MIT](LICENSE)

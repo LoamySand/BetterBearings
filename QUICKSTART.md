@@ -113,6 +113,81 @@ The server then serves the built app at http://localhost:5000. Stop the Vite dev
 
 Production allows 5 login or signup attempts per 15 minutes. Restarting the server resets the count.
 
+## Production (the ProDesk)
+
+Production and staging run the same `deploy/compose.yml`, each from its own directory with its own `.env`:
+
+| Environment | Directory | Compose project | App port | Deployed from |
+| --- | --- | --- | --- | --- |
+| Production | `/srv/betterbearings/prod` | `betterbearings` | `127.0.0.1:5000` | `main` |
+| Staging | `/srv/betterbearings/staging` | `betterbearings-staging` | `127.0.0.1:5001` | other branches in `ci.yml` |
+
+`.env` is mode 600 and owned by `loamy`. Start from `deploy/.env.example`; each environment needs its own `POSTGRES_PASSWORD`, `JWT_SECRET` and `TUNNEL_TOKEN`.
+
+### Deploys
+
+CI deploys on every push: it pushes the image as `sha-<7>`, then runs `/srv/betterbearings/bin/deploy.sh <env> sha-<7>` over SSH. The script writes `IMAGE_TAG` into `.env`, runs `docker compose up -d`, waits up to 120 s for the app to be healthy, and rolls back to the previous tag if it isn't. To deploy or roll back by hand, on the ProDesk:
+
+```bash
+/srv/betterbearings/bin/deploy.sh prod sha-abc1234
+```
+
+### Migrations
+
+The `migrate` service runs `npm run migrate -- up` from the same image before `app` starts, and `app` only starts if it exits 0. Check it with:
+
+```bash
+cd /srv/betterbearings/prod
+docker compose logs migrate
+```
+
+A rollback doesn't undo a migration that already ran, so keep migrations backward compatible with the previous release.
+
+### Status
+
+```bash
+cd /srv/betterbearings/prod
+docker compose ps
+curl -s 127.0.0.1:5000/healthz
+docker compose logs app --tail 50
+```
+
+### Backups
+
+`betterbearings-backup@prod.timer` dumps nightly at 03:20 to `/srv/backups/betterbearings/prod/` and keeps 14 days. `betterbearings-offsite@prod.timer` encrypts the newest dump with age and copies it to Google Drive on Sundays at 04:40, keeping 8. Both report to Uptime Kuma, so a missed run alerts.
+
+Test that the newest dump restores (into a throwaway container, live data untouched):
+
+```bash
+/srv/betterbearings/bin/restore-test.sh prod
+```
+
+It prints row counts for the dump and the live database and ends with `PASS` when they match.
+
+### Restoring a backup
+
+This replaces the live database. Take a fresh dump first so the current state can be recovered:
+
+```bash
+/srv/betterbearings/bin/backup.sh prod
+/srv/betterbearings/bin/restore-test.sh prod /srv/backups/betterbearings/prod/<file>.dump   # confirm the dump you want is good
+cd /srv/betterbearings/prod
+docker compose stop app cloudflared
+docker compose exec -T db dropdb -U bb --maintenance-db=postgres --force betterbearings
+docker compose exec -T db createdb -U bb --maintenance-db=postgres -T template0 betterbearings
+docker compose exec -T db pg_restore -U bb -d betterbearings --no-owner --exit-on-error < /srv/backups/betterbearings/prod/<file>.dump
+docker compose up -d
+```
+
+`template0` gives an empty database; the dump recreates PostGIS and every table, the same way `restore-test.sh` does.
+
+To restore from the offsite copy, download and decrypt it on a machine with the private age key, then copy the `.dump` to `/srv/backups/betterbearings/prod/`:
+
+```bash
+rclone copy gdrive-backup:BetterBearings-backups/prod/<file>.dump.age .
+age -d -i ~/.config/age/betterbearings-backup.key -o <file>.dump <file>.dump.age
+```
+
 ## Troubleshooting
 
 **`Postgres connection failed: connect ECONNREFUSED`**
@@ -155,7 +230,8 @@ client/src/
 ├── hooks/useOverpassStreets.js     loads streets for an area
 └── utils/                          Overpass query, fetch, street processing
 server/
-├── server.js                       Express app, security middleware, startup checks
+├── app.js                          Express app: security middleware, routes, error handling
+├── server.js                       entry point: env checks, database check, listen
 ├── routes/                         auth, street sets
 ├── middleware/auth.js              JWT check shared by both route files
 └── db/
