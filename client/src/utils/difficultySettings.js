@@ -4,23 +4,23 @@ import { Difficulty } from './areaTypes';
  * Map difficulty levels to highway categories
  */
 const difficultiesToHighwayCategories = {
-  [Difficulty.Tourist]: ["motorway", "primary", "secondary", "trunk"],
+  [Difficulty.Tourist]: ['motorway', 'primary', 'secondary', 'trunk'],
 };
 
 difficultiesToHighwayCategories[Difficulty.Resident] = [
   ...difficultiesToHighwayCategories[Difficulty.Tourist],
-  "cycleway",
-  "tertiary"
+  'cycleway',
+  'tertiary',
 ];
 
 difficultiesToHighwayCategories[Difficulty.TaxiDriver] = [
   ...difficultiesToHighwayCategories[Difficulty.Resident],
-  "living_street",
-  "pedestrian",
-  "residential",
-  "service",
-  "steps",
-  "unclassified"
+  'living_street',
+  'pedestrian',
+  'residential',
+  'service',
+  'steps',
+  'unclassified',
 ];
 
 /**
@@ -32,8 +32,10 @@ export const usMajorStateRoadRegex = /^(I-|US |SR |State Route )\d+/i;
  * Get highway categories for difficulty level
  */
 export function getHighwayTypesForDifficulty(difficulty) {
-  return difficultiesToHighwayCategories[difficulty] || 
-         difficultiesToHighwayCategories[Difficulty.Tourist];
+  return (
+    difficultiesToHighwayCategories[difficulty] ||
+    difficultiesToHighwayCategories[Difficulty.Tourist]
+  );
 }
 
 /**
@@ -52,7 +54,7 @@ export function matchesDifficulty(element, difficulty) {
   if (difficulty === Difficulty.MajorStateRoads) {
     return element.tags?.ref && usMajorStateRoadRegex.test(element.tags.ref);
   }
-  
+
   const allowedHighways = getHighwayTypesForDifficulty(difficulty);
   return element.tags.highway && allowedHighways.includes(element.tags.highway);
 }

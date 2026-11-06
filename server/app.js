@@ -7,9 +7,7 @@ const { pool } = require('./db/pool'); // Postgres Connection
 const logger = require('./logger');
 const pinoHttp = require('pino-http');
 
-
 function createApp() {
-  
   const app = express();
 
   // Fail on startup if missing secret

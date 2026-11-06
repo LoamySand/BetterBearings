@@ -6,11 +6,11 @@ import { makeOverpassQuery, getCacheKey } from './overpassQuery';
 export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBrowser = true }) {
   const overpassQuery = makeOverpassQuery({ areaSelection });
   const localStorageKey = getCacheKey(overpassQuery);
-  
+
   // Try to get from cache first
   if (shouldCacheResponseInBrowser) {
     const responseFromLocalStorage = tryGetFromLocalStorage(localStorageKey);
-    
+
     if (responseFromLocalStorage) {
       try {
         console.log('✅ Using cached Overpass data');
@@ -19,12 +19,12 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
         console.warn('Failed to parse cached data, fetching fresh', e);
       }
     }
-    
+
     // Prune old cache entries
     pruneOldCacheEntries(localStorageKey);
   }
-  
-    // Fetch from Overpass API, trying each endpoint until one succeeds
+
+  // Fetch from Overpass API, trying each endpoint until one succeeds
   const OVERPASS_ENDPOINTS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
@@ -49,9 +49,10 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
       // 4xx other than 429 means a bad query; another server won't fix it
       if (response.status < 500 && response.status !== 429) break;
     } catch (err) {
-      lastError = err.name === 'AbortError'
-        ? new Error(`${endpoint} timed out after ${TIMEOUT_MS / 1000}s`)
-        : err;
+      lastError =
+        err.name === 'AbortError'
+          ? new Error(`${endpoint} timed out after ${TIMEOUT_MS / 1000}s`)
+          : err;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -71,16 +72,14 @@ export async function fetchOverpassData({ areaSelection, shouldCacheResponseInBr
     console.log(`✅ Fetched ${result.elements?.length || 0} elements from Overpass`);
   } catch (e) {
     console.error(e);
-    throw new Error(
-      `Cannot parse street data from Overpass API. [${e}]`
-    );
+    throw new Error(`Cannot parse street data from Overpass API. [${e}]`);
   }
-  
+
   // Cache the response
   if (shouldCacheResponseInBrowser) {
     trySetInLocalStorage(localStorageKey, JSON.stringify(result));
   }
-  
+
   return result;
 }
 
@@ -107,7 +106,7 @@ function trySetInLocalStorage(key, value) {
       console.warn(`Response too large to cache (${sizeInMB.toFixed(2)}MB), skipping cache`);
       return;
     }
-    
+
     localStorage.setItem(key, value);
   } catch (e) {
     console.warn('Failed to write to localStorage', e);
@@ -130,7 +129,7 @@ function trySetInLocalStorage(key, value) {
 function clearAllOverpassCache() {
   try {
     const keys = Object.keys(localStorage);
-    keys.forEach(key => {
+    keys.forEach((key) => {
       if (key.startsWith('overpass-response')) {
         try {
           localStorage.removeItem(key);
@@ -153,19 +152,16 @@ function pruneOldCacheEntries(currentKey) {
     const entries = Object.entries(localStorage);
     const oldEntries = entries
       .map(([key]) => key)
-      .filter(key => 
-        key !== currentKey && 
-        key.startsWith('overpass-response')
-      );
-    
-    oldEntries.forEach(key => {
+      .filter((key) => key !== currentKey && key.startsWith('overpass-response'));
+
+    oldEntries.forEach((key) => {
       try {
         localStorage.removeItem(key);
       } catch (e) {
         // Ignore errors when pruning
       }
     });
-    
+
     if (oldEntries.length > 0) {
       console.log(`🧹 Pruned ${oldEntries.length} old cache entries`);
     }

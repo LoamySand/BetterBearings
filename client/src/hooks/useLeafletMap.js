@@ -3,9 +3,9 @@ import { useRef, useEffect } from 'react';
 /**
  * Custom hook to manage Leaflet map initialization and lifecycle
  */
-export function useLeafletMap({ 
-  gameMode, 
-  quizCenter, 
+export function useLeafletMap({
+  gameMode,
+  quizCenter,
   mapType = 'playing', // 'playing' or 'selecting'
   mapRef, // Pass in the ref from the component
 }) {
@@ -28,10 +28,10 @@ export function useLeafletMap({
 
     const initSelectionMap = () => {
       if (!window.L || !mapRef || !mapRef.current) {
-        console.log('Waiting for Leaflet or map container...', { 
-          leaflet: !!window.L, 
+        console.log('Waiting for Leaflet or map container...', {
+          leaflet: !!window.L,
           mapRef: !!mapRef,
-          mapRefCurrent: !!(mapRef && mapRef.current)
+          mapRefCurrent: !!(mapRef && mapRef.current),
         });
         return;
       }
@@ -65,7 +65,7 @@ export function useLeafletMap({
         selectionMapInitialized.current = true;
 
         console.log('✅ Selection map initialized');
-        
+
         // Ensure map renders properly
         setTimeout(() => {
           if (map) {
@@ -106,29 +106,29 @@ export function useLeafletMap({
       gameMode,
       hasMapInstance: !!mapInstanceRef.current,
       mapInitialized: mapInitialized.current,
-      hasMapRef: !!mapRef.current
+      hasMapRef: !!mapRef.current,
     });
-    
+
     if (gameMode === 'playing' && mapInstanceRef.current && mapInitialized.current) {
       console.log('Game mode changed to playing, refreshing map');
       // Small delay to ensure DOM has updated
       const timer = setTimeout(() => {
         const mapDiv = mapRef.current;
         const mapInstance = mapInstanceRef.current;
-        
+
         console.log('Attempting to refresh map:', {
           hasMapDiv: !!mapDiv,
-          hasMapInstance: !!mapInstance
+          hasMapInstance: !!mapInstance,
         });
-        
+
         if (!mapDiv || !mapInstance) {
           console.error('Map div or instance missing', {
             mapDiv: !!mapDiv,
-            mapInstance: !!mapInstance
+            mapInstance: !!mapInstance,
           });
           return;
         }
-        
+
         try {
           // Check if map is properly attached to container
           const container = mapInstance.getContainer();
@@ -136,15 +136,15 @@ export function useLeafletMap({
             divExists: !!mapDiv,
             containerExists: !!container,
             sameElement: container === mapDiv,
-            divHasLeafletId: !!mapDiv._leaflet_id
+            divHasLeafletId: !!mapDiv._leaflet_id,
           });
-          
+
           // If container is not the current div, we need to reinitialize
           if (container !== mapDiv) {
             console.warn('Map container mismatch, need to reinitialize');
             return;
           }
-          
+
           mapInstance.invalidateSize();
           // Also pan to center to ensure tiles load
           if (quizCenter) {
@@ -155,7 +155,7 @@ export function useLeafletMap({
           console.error('Error refreshing map:', e);
         }
       }, 150);
-      
+
       return () => clearTimeout(timer);
     }
   }, [gameMode, quizCenter]);

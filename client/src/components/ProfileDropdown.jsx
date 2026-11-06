@@ -35,8 +35,8 @@ export default function ProfileDropdown() {
 
   return (
     <div className="profile-dropdown" ref={dropdownRef}>
-      <button 
-        className="profile-button" 
+      <button
+        className="profile-button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Profile menu"
       >
@@ -53,31 +53,22 @@ export default function ProfileDropdown() {
               <div className="user-email">{user?.email || ''}</div>
             </div>
           </div>
-          
+
           <div className="dropdown-divider" />
-          
-          <button 
-            className="dropdown-item" 
-            onClick={() => handleNavigation('/')}
-          >
+
+          <button className="dropdown-item" onClick={() => handleNavigation('/')}>
             <Play size={18} />
             <span>Play</span>
           </button>
-          
-          <button 
-            className="dropdown-item" 
-            onClick={() => handleNavigation('/street-sets')}
-          >
+
+          <button className="dropdown-item" onClick={() => handleNavigation('/street-sets')}>
             <Layers size={18} />
             <span>Street Sets</span>
           </button>
-          
+
           <div className="dropdown-divider" />
-          
-          <button 
-            className="dropdown-item logout" 
-            onClick={handleLogout}
-          >
+
+          <button className="dropdown-item logout" onClick={handleLogout}>
             <LogOut size={18} />
             <span>Sign Out</span>
           </button>

@@ -80,7 +80,7 @@ export function useGameState(totalRounds = 5) {
     finalScore,
     streetsRef,
     usedStreetIndices,
-    
+
     // Setters
     setGameMode,
     setScore,
@@ -89,7 +89,7 @@ export function useGameState(totalRounds = 5) {
     setGameActive,
     setFeedback,
     setFinalScore,
-    
+
     // Functions
     getRandomStreet,
     startNewRound,

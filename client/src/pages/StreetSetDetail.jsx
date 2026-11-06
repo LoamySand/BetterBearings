@@ -18,7 +18,7 @@ export default function StreetSetDetail() {
   const [selectAll, setSelectAll] = useState(true);
   const [hoveredStreetIndex, setHoveredStreetIndex] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  
+
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const polylinesRef = useRef({});
@@ -32,19 +32,27 @@ export default function StreetSetDetail() {
 
   const getDifficultyLabel = (difficulty) => {
     switch (difficulty) {
-      case 1: return 'Easy';
-      case 2: return 'Medium';
-      case 3: return 'Hard';
-      default: return 'Medium';
+      case 1:
+        return 'Easy';
+      case 2:
+        return 'Medium';
+      case 3:
+        return 'Hard';
+      default:
+        return 'Medium';
     }
   };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 1: return '#10b981'; // green
-      case 2: return '#f59e0b'; // orange
-      case 3: return '#ef4444'; // red
-      default: return '#f59e0b';
+      case 1:
+        return '#10b981'; // green
+      case 2:
+        return '#f59e0b'; // orange
+      case 3:
+        return '#ef4444'; // red
+      default:
+        return '#f59e0b';
     }
   };
 
@@ -74,7 +82,7 @@ export default function StreetSetDetail() {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/street-sets/${id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -86,9 +94,9 @@ export default function StreetSetDetail() {
       setStreetSet(data);
       console.log('Loaded street set:', data);
       console.log('First street:', data.streets[0]);
-      
+
       // Check if all streets are included
-      const allIncluded = data.streets.every(s => s.included);
+      const allIncluded = data.streets.every((s) => s.included);
       setSelectAll(allIncluded);
     } catch (err) {
       setError(err.message);
@@ -102,7 +110,7 @@ export default function StreetSetDetail() {
     if (!streetSet || !mapRef.current || mapInstanceRef.current) return;
 
     console.log('Initializing map for street set');
-    
+
     const map = window.L.map(mapRef.current, {
       center: [streetSet.center.lat, streetSet.center.lng],
       zoom: 13,
@@ -153,7 +161,7 @@ export default function StreetSetDetail() {
 
       street.coordinates.forEach((polylineCoords) => {
         // Convert from [[lat, lng], ...] to Leaflet format
-        const leafletCoords = polylineCoords.map(coord => {
+        const leafletCoords = polylineCoords.map((coord) => {
           if (Array.isArray(coord)) {
             return [coord[0], coord[1]];
           }
@@ -171,7 +179,7 @@ export default function StreetSetDetail() {
         // Add tooltip with street name
         polyline.bindTooltip(street.name, {
           sticky: true,
-          className: 'street-tooltip'
+          className: 'street-tooltip',
         });
 
         // Add click handler to toggle street inclusion
@@ -204,12 +212,15 @@ export default function StreetSetDetail() {
     if (!mapInstanceRef.current || !streetSet) return;
 
     // Reset previously hovered street to its base color
-    if (previousHoverIndexRef.current !== null && previousHoverIndexRef.current !== hoveredStreetIndex) {
+    if (
+      previousHoverIndexRef.current !== null &&
+      previousHoverIndexRef.current !== hoveredStreetIndex
+    ) {
       const prevPolylines = polylinesRef.current[previousHoverIndexRef.current];
       const prevStreet = streetSet.streets[previousHoverIndexRef.current];
       if (prevPolylines && prevStreet) {
         const isIncluded = prevStreet.included;
-        prevPolylines.forEach(polyline => {
+        prevPolylines.forEach((polyline) => {
           polyline.setStyle({
             color: isIncluded ? '#10b981' : '#9ca3af',
             weight: 3,
@@ -234,7 +245,7 @@ export default function StreetSetDetail() {
 
       // Only update if included status changed or it's the first render
       if (previousIncluded === undefined || previousIncluded !== isIncluded) {
-        polylines.forEach(polyline => {
+        polylines.forEach((polyline) => {
           polyline.setStyle({
             color: isIncluded ? '#10b981' : '#9ca3af',
             weight: 3,
@@ -248,7 +259,7 @@ export default function StreetSetDetail() {
     // Highlight currently hovered street
     if (hoveredStreetIndex !== null && polylinesRef.current[hoveredStreetIndex]) {
       const polylines = polylinesRef.current[hoveredStreetIndex];
-      polylines.forEach(polyline => {
+      polylines.forEach((polyline) => {
         polyline.setStyle({
           color: '#f59e0b',
           weight: 5,
@@ -267,16 +278,16 @@ export default function StreetSetDetail() {
     if (mapInstanceRef.current) {
       currentView = {
         center: mapInstanceRef.current.getCenter(),
-        zoom: mapInstanceRef.current.getZoom()
+        zoom: mapInstanceRef.current.getZoom(),
       };
     }
 
     const updatedStreets = [...streetSet.streets];
     updatedStreets[index].included = !updatedStreets[index].included;
     setStreetSet({ ...streetSet, streets: updatedStreets });
-    
+
     // Update select all checkbox
-    const allIncluded = updatedStreets.every(s => s.included);
+    const allIncluded = updatedStreets.every((s) => s.included);
     setSelectAll(allIncluded);
 
     // Restore map view after state update
@@ -295,12 +306,12 @@ export default function StreetSetDetail() {
     if (mapInstanceRef.current) {
       currentView = {
         center: mapInstanceRef.current.getCenter(),
-        zoom: mapInstanceRef.current.getZoom()
+        zoom: mapInstanceRef.current.getZoom(),
       };
     }
 
     const newValue = !selectAll;
-    const updatedStreets = streetSet.streets.map(s => ({ ...s, included: newValue }));
+    const updatedStreets = streetSet.streets.map((s) => ({ ...s, included: newValue }));
     setStreetSet({ ...streetSet, streets: updatedStreets });
     setSelectAll(newValue);
 
@@ -321,7 +332,7 @@ export default function StreetSetDetail() {
       const response = await fetch(`${API_URL}/street-sets/${id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -352,26 +363,28 @@ export default function StreetSetDetail() {
           name: streetSet.name,
           center: streetSet.center,
           radius: streetSet.radius,
-          streets: streetSet.streets.filter(s => s.included).map(s => ({
-            name: s.name,
-            // Convert coordinates array format to points format
-            points: s.coordinates.map(polyline =>
-              polyline.map(coord => {
-                if (Array.isArray(coord)) {
-                  return { lat: coord[0], lng: coord[1] };
-                }
-                return coord;
-              })
-            ),
-            osmId: s.osmId,
-            type: s.type,
-            length: s.length,
-            width: s.width,
-            alternativeName: s.alternativeName,
-            isEnclosedArea: s.isEnclosedArea || false
-          }))
-        }
-      }
+          streets: streetSet.streets
+            .filter((s) => s.included)
+            .map((s) => ({
+              name: s.name,
+              // Convert coordinates array format to points format
+              points: s.coordinates.map((polyline) =>
+                polyline.map((coord) => {
+                  if (Array.isArray(coord)) {
+                    return { lat: coord[0], lng: coord[1] };
+                  }
+                  return coord;
+                })
+              ),
+              osmId: s.osmId,
+              type: s.type,
+              length: s.length,
+              width: s.width,
+              alternativeName: s.alternativeName,
+              isEnclosedArea: s.isEnclosedArea || false,
+            })),
+        },
+      },
     });
   };
 
@@ -401,13 +414,13 @@ export default function StreetSetDetail() {
     return null;
   }
 
-  const includedCount = streetSet.streets.filter(s => s.included).length;
+  const includedCount = streetSet.streets.filter((s) => s.included).length;
 
   return (
     <div className="street-set-detail-page">
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
-      
+
       <div className="detail-header">
         <button onClick={() => navigate('/street-sets')} className="btn-back">
           <ArrowLeft size={20} />
@@ -421,18 +434,11 @@ export default function StreetSetDetail() {
           </p>
         </div>
         <div className="header-actions">
-          <button 
-            onClick={handleSave} 
-            className="btn-save"
-            disabled={saving}
-          >
+          <button onClick={handleSave} className="btn-save" disabled={saving}>
             <Save size={20} />
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
-          <button 
-            onClick={handlePlay} 
-            className="btn-play-set"
-          >
+          <button onClick={handlePlay} className="btn-play-set">
             <Play size={20} />
             Play This Set
           </button>
@@ -442,55 +448,54 @@ export default function StreetSetDetail() {
       <div className="detail-container">
         <div>
           <div className="content-split">
-          <div className="left-panel">
-            <div className="select-all-section">
-              <button 
-                onClick={handleSelectAll} 
-                className="select-all-button"
-              >
-                {selectAll ? <CheckSquare size={24} /> : <Square size={24} />}
-                <span>{selectAll ? 'Deselect All' : 'Select All'}</span>
-              </button>
+            <div className="left-panel">
+              <div className="select-all-section">
+                <button onClick={handleSelectAll} className="select-all-button">
+                  {selectAll ? <CheckSquare size={24} /> : <Square size={24} />}
+                  <span>{selectAll ? 'Deselect All' : 'Select All'}</span>
+                </button>
+              </div>
+
+              <div className="streets-list">
+                {getSortedStreets().map((street) => {
+                  const originalIndex = streetSet.streets.findIndex(
+                    (s) => s.name === street.name && s.osmId === street.osmId
+                  );
+                  const difficulty = getStreetDifficulty(street);
+                  return (
+                    <div
+                      key={originalIndex}
+                      className={`street-item ${street.included ? 'included' : 'excluded'}`}
+                      onClick={() => handleToggleStreet(originalIndex)}
+                      onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
+                      onMouseLeave={() => setHoveredStreetIndex(null)}
+                    >
+                      <div className="checkbox">
+                        {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
+                      </div>
+                      <div className="street-info">
+                        <span className="street-name">{street.name}</span>
+                        {street.alternativeName && (
+                          <span className="alt-name">({street.alternativeName})</span>
+                        )}
+                      </div>
+                      <div
+                        className="difficulty-badge"
+                        style={{ color: getDifficultyColor(difficulty) }}
+                      >
+                        <Star size={16} fill={getDifficultyColor(difficulty)} />
+                        <span>{getDifficultyLabel(difficulty)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="streets-list">
-              {getSortedStreets().map((street) => {
-                const originalIndex = streetSet.streets.findIndex(s => s.name === street.name && s.osmId === street.osmId);
-                const difficulty = getStreetDifficulty(street);
-                return (
-                <div 
-                  key={originalIndex} 
-                  className={`street-item ${street.included ? 'included' : 'excluded'}`}
-                  onClick={() => handleToggleStreet(originalIndex)}
-                  onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
-                  onMouseLeave={() => setHoveredStreetIndex(null)}
-                >
-                  <div className="checkbox">
-                    {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
-                  </div>
-                  <div className="street-info">
-                    <span className="street-name">{street.name}</span>
-                    {street.alternativeName && (
-                      <span className="alt-name">({street.alternativeName})</span>
-                    )}
-                  </div>
-                  <div className="difficulty-badge" style={{ color: getDifficultyColor(difficulty) }}>
-                    <Star size={16} fill={getDifficultyColor(difficulty)} />
-                    <span>{getDifficultyLabel(difficulty)}</span>
-                  </div>
-                </div>
-                );
-              })}
+            <div className="right-panel">
+              <div ref={mapRef} className="detail-map" />
             </div>
           </div>
-
-          <div className="right-panel">
-            <div 
-              ref={mapRef} 
-              className="detail-map"
-            />
-          </div>
-        </div>
         </div>
       </div>
     </div>

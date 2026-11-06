@@ -33,15 +33,13 @@ export function convertOverpassLatLngToLatLng({ lat, lon }) {
  */
 export function getBboxOfFeature(feature, numberOfDecimalPoints = 4) {
   let turfArray = turf.bbox(feature);
-  
+
   if (numberOfDecimalPoints !== Infinity) {
-    turfArray = turfArray.map(item => 
-      parseFloat(item.toFixed(numberOfDecimalPoints))
-    );
+    turfArray = turfArray.map((item) => parseFloat(item.toFixed(numberOfDecimalPoints)));
   }
-  
+
   const [west, south, east, north] = turfArray;
-  
+
   return { east, north, south, west, turfArray };
 }
 
@@ -60,18 +58,18 @@ export function createFeatureFromPresetAreaShape(presetAreaShape, centerPosition
   if (presetAreaShape === 'circle') {
     return turf.circle(turf.point(centerPosition), radius / 1000);
   }
-  
+
   if (presetAreaShape === 'square') {
     const radiusInDegrees = radius / 111320;
     const squareBbox = [
       centerPosition[0] - radiusInDegrees,
       centerPosition[1] - radiusInDegrees,
       centerPosition[0] + radiusInDegrees,
-      centerPosition[1] + radiusInDegrees
+      centerPosition[1] + radiusInDegrees,
     ];
     return turf.bboxPolygon(squareBbox);
   }
-  
+
   throw new Error(`Unexpected shape ${presetAreaShape}`);
 }
 
@@ -93,13 +91,13 @@ export function convertLatLngToPosition(latLng) {
  * Check if element is an enclosed area
  */
 export function isElementAnEnclosedArea(element, points) {
-  if (element.tags.area === "yes") {
+  if (element.tags.area === 'yes') {
     return true;
   }
-  
+
   const flattenedPoints = points.flat(2);
   const lastIndex = flattenedPoints.length - 1;
-  
+
   return (
     flattenedPoints[0].lat === flattenedPoints[lastIndex].lat &&
     flattenedPoints[0].lng === flattenedPoints[lastIndex].lng
@@ -112,19 +110,16 @@ export function isElementAnEnclosedArea(element, points) {
 export function isLatLngInsidePolygon(latLng, polygonPoints) {
   const polygonCoordinates = polygonPoints.map(convertLatLngToCoordinates);
   let safePolygonCoordinates;
-  
+
   // point-in-polygon doesn't like an unnecessary level
   if (polygonCoordinates.length === 1 && typeof polygonCoordinates[0] !== 'number') {
     safePolygonCoordinates = polygonCoordinates[0];
   } else {
     safePolygonCoordinates = polygonCoordinates;
   }
-  
+
   try {
-    return isPointInPolygon(
-      convertLatLngToCoordinates(latLng),
-      safePolygonCoordinates
-    );
+    return isPointInPolygon(convertLatLngToCoordinates(latLng), safePolygonCoordinates);
   } catch (e) {
     return false;
   }

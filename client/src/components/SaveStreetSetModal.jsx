@@ -2,7 +2,16 @@ import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import './SaveStreetSetModal.css';
 
-export default function SaveStreetSetModal({ onClose, onSave, streets, center, radius, isCreating = false, loading = false, error = null }) {
+export default function SaveStreetSetModal({
+  onClose,
+  onSave,
+  streets,
+  center,
+  radius,
+  isCreating = false,
+  loading = false,
+  error = null,
+}) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState('easy');
@@ -26,10 +35,10 @@ export default function SaveStreetSetModal({ onClose, onSave, streets, center, r
     setSaving(true);
 
     try {
-      await onSave({ 
-        name: name.trim(), 
+      await onSave({
+        name: name.trim(),
         description: description.trim(),
-        difficulty: isCreating ? difficulty : undefined
+        difficulty: isCreating ? difficulty : undefined,
       });
       onClose();
     } catch (err) {
@@ -48,11 +57,9 @@ export default function SaveStreetSetModal({ onClose, onSave, streets, center, r
 
         <h2>Save Street Set</h2>
         <p className="modal-subtitle">
-          {loading ? (
-            'Loading streets from map area...'
-          ) : (
-            `Save these ${streets?.length || 0} streets for future practice`
-          )}
+          {loading
+            ? 'Loading streets from map area...'
+            : `Save these ${streets?.length || 0} streets for future practice`}
         </p>
 
         {error && (
@@ -70,44 +77,44 @@ export default function SaveStreetSetModal({ onClose, onSave, streets, center, r
 
         {!loading && (
           <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">Name *</label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Downtown Streets"
-              maxLength={50}
-              required
-              autoFocus
-            />
-          </div>
+            <div className="form-group">
+              <label htmlFor="name">Name *</label>
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Downtown Streets"
+                maxLength={50}
+                required
+                autoFocus
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="description">Description (optional)</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add notes about this street set..."
-              maxLength={200}
-              rows={3}
-            />
-          </div>
+            <div className="form-group">
+              <label htmlFor="description">Description (optional)</label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add notes about this street set..."
+                maxLength={200}
+                rows={3}
+              />
+            </div>
 
-          {submitError && <div className="error-message">{submitError}</div>}
+            {submitError && <div className="error-message">{submitError}</div>}
 
-          <div className="modal-actions">
-            <button type="button" onClick={onClose} className="btn-cancel" disabled={loading}>
-              Cancel
-            </button>
-            <button type="submit" className="btn-save" disabled={saving || loading}>
-              <Save size={18} />
-              {saving ? 'Saving...' : 'Save Street Set'}
-            </button>
-          </div>
-        </form>
+            <div className="modal-actions">
+              <button type="button" onClick={onClose} className="btn-cancel" disabled={loading}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-save" disabled={saving || loading}>
+                <Save size={18} />
+                {saving ? 'Saving...' : 'Save Street Set'}
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </div>

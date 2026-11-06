@@ -1,10 +1,7 @@
 import { useState, useCallback } from 'react';
 import { fetchOverpassData } from '../utils/overpassFetcher';
 import { processOverpassElements } from '../utils/streetProcessor';
-import { 
-  createFeatureFromPresetAreaShape, 
-  convertLatLngToPosition 
-} from '../utils/geometryUtils';
+import { createFeatureFromPresetAreaShape, convertLatLngToPosition } from '../utils/geometryUtils';
 import { PresetAreaShape, Difficulty, defaults } from '../utils/areaTypes';
 
 /**
@@ -16,60 +13,59 @@ export function useOverpassStreets({
   radius = defaults.radius,
   shape = defaults.shape,
   difficulty = defaults.difficulty,
-  numberOfQuestions = 10
+  numberOfQuestions = 10,
 } = {}) {
   const [streets, setStreets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   const loadStreets = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('🔍 Loading streets from Overpass API...');
       console.log('  Center:', center);
       console.log('  Radius:', radius, 'meters');
       console.log('  Shape:', shape);
       console.log('  Difficulty:', difficulty);
-      
+
       // Create area selection
       const centerPosition = convertLatLngToPosition(center);
       const feature = createFeatureFromPresetAreaShape(shape, centerPosition, radius);
-      
+
       const areaSelection = {
         areaId: null,
         feature,
         presetShape: shape,
-        radius
+        radius,
       };
-      
+
       // Fetch from Overpass API
-      const overpassResponse = await fetchOverpassData({ 
+      const overpassResponse = await fetchOverpassData({
         areaSelection,
-        shouldCacheResponseInBrowser: true 
+        shouldCacheResponseInBrowser: true,
       });
-      
+
       if (!overpassResponse.elements || overpassResponse.elements.length === 0) {
         throw new Error('No streets found in this area');
       }
-      
+
       // Process and filter elements
       const processedStreets = processOverpassElements({
         elements: overpassResponse.elements,
         difficulty,
-        numberOfQuestions
+        numberOfQuestions,
       });
-      
+
       if (processedStreets.length === 0) {
         throw new Error(
           'No suitable streets found. Try increasing the difficulty or selecting a different area.'
         );
       }
-      
+
       setStreets(processedStreets);
       console.log(`✅ Loaded ${processedStreets.length} streets`);
-      
     } catch (err) {
       console.error('❌ Error loading streets:', err);
       setError(err.message);
@@ -78,16 +74,16 @@ export function useOverpassStreets({
       setLoading(false);
     }
   }, [center, radius, shape, difficulty, numberOfQuestions]);
-  
+
   const refreshStreets = useCallback(() => {
     loadStreets();
   }, [loadStreets]);
-  
-  return { 
-    streets, 
-    loading, 
-    error, 
+
+  return {
+    streets,
+    loading,
+    error,
     loadStreets,
-    refreshStreets 
+    refreshStreets,
   };
 }

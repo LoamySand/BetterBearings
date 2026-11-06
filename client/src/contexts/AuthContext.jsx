@@ -22,15 +22,15 @@ export function AuthProvider({ children }) {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       if (response.ok) {
         const data = await response.json();
-          setUser(data.user);
-        } else if (response.status === 401) {
-          localStorage.removeItem('authToken');
-        }
+        setUser(data.user);
+      } else if (response.status === 401) {
+        localStorage.removeItem('authToken');
+      }
     } catch (err) {
       // Network error or server down: keep the token, try again next load
       console.error('Token verification failed:', err);

@@ -16,9 +16,9 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
   // Difficulty map
   const difficultyMap = {
-    'easy': Difficulty.Tourist,
-    'medium': Difficulty.Resident,
-    'hard': Difficulty.TaxiDriver,
+    easy: Difficulty.Tourist,
+    medium: Difficulty.Resident,
+    hard: Difficulty.TaxiDriver,
   };
 
   // Load streets based on difficulty
@@ -67,11 +67,11 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
         console.log('Initializing map...');
         const map = window.L.map(mapRef.current).setView([40, -95], 4);
-        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',  {
+        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19,
         }).addTo(map);
-        
+
         mapInstanceRef.current = map;
         console.log('Map initialized successfully');
         clearInterval(checkInterval);
@@ -125,7 +125,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   const handleSaveStreetSet = async (config) => {
     // Streets from Overpass API already have 'points' field in format [{lat, lng}, ...]
     // No need to convert - just use them directly
-    const convertedStreets = streets.map(street => ({
+    const convertedStreets = streets.map((street) => ({
       ...street,
       // Points are already in the correct format from Overpass API
       points: street.points || [],
@@ -190,18 +190,10 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
           {/* Actions */}
           <div className="modal-actions">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-cancel"
-            >
+            <button type="button" onClick={onClose} className="btn-cancel">
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={handleSelectArea}
-              className="btn-select"
-            >
+            <button type="button" onClick={handleSelectArea} className="btn-select">
               <MapPin size={18} />
               Select Area & Continue
             </button>

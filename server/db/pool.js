@@ -6,7 +6,6 @@ pool.on('error', (err) => {
   logger.error({ err }, 'Unexpected Postgres pool error');
 });
 
-
 async function withTransaction(fn) {
   const client = await pool.connect();
   try {

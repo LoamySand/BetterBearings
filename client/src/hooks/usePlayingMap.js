@@ -3,12 +3,7 @@ import { useRef, useEffect, useState } from 'react';
 /**
  * Custom hook to initialize the playing map (map with tile layer for the game)
  */
-export function usePlayingMap({ 
-  gameMode, 
-  quizCenter, 
-  streets,
-  mapRef,
-}) {
+export function usePlayingMap({ gameMode, quizCenter, streets, mapRef }) {
   const mapInstanceRef = useRef(null);
   const mapInitialized = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -39,9 +34,9 @@ export function usePlayingMap({
 
     const initPlayingMap = () => {
       if (!window.L || !mapRef.current) {
-        console.log('Waiting for Leaflet or map container for playing map...', { 
-          leaflet: !!window.L, 
-          mapRef: !!mapRef.current 
+        console.log('Waiting for Leaflet or map container for playing map...', {
+          leaflet: !!window.L,
+          mapRef: !!mapRef.current,
         });
         return;
       }
@@ -76,7 +71,7 @@ export function usePlayingMap({
         setIsMapReady(true); // Trigger re-render
 
         console.log('✅ Playing map initialized');
-        
+
         // Ensure map renders properly
         setTimeout(() => {
           if (map) {

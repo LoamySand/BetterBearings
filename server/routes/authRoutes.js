@@ -7,8 +7,7 @@ const { validate } = require('../middleware/validate');
 const { signupSchema, loginSchema, deleteAccountSchema } = require('./schema');
 const router = express.Router();
 
-const signToken = (userId) =>
-  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const signToken = (userId) => jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 const toApiUser = (u) => ({ id: u.id, username: u.username, email: u.email });
 
@@ -31,9 +30,10 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
     });
   } catch (err) {
     if (err.code === '23505') {
-      const message = err.constraint === 'users_email_key'
-        ? 'Email already registered'
-        : 'Username already taken';
+      const message =
+        err.constraint === 'users_email_key'
+          ? 'Email already registered'
+          : 'Username already taken';
       return res.status(400).json({ message });
     }
     req.log.error({ err }, 'Signup error');
@@ -61,10 +61,9 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      'SELECT id, username, email FROM users WHERE id = $1',
-      [req.user.userId]
-    );
+    const { rows } = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [
+      req.user.userId,
+    ]);
     if (rows.length === 0) {
       return res.status(401).json({ message: 'Account no longer exists' });
     }

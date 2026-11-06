@@ -132,11 +132,17 @@ async function updateStreetSet(userId, id, { name, description, streets }) {
 }
 
 async function deleteStreetSet(userId, id) {
-  const { rowCount } = await pool.query(
-    'DELETE FROM street_sets WHERE id = $1 AND user_id = $2',
-    [id, userId]
-  );
+  const { rowCount } = await pool.query('DELETE FROM street_sets WHERE id = $1 AND user_id = $2', [
+    id,
+    userId,
+  ]);
   return rowCount > 0;
 }
 
-module.exports = { listStreetSets, getStreetSet, createStreetSet, updateStreetSet, deleteStreetSet };
+module.exports = {
+  listStreetSets,
+  getStreetSet,
+  createStreetSet,
+  updateStreetSet,
+  deleteStreetSet,
+};

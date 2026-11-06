@@ -16,7 +16,7 @@ export function useQuizArea() {
     const map = mapInstance;
     const center = map.getCenter();
     const bounds = map.getBounds();
-    
+
     // Calculate radius from bounds (approximate)
     const ne = bounds.getNorthEast();
     const radiusMeters = Math.round(center.distanceTo(ne));

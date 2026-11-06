@@ -2,19 +2,19 @@
  * Area selection shapes
  */
 export const PresetAreaShape = {
-  Circle: "circle",
-  Square: "square",
-  MultiPolygon: "multi-polygon"
+  Circle: 'circle',
+  Square: 'square',
+  MultiPolygon: 'multi-polygon',
 };
 
 /**
  * Difficulty levels that affect which highways are included
  */
 export const Difficulty = {
-  MajorStateRoads: "major-state-roads",
-  Tourist: "tourist",
-  Resident: "resident",
-  TaxiDriver: "taxi-driver"
+  MajorStateRoads: 'major-state-roads',
+  Tourist: 'tourist',
+  Resident: 'resident',
+  TaxiDriver: 'taxi-driver',
 };
 
 /**
@@ -23,5 +23,5 @@ export const Difficulty = {
 export const defaults = {
   radius: 5000, // meters
   shape: PresetAreaShape.Circle,
-  difficulty: Difficulty.Tourist
+  difficulty: Difficulty.Tourist,
 };
