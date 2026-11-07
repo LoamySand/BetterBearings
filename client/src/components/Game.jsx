@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Trophy, Target, Star, Award, RefreshCw, User, LogOut, Save } from 'lucide-react';
-import { useOverpassStreets } from '../hooks/useOverpassStreets';
+import { useStreets } from '../hooks/useStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
 import { useQuizArea } from '../hooks/useQuizArea';
@@ -14,7 +14,7 @@ import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
-import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
+import { Difficulty } from '../utils/areaTypes';
 import './Game.css';
 import { API_URL } from '../config';
 
@@ -26,8 +26,11 @@ export default function StreetFinderGame() {
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [preloadedStreets, setPreloadedStreets] = useState(null);
-  const [streetSetName, setStreetSetName] = useState(null);
+  // "Play" on StreetSets or StreetSetDetail navigates to / with the set in navigation state, which
+  // mounts this component fresh. Read it once here instead of copying it into state in an effect.
+  const [initialSet] = useState(() => location.state?.streetSet ?? null);
+  const [preloadedStreets, setPreloadedStreets] = useState(initialSet?.streets ?? null);
+  const [streetSetName, setStreetSetName] = useState(initialSet?.name ?? null);
 
   const { user, logout, isAuthenticated } = useAuth();
 
@@ -49,7 +52,7 @@ export default function StreetFinderGame() {
     endGame,
     resetGame,
     updateStreetsRef,
-  } = useGameState(totalRounds);
+  } = useGameState(totalRounds, initialSet ? 'playing' : 'selecting');
 
   // Quiz area management
   const {
@@ -59,16 +62,18 @@ export default function StreetFinderGame() {
     setQuizRadius,
     handleQuizThisArea,
     resetQuizArea,
-  } = useQuizArea();
+  } = useQuizArea({
+    initialCenter: initialSet?.center ?? null,
+    initialRadius: initialSet?.radius ?? 5000,
+  });
 
-  // Load streets from Overpass API - only when no preloaded streets
+  // Load streets from /api/streets - only when no preloaded streets
   // For 'creating' mode, fetch more streets (50). For 'playing' mode, use totalRounds.
   const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : totalRounds;
 
-  const { streets, loading, error, loadStreets } = useOverpassStreets({
+  const { streets, loading, error, loadStreets } = useStreets({
     center: !preloadedStreets ? quizCenter : null,
     radius: quizRadius,
-    shape: PresetAreaShape.Circle,
     difficulty,
     numberOfQuestions: numberOfQuestionsForAPI,
   });
@@ -140,7 +145,7 @@ export default function StreetFinderGame() {
     // Only load if we don't have streets for this center yet and no preloaded streets
     const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng}` : null;
 
-    // ONLY load from Overpass if:
+    // ONLY call /api/streets if:
     // 1. We have a quiz center
     // 2. We're in playing or creating mode
     // 3. We haven't loaded for this center yet
@@ -151,11 +156,9 @@ export default function StreetFinderGame() {
       streetsLoadedForCenter.current !== centerKey &&
       !preloadedStreets
     ) {
-      console.log('🔄 Calling loadStreets for center:', centerKey);
       loadStreets();
       streetsLoadedForCenter.current = centerKey;
     } else if (preloadedStreets) {
-      console.log('✅ Using preloaded streets, skipping Overpass API call');
       streetsLoadedForCenter.current = centerKey;
     }
   }, [quizCenter, gameMode, loadStreets, preloadedStreets]);
@@ -165,24 +168,10 @@ export default function StreetFinderGame() {
     updateStreetsRef(activeStreets);
   }, [activeStreets, updateStreetsRef]);
 
-  // Handle preloaded street set from navigation
+  // Clear the navigation state so a refresh doesn't replay the set
   useEffect(() => {
-    if (location.state?.streetSet) {
-      const { streetSet } = location.state;
-      console.log('Loading street set:', streetSet.name);
-      console.log('Streets loaded:', streetSet.streets);
-      console.log('First street points format:', streetSet.streets[0]?.points);
-      setPreloadedStreets(streetSet.streets);
-      setStreetSetName(streetSet.name);
-      // Set the quiz area to match the street set
-      setQuizCenter(streetSet.center);
-      setQuizRadius(streetSet.radius);
-      // Switch to playing mode
-      setGameMode('playing');
-      // Clear the navigation state to prevent reloading on refresh
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, setQuizCenter, setQuizRadius, setGameMode]);
+    if (initialSet) window.history.replaceState({}, document.title);
+  }, [initialSet]);
 
   // Load user's street sets on mount
   useEffect(() => {
@@ -371,7 +360,7 @@ export default function StreetFinderGame() {
     setQuizCenter(center);
     setQuizRadius(radius);
 
-    // Trigger the Overpass API call by removing preloaded streets
+    // Trigger the /api/streets call by removing preloaded streets
     setPreloadedStreets(null);
 
     // Set a flag so we know to open save modal after streets load
@@ -432,13 +421,6 @@ export default function StreetFinderGame() {
         alert('No authentication token found. Please log in again.');
         return;
       }
-
-      console.log('=== SAVING STREET SET ===');
-      console.log('Active streets count:', activeStreets.length);
-      console.log('First street sample:', activeStreets[0]);
-      console.log('First street points:', activeStreets[0]?.points);
-      console.log('Points type:', typeof activeStreets[0]?.points);
-      console.log('Points is array:', Array.isArray(activeStreets[0]?.points));
 
       // Function to calculate difficulty based on street type
       const calculateDifficulty = (street) => {
@@ -514,11 +496,6 @@ export default function StreetFinderGame() {
         })
         .filter((s) => s !== null);
 
-      console.log('Streets to save count:', streetsToSave.length);
-      console.log('First saved street sample:', streetsToSave[0]);
-      console.log('First saved street coordinates:', streetsToSave[0]?.coordinates);
-      console.log('First coordinate sample:', streetsToSave[0]?.coordinates[0]);
-
       const response = await fetch(`${API_URL}/street-sets`, {
         method: 'POST',
         headers: {
@@ -561,7 +538,7 @@ export default function StreetFinderGame() {
           }}
         >
           <RefreshCw size={48} className="animate-spin" />
-          <p>Loading streets from Overpass API...</p>
+          <p>Loading streets...</p>
           <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             This may take 10-30 seconds on first load. Results will be cached.
           </p>

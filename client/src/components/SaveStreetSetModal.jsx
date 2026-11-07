@@ -71,7 +71,7 @@ export default function SaveStreetSetModal({
         {loading && (
           <div className="loading-message">
             <div className="spinner"></div>
-            Fetching streets from Overpass API...
+            Loading streets...
           </div>
         )}
 

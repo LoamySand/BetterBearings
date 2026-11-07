@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, MapPin } from 'lucide-react';
-import { useOverpassStreets } from '../hooks/useOverpassStreets';
-import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
+import { useStreets } from '../hooks/useStreets';
+import { Difficulty } from '../utils/areaTypes';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import './CreateStreetSetModal.css';
-import { API_URL } from '../config';
 import { addBaseLayer } from '../utils/tileLayer';
 
 export default function CreateStreetSetModal({ onClose, onSave }) {
@@ -23,21 +22,20 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   };
 
   // Load streets based on difficulty
-  const { streets, loading, error, loadStreets } = useOverpassStreets({
+  const { streets, loading, error, loadStreets } = useStreets({
     center: step === 'savingSet' && quizCenter ? quizCenter : null,
     radius: quizRadius,
-    shape: PresetAreaShape.Circle,
     difficulty: difficultyMap[selectedDifficulty],
-    numberOfQuestions: 200, // Fetch up to 200 streets for better selection
+    numberOfQuestions: 200, // the street-set cap
   });
 
-  // Trigger street loading when user selects area and moves to saving step
+  // Load once on reaching the saving step. Without the !error guard, a failed load (429, 503)
+  // left streets empty and re-triggered this effect in a loop.
   useEffect(() => {
-    if (step === 'savingSet' && quizCenter && quizRadius && !loading && streets.length === 0) {
-      console.log('Loading streets for creating street set...');
+    if (step === 'savingSet' && quizCenter && quizRadius && !loading && !error && !streets.length) {
       loadStreets();
     }
-  }, [step, quizCenter, quizRadius, loadStreets, loading, streets.length]);
+  }, [step, quizCenter, quizRadius, loadStreets, loading, error, streets.length]);
 
   // Initialize map
   useEffect(() => {
@@ -121,20 +119,13 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   };
 
   const handleSaveStreetSet = async (config) => {
-    // Streets from Overpass API already have 'points' field in format [{lat, lng}, ...]
-    // No need to convert - just use them directly
-    const convertedStreets = streets.map((street) => ({
-      ...street,
-      // Points are already in the correct format from Overpass API
-      points: street.points || [],
-    }));
-
+    // useStreets already returns points as lines of { lat, lng }
     await onSave({
       name: config.name,
       description: config.description,
       center: quizCenter,
       radius: quizRadius,
-      streets: convertedStreets,
+      streets,
       difficulty: selectedDifficulty, // Pass the selected difficulty
     });
   };

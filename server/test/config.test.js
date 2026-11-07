@@ -57,6 +57,7 @@ test('a same-origin path adds nothing to the CSP', async () => {
   process.env.TILE_URL = '/tiles/{z}/{x}/{y}.mvt';
   const res = await request(createApp()).get('/api/config');
   assert.equal(directive(res, 'img-src'), "img-src 'self' data:");
+  assert.equal(directive(res, 'connect-src'), "connect-src 'self'");
 });
 
 test('a bad TILE_URL fails startup', () => {

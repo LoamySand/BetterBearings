@@ -1,5 +1,5 @@
-// Which streets can become questions (KAN-57). Ported from the client so /api/streets can pick
-// questions in SQL: difficultySettings.js, exclusions.js and streetProcessor.js in client/src/utils.
+// Which streets can become questions (KAN-57). /api/streets applies these in SQL; they were
+// ported from the browser's Overpass processing, removed in KAN-58.
 // osm.streets holds every named highway (KAN-56); these rules pick the game's subset.
 
 const TOURIST = ['motorway', 'primary', 'secondary', 'trunk'];
@@ -16,8 +16,8 @@ const TAXI_DRIVER = [
 
 const DIFFICULTIES = ['major-state-roads', 'tourist', 'resident', 'taxi-driver'];
 
-// Every type a game can use. Same-name segments of these types merge into one street,
-// as all elements in the Overpass response did.
+// Every type a game can use. Same-name segments of these types merge into one street, even
+// when only some of them pass the chosen difficulty's rules.
 const GAME_TYPES = TAXI_DRIVER;
 
 // Major state roads match on ref, not type. Postgres regex, same as the client's JS one.

@@ -74,14 +74,8 @@ function createApp() {
           styleSrc: ["'self'"],
           // Raster tiles load as images, vector tiles (T3) as fetches, so the tile origin goes in both
           imgSrc: ["'self'", 'data:', ...tileSrc],
-          connectSrc: [
-            "'self'",
-            ...tileSrc,
-            // Overpass endpoints, tried in order by client/src/utils/overpassFetcher.js
-            'https://overpass-api.de',
-            'https://overpass.private.coffee',
-            'https://maps.mail.ru',
-          ],
+          // Street data comes from our own /api/streets (KAN-58), so only the tile origin is extra
+          connectSrc: ["'self'", ...tileSrc],
           fontSrc: ["'self'"],
           upgradeInsecureRequests: servedOverHttps ? [] : null, // null removes helmet's default
         },

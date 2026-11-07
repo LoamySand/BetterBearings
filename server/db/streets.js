@@ -2,7 +2,7 @@ const { pool } = require('./pool');
 const rules = require('../streetRules');
 
 // Picks up to `count` random streets near a point from osm.streets and merges each street's
-// segments into one MultiLineString. Replaces processOverpassElements in the browser.
+// segments into one MultiLineString.
 //
 // area:    every game-type segment within the radius, flagged if it passes this difficulty's rules
 // grouped: one row per name (case-insensitive), all its segments merged, in one GROUP BY pass
