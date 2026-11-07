@@ -130,7 +130,26 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max     
+          cache-to: type=gha,mode=max
+
+      # Street import image (KAN-56), same tags as the app so IMAGE_TAG covers both
+      - id: meta-osm
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/loamysand/betterbearings-osm
+          tags: |
+            type=sha
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=staging,enable=${{ github.ref != 'refs/heads/main' }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: deploy/osm
+          push: true
+          tags: ${{ steps.meta-osm.outputs.tags }}
+          labels: ${{ steps.meta-osm.outputs.labels }}
+          cache-from: type=gha,scope=osm
+          cache-to: type=gha,scope=osm,mode=max     
   deploy:
     name: Deploy
     needs: image

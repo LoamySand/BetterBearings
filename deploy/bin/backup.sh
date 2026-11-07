@@ -14,9 +14,10 @@ mkdir -p "$DEST"
 rm -f "$DEST"/*.partial        # leftovers from a run that failed
 
 cd "$APP_DIR"
+# --exclude-schema=osm: street data is rebuilt from Geofabrik by osm-import, so it stays out of backups.
 # -T: no TTY, so binary output isn't mangled. -Fc: compressed custom format for pg_restore.
 # If pg_dump or the write fails (disk full, db down), set -e stops here and the .partial is never renamed.
-docker compose exec -T db pg_dump -U bb -d betterbearings -Fc > "$FILE.partial"
+docker compose exec -T db pg_dump -U bb -d betterbearings -Fc --exclude-schema=osm > "$FILE.partial"
 
 # Cheap sanity check: read the whole archive without restoring it. Catches gross corruption,
 # not every truncation; restore-test.sh is the real proof.
