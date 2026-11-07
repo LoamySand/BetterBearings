@@ -7,6 +7,7 @@ import AuthModal from '../components/AuthModal';
 import CreateStreetSetModal from '../components/CreateStreetSetModal';
 import './StreetSets.css';
 import { API_URL } from '../config';
+import { assignDifficulty } from '../utils/streetDifficulty';
 
 export default function StreetSets() {
   const { user, isAuthenticated } = useAuth();
@@ -79,32 +80,13 @@ export default function StreetSets() {
     try {
       const token = localStorage.getItem('authToken');
 
-      console.log('handleSaveStreetSet called with:', streetSetData);
-      console.log('First street in streetSetData:', streetSetData.streets[0]);
-      console.log('First street points:', streetSetData.streets[0]?.points);
-
-      // Map difficulty string to numeric value
-      const difficultyMap = {
-        easy: 1,
-        medium: 2,
-        hard: 3,
-      };
-      const difficultyLevel = difficultyMap[streetSetData.difficulty] || 2;
-
       // Prepare streets for saving
       const streetsToSave = streetSetData.streets
         .map((street) => {
           if (!street.points || !Array.isArray(street.points)) {
-            console.warn('Street missing points:', street.name, 'points:', street.points);
+            console.warn('Street missing points:', street.name);
             return null;
           }
-
-          console.log(
-            `Converting street "${street.name}", points length:`,
-            street.points.length,
-            'first point:',
-            street.points[0]
-          );
 
           return {
             osmId: street.osmId,
@@ -119,12 +101,9 @@ export default function StreetSets() {
             alternativeName: street.alternativeName,
             isEnclosedArea: street.isEnclosedArea,
             included: true,
-            difficulty: difficultyLevel, // Use the selected difficulty level
           };
         })
         .filter((s) => s !== null);
-
-      console.log('Streets to save:', streetsToSave[0]);
 
       const response = await fetch(`${API_URL}/street-sets`, {
         method: 'POST',
@@ -137,7 +116,8 @@ export default function StreetSets() {
           description: streetSetData.description,
           center: streetSetData.center,
           radius: streetSetData.radius,
-          streets: streetsToSave,
+          // Easy/Medium/Hard thirds within this set (KAN-72)
+          streets: assignDifficulty(streetsToSave),
         }),
       });
 

@@ -15,13 +15,14 @@ import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty } from '../utils/areaTypes';
+import { assignDifficulty } from '../utils/streetDifficulty';
 import './Game.css';
 import { API_URL } from '../config';
 
 export default function StreetFinderGame() {
   const location = useLocation();
   const [totalRounds, setTotalRounds] = useState(5);
-  const [difficulty] = useState(Difficulty.Tourist);
+  const [difficulty, setDifficulty] = useState(Difficulty.Tourist);
   const [streetSets, setStreetSets] = useState([]);
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -142,8 +143,9 @@ export default function StreetFinderGame() {
   const streetsLoadedForCenter = useRef(null);
 
   useEffect(() => {
-    // Only load if we don't have streets for this center yet and no preloaded streets
-    const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng}` : null;
+    // Only load if we don't have streets for this center and difficulty yet, and no preloaded
+    // streets. Difficulty is in the key so a new selector choice on the same area refetches.
+    const centerKey = quizCenter ? `${quizCenter.lat},${quizCenter.lng},${difficulty}` : null;
 
     // ONLY call /api/streets if:
     // 1. We have a quiz center
@@ -161,7 +163,7 @@ export default function StreetFinderGame() {
     } else if (preloadedStreets) {
       streetsLoadedForCenter.current = centerKey;
     }
-  }, [quizCenter, gameMode, loadStreets, preloadedStreets]);
+  }, [quizCenter, difficulty, gameMode, loadStreets, preloadedStreets]);
 
   // Update streets ref when streets change
   useEffect(() => {
@@ -235,6 +237,8 @@ export default function StreetFinderGame() {
           return;
         }
 
+        // The Quiz This Area selector picks which road classes /api/streets may return
+        setDifficulty(difficultyMap[config.difficulty] ?? Difficulty.Tourist);
         // Set center as object {lat, lng}, not array
         setQuizCenter({ lat: center.lat, lng: center.lng });
         setQuizRadius(radius);
@@ -422,55 +426,6 @@ export default function StreetFinderGame() {
         return;
       }
 
-      // Function to calculate difficulty based on street type
-      const calculateDifficulty = (street) => {
-        const type = street.type?.toLowerCase() || '';
-        const length = street.length || 0;
-
-        console.log(`Calculating difficulty for "${street.name}":`, {
-          type: street.type,
-          typeLower: type,
-          length: length,
-          rawStreet: street,
-        });
-
-        let difficulty = 2; // Default to medium
-
-        // Easy = Primary roads (motorway, trunk, primary)
-        if (type.includes('primary') || type.includes('motorway') || type.includes('trunk')) {
-          difficulty = 1;
-          console.log(`  -> Easy (primary road)`);
-        }
-        // Medium = Secondary roads
-        else if (type.includes('secondary')) {
-          difficulty = 2;
-          console.log(`  -> Medium (secondary road)`);
-        }
-        // Hard = Tertiary and smaller roads
-        else if (
-          type.includes('tertiary') ||
-          type.includes('residential') ||
-          type.includes('living_street') ||
-          type.includes('service') ||
-          type.includes('unclassified')
-        ) {
-          difficulty = 3;
-          console.log(`  -> Hard (tertiary/small road)`);
-        } else {
-          console.log(`  -> Default Medium (no match)`);
-        }
-
-        // Very short streets are harder (bump up difficulty)
-        if (length > 0 && length < 1500 && difficulty < 3) {
-          const oldDiff = difficulty;
-          difficulty = Math.min(difficulty + 1, 3);
-          console.log(`  -> Bumped from ${oldDiff} to ${difficulty} (short street: ${length}m)`);
-        }
-
-        console.log(`  -> Final difficulty: ${difficulty}`);
-        return difficulty;
-      };
-
       const streetsToSave = activeStreets
         .map((street) => {
           if (!street.points || !Array.isArray(street.points)) {
@@ -491,7 +446,6 @@ export default function StreetFinderGame() {
             alternativeName: street.alternativeName,
             isEnclosedArea: street.isEnclosedArea,
             included: true,
-            difficulty: calculateDifficulty(street),
           };
         })
         .filter((s) => s !== null);
@@ -507,7 +461,8 @@ export default function StreetFinderGame() {
           description,
           center: quizCenter,
           radius: quizRadius,
-          streets: streetsToSave,
+          // Easy/Medium/Hard thirds within this set (KAN-72)
+          streets: assignDifficulty(streetsToSave),
         }),
       });
 
