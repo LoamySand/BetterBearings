@@ -103,7 +103,24 @@ const updateStreetSetSchema = z.object({
   streets: streets.optional(),
 });
 
+// ---- Streets (GET /api/streets query string) ----
+
+const { DIFFICULTIES } = require('../streetRules');
+
+// Query values arrive as strings; coerce, then apply the same ranges as street sets
+const streetsQuerySchema = z.object({
+  lat: z.coerce.number({ error: 'lat is required' }).pipe(lat),
+  lng: z.coerce.number({ error: 'lng is required' }).pipe(lng),
+  radius: z.coerce
+    .number({ error: 'radius is required' })
+    .positive({ error: 'Radius must be positive' })
+    .max(5000, { error: 'Radius can be at most 5000 m' }),
+  difficulty: z.enum(DIFFICULTIES).default('tourist'),
+  count: z.coerce.number().int().min(1).max(MAX_STREETS).default(10),
+});
+
 module.exports = {
+  streetsQuerySchema,
   signupSchema,
   loginSchema,
   createStreetSetSchema,

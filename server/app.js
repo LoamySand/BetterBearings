@@ -177,6 +177,7 @@ function createApp() {
 
   app.use('/api/auth', require('./routes/authRoutes'));
   app.use('/api/street-sets', require('./routes/streetSetRoutes'));
+  app.use('/api/streets', require('./routes/streetRoutes'));
 
   // Serve static files from the frontend build in production
   if (process.env.NODE_ENV === 'production') {

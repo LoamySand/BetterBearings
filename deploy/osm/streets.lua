@@ -5,8 +5,10 @@
 -- These values are not real streets: planned, being built, or gone.
 local skip_highway = { proposed = true, planned = true, construction = true, abandoned = true, razed = true }
 
--- Bike and path tags kept in a jsonb column. Bike lanes are usually tags on the road itself.
+-- Tags kept in a jsonb column. access and area: the game skips private roads and marks enclosed
+-- areas (server/db/streets.js). The rest are bike and path tags; bike lanes are usually tags on the road.
 local tag_keys = {
+  'access', 'area',
   'bicycle', 'foot', 'segregated', 'surface',
   'cycleway', 'cycleway:left', 'cycleway:right', 'cycleway:both',
 }
