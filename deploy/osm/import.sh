@@ -13,7 +13,11 @@ filtered="$DATA_DIR/streets-filtered.osm.pbf"
 start=$(date +%s)
 stage() { echo "[$(( $(date +%s) - start ))s] $*"; }
 psql_q() { psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 "$@"; }
-
+# Peak memory of this container so far (cgroup v2); sets compose mem_limit from a measurement
+peak_mem() {
+  local f=/sys/fs/cgroup/memory.peak
+  if [ -r "$f" ]; then stage "peak memory so far $(( $(cat "$f") / 1048576 )) MiB"; fi
+}
 mkdir -p "$DATA_DIR"
 stage "download $PBF_URL"
 # -z: only download when Geofabrik has a newer file than the one already in the volume
@@ -29,6 +33,7 @@ stage "extract $(du -h "$extract" | cut -f1), data as of ${data_ts:-unknown}"
 stage "filter highway ways"
 # Drops buildings, land use, POIs and so on; streets.lua then keeps the named ones
 osmium tags-filter --overwrite -o "$filtered" "$extract" w/highway
+peak_mem
 
 psql_q <<'SQL'
 CREATE SCHEMA IF NOT EXISTS osm;
@@ -76,3 +81,5 @@ FROM osm.streets GROUP BY highway ORDER BY count(*) DESC;
 SQL
 rm -f "$filtered"
 stage "done"
+
+peak_mem

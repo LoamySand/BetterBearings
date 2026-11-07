@@ -64,7 +64,7 @@ services:
       db:
         condition: service_healthy
     restart: "no"
-    mem_limit: 1g
+    mem_limit: ${OSM_MEM_LIMIT:-3g} # set from memory.peak measured on the laptop, see KAN-56
     profiles: ["osm"]
 
   cloudflared:
