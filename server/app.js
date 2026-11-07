@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { pool } = require('./db/pool'); // Postgres Connection
 const logger = require('./logger');
 const pinoHttp = require('pino-http');
+const { readTileConfig } = require('./tileConfig');
 
 function createApp() {
   const app = express();
@@ -24,6 +25,8 @@ function createApp() {
   app.set('trust proxy', trustProxy);
 
   const isProd = process.env.NODE_ENV === 'production';
+  const tiles = readTileConfig(); // throws on a bad TILE_URL
+  const tileSrc = tiles.origin ? [tiles.origin] : [];
 
   app.use(
     pinoHttp({
@@ -69,9 +72,11 @@ function createApp() {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org'],
+          // Raster tiles load as images, vector tiles (T3) as fetches, so the tile origin goes in both
+          imgSrc: ["'self'", 'data:', ...tileSrc],
           connectSrc: [
             "'self'",
+            ...tileSrc,
             // Overpass endpoints, tried in order by client/src/utils/overpassFetcher.js
             'https://overpass-api.de',
             'https://overpass.private.coffee',
@@ -162,6 +167,12 @@ function createApp() {
   // Basic Route
   app.get('/api', (req, res) => {
     res.json({ message: 'How local are you?' });
+  });
+
+  // Runtime client config. no-cache: revalidate on every load, so an .env change shows up at once
+  app.get('/api/config', (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.json({ tiles: { url: tiles.url, attribution: tiles.attribution } });
   });
 
   app.use('/api/auth', require('./routes/authRoutes'));

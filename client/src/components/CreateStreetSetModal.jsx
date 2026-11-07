@@ -5,6 +5,7 @@ import { Difficulty, PresetAreaShape } from '../utils/areaTypes';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import './CreateStreetSetModal.css';
 import { API_URL } from '../config';
+import { addBaseLayer } from '../utils/tileLayer';
 
 export default function CreateStreetSetModal({ onClose, onSave }) {
   const [step, setStep] = useState('selectArea'); // 'selectArea' or 'savingSet'
@@ -67,10 +68,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
         console.log('Initializing map...');
         const map = window.L.map(mapRef.current).setView([40, -95], 4);
-        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19,
-        }).addTo(map);
+        addBaseLayer(map);
 
         mapInstanceRef.current = map;
         console.log('Map initialized successfully');

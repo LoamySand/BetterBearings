@@ -6,6 +6,7 @@ import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
 import { API_URL } from '../config';
+import { addBaseLayer } from '../utils/tileLayer';
 
 export default function StreetSetDetail() {
   const { id } = useParams();
@@ -117,9 +118,7 @@ export default function StreetSetDetail() {
       zoomControl: true,
     });
 
-    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(map);
+    addBaseLayer(map);
 
     mapInstanceRef.current = map;
 

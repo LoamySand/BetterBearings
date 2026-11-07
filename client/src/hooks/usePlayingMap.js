@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { addBaseLayer } from '../utils/tileLayer';
 
 /**
  * Custom hook to initialize the playing map (map with tile layer for the game)
@@ -61,10 +62,7 @@ export function usePlayingMap({ gameMode, quizCenter, streets, mapRef }) {
           zoomControl: true,
         });
 
-        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors',
-        }).addTo(map);
+        addBaseLayer(map);
 
         mapInstanceRef.current = map;
         mapInitialized.current = true;

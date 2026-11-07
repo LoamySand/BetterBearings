@@ -42,6 +42,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS in .env}
       TRUST_PROXY: ${TRUST_PROXY:-0}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      TILE_URL: ${TILE_URL:-}
+      TILE_ATTRIBUTION: ${TILE_ATTRIBUTION:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

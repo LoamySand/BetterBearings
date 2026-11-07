@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { addBaseLayer } from '../utils/tileLayer';
 
 /**
  * Custom hook to manage Leaflet map initialization and lifecycle
@@ -56,10 +57,7 @@ export function useLeafletMap({
           zoomControl: true,
         });
 
-        window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors',
-        }).addTo(map);
+        addBaseLayer(map);
 
         mapInstanceRef.current = map;
         selectionMapInitialized.current = true;
