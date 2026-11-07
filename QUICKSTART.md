@@ -189,6 +189,35 @@ rclone copy gdrive-backup:BetterBearings-backups/prod/<file>.dump.age .
 age -d -i ~/.config/age/betterbearings-backup.key -o <file>.dump <file>.dump.age
 ```
 
+### Map tiles
+
+The `tiles` service (go-pmtiles) serves every `.pmtiles` file in `/srv/betterbearings/tiles/` as `/<name>/{z}/{x}/{y}.mvt`. Both environments mount the same directory read-only. It has no published port; each environment's tunnel reaches it as `tiles:8080`:
+
+| Environment | Tile hostname | Tunnel |
+| --- | --- | --- |
+| Production | `tiles.betterbearings.net` | `betterbearings-prod` |
+| Staging | `tiles-staging.betterbearings.net` | `betterbearings-staging` |
+
+Staging uses a hyphen, not `tiles.staging.`, because Cloudflare's free certificate covers one subdomain level only.
+
+Build or refresh the New Mexico archive (z15, about 286 MB). Write it under a new name and `mv` it, so the server never reads a half-written file, then restart `tiles` in each environment so it drops its cached directory:
+
+```bash
+mkdir -p /srv/betterbearings/tiles
+~/bin/pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles /srv/betterbearings/tiles/nm.pmtiles.new --bbox=-109.06,31.33,-103.00,37.00 --maxzoom=15
+mv /srv/betterbearings/tiles/nm.pmtiles.new /srv/betterbearings/tiles/nm.pmtiles
+cd /srv/betterbearings/prod && docker compose restart tiles
+cd /srv/betterbearings/staging && docker compose restart tiles
+```
+
+Cloudflare doesn't cache `.mvt` by default, and go-pmtiles sends no `Cache-Control`, so a Cache Rule does it: **Caching, Cache Rules**, hostname is in `tiles.betterbearings.net tiles-staging.betterbearings.net`, **Eligible for cache**, Edge TTL ignore origin 30 days, Browser TTL 1 day. After refreshing the archive, purge the tile hostname's cache (**Caching, Configuration, Custom Purge, Hostname**).
+
+Check a tile (the second request should say `HIT`):
+
+```bash
+curl -sI https://tiles.betterbearings.net/nm/15/6676/12969.mvt | grep -iE '^HTTP|cf-cache-status|content-type'
+```
+
 ## Troubleshooting
 
 **`Postgres connection failed: connect ECONNREFUSED`**

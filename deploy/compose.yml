@@ -67,6 +67,18 @@ services:
     mem_limit: ${OSM_MEM_LIMIT:-3g} # set from memory.peak measured on the laptop, see KAN-56
     profiles: ["osm"]
 
+  # Self-hosted vector tiles (KAN-54). Serves every .pmtiles file in TILES_DIR as
+  # /<name>/{z}/{x}/{y}.mvt, so nm.pmtiles is /nm/{z}/{x}/{y}.mvt. Reached only by cloudflared
+  # on this project's network (tunnel route tiles:8080); no "ports:", so nothing to slip past ufw.
+  tiles:
+    image: protomaps/go-pmtiles:v1.31.2
+    command: ["serve", "/tiles", "--port=8080", "--cors=${CORS_ORIGINS}"]
+    volumes:
+      - ${TILES_DIR:-/srv/betterbearings/tiles}:/tiles:ro # one copy shared by staging and prod
+    restart: unless-stopped
+    mem_limit: 128m # go-pmtiles keeps a 64 MB directory cache by default
+    # No healthcheck: the image is distroless, with no shell or curl to run one
+
   cloudflared:
     image: cloudflare/cloudflared:2026.10.7 
     command: ["tunnel", "--no-autoupdate", "run"]
