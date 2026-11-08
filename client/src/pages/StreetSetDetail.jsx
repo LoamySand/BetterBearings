@@ -46,14 +46,15 @@ export default function StreetSetDetail() {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
+      // 700 shades: 4.8:1 or better on white and on the row hover background
       case 1:
-        return '#10b981'; // green
+        return '#047857'; // green
       case 2:
-        return '#f59e0b'; // orange
+        return '#b45309'; // amber
       case 3:
-        return '#ef4444'; // red
+        return '#b91c1c'; // red
       default:
-        return '#f59e0b';
+        return '#b45309';
     }
   };
 
@@ -392,9 +393,9 @@ export default function StreetSetDetail() {
       <div className="street-set-detail-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <div className="detail-container">
+        <main className="detail-container">
           <p>Loading...</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -404,7 +405,7 @@ export default function StreetSetDetail() {
       <div className="street-set-detail-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <div className="error-message">{error}</div>
+        <main className="error-message">{error}</main>
       </div>
     );
   }
@@ -420,83 +421,85 @@ export default function StreetSetDetail() {
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
 
-      <div className="detail-header">
-        <button onClick={() => navigate('/street-sets')} className="btn-back">
-          <ArrowLeft size={20} />
-          Back
-        </button>
-        <div className="header-content">
-          <h1>{streetSet.name}</h1>
-          {streetSet.description && <p className="subtitle">{streetSet.description}</p>}
-          <p className="street-count">
-            {includedCount} of {streetSet.streets.length} streets selected
-          </p>
-        </div>
-        <div className="header-actions">
-          <button onClick={handleSave} className="btn-save" disabled={saving}>
-            <Save size={20} />
-            {saving ? 'Saving...' : 'Save Changes'}
+      <main>
+        <div className="detail-header">
+          <button onClick={() => navigate('/street-sets')} className="btn-back">
+            <ArrowLeft size={20} />
+            Back
           </button>
-          <button onClick={handlePlay} className="btn-play-set">
-            <Play size={20} />
-            Play This Set
-          </button>
+          <div className="header-content">
+            <h1>{streetSet.name}</h1>
+            {streetSet.description && <p className="subtitle">{streetSet.description}</p>}
+            <p className="street-count">
+              {includedCount} of {streetSet.streets.length} streets selected
+            </p>
+          </div>
+          <div className="header-actions">
+            <button onClick={handleSave} className="btn-save" disabled={saving}>
+              <Save size={20} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={handlePlay} className="btn-play-set">
+              <Play size={20} />
+              Play This Set
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="detail-container">
-        <div>
-          <div className="content-split">
-            <div className="left-panel">
-              <div className="select-all-section">
-                <button onClick={handleSelectAll} className="select-all-button">
-                  {selectAll ? <CheckSquare size={24} /> : <Square size={24} />}
-                  <span>{selectAll ? 'Deselect All' : 'Select All'}</span>
-                </button>
-              </div>
+        <div className="detail-container">
+          <div>
+            <div className="content-split">
+              <div className="left-panel">
+                <div className="select-all-section">
+                  <button onClick={handleSelectAll} className="select-all-button">
+                    {selectAll ? <CheckSquare size={24} /> : <Square size={24} />}
+                    <span>{selectAll ? 'Deselect All' : 'Select All'}</span>
+                  </button>
+                </div>
 
-              <div className="streets-list">
-                {getSortedStreets().map((street) => {
-                  const originalIndex = streetSet.streets.findIndex(
-                    (s) => s.name === street.name && s.osmId === street.osmId
-                  );
-                  const difficulty = getStreetDifficulty(street);
-                  return (
-                    <div
-                      key={originalIndex}
-                      className={`street-item ${street.included ? 'included' : 'excluded'}`}
-                      onClick={() => handleToggleStreet(originalIndex)}
-                      onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
-                      onMouseLeave={() => setHoveredStreetIndex(null)}
-                    >
-                      <div className="checkbox">
-                        {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
-                      </div>
-                      <div className="street-info">
-                        <span className="street-name">{street.name}</span>
-                        {street.alternativeName && (
-                          <span className="alt-name">({street.alternativeName})</span>
-                        )}
-                      </div>
+                <div className="streets-list">
+                  {getSortedStreets().map((street) => {
+                    const originalIndex = streetSet.streets.findIndex(
+                      (s) => s.name === street.name && s.osmId === street.osmId
+                    );
+                    const difficulty = getStreetDifficulty(street);
+                    return (
                       <div
-                        className="difficulty-badge"
-                        style={{ color: getDifficultyColor(difficulty) }}
+                        key={originalIndex}
+                        className={`street-item ${street.included ? 'included' : 'excluded'}`}
+                        onClick={() => handleToggleStreet(originalIndex)}
+                        onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
+                        onMouseLeave={() => setHoveredStreetIndex(null)}
                       >
-                        <Star size={16} fill={getDifficultyColor(difficulty)} />
-                        <span>{getDifficultyLabel(difficulty)}</span>
+                        <div className="checkbox">
+                          {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
+                        </div>
+                        <div className="street-info">
+                          <span className="street-name">{street.name}</span>
+                          {street.alternativeName && (
+                            <span className="alt-name">({street.alternativeName})</span>
+                          )}
+                        </div>
+                        <div
+                          className="difficulty-badge"
+                          style={{ color: getDifficultyColor(difficulty) }}
+                        >
+                          <Star size={16} fill={getDifficultyColor(difficulty)} />
+                          <span>{getDifficultyLabel(difficulty)}</span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="right-panel">
-              <div ref={mapRef} className="detail-map" />
+              <div className="right-panel">
+                <div ref={mapRef} className="detail-map" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

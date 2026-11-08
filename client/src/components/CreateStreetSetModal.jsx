@@ -5,6 +5,7 @@ import { Difficulty } from '../utils/areaTypes';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import './CreateStreetSetModal.css';
 import { addBaseLayer } from '../utils/tileLayer';
+import useDialog from '../hooks/useDialog';
 
 export default function CreateStreetSetModal({ onClose, onSave }) {
   const [step, setStep] = useState('selectArea'); // 'selectArea' or 'savingSet'
@@ -13,6 +14,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   const [quizRadius, setQuizRadius] = useState(null);
   const mapRef = useRef(null); // Create the ref inside the component
   const mapInstanceRef = useRef(null);
+  const { titleId, dialogProps } = useDialog(onClose);
 
   // Difficulty map
   const difficultyMap = {
@@ -147,12 +149,12 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
   return (
     <div className="create-modal-overlay" onClick={onClose}>
-      <div className="create-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
+      <div className="create-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
 
-        <h2>Create New Street Set</h2>
+        <h2 id={titleId}>Create New Street Set</h2>
         <p className="modal-subtitle">Select a difficulty level and area</p>
 
         <div className="create-modal-content">

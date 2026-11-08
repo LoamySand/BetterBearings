@@ -1,19 +1,20 @@
 import { Target, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileDropdown from './ProfileDropdown';
 import './AppHeader.css';
 
 export default function AppHeader({ onSignIn }) {
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
 
   return (
-    <div className="app-header">
+    <header className="app-header">
       <div className="header-content">
-        <h1 className="app-title" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <Target className="app-icon" />
-          BetterBearings
+        <h1 className="app-title">
+          <Link to="/" className="app-title-link">
+            <Target className="app-icon" aria-hidden="true" />
+            BetterBearings
+          </Link>
         </h1>
       </div>
 
@@ -27,6 +28,6 @@ export default function AppHeader({ onSignIn }) {
           </button>
         )}
       </div>
-    </div>
+    </header>
   );
 }

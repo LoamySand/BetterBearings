@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
 }
 
 .game-info-bar {
@@ -26,7 +26,7 @@
 
 .street-set-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
@@ -154,7 +154,7 @@
   font-weight: bold;
   color: #1f2937;
   margin: 0.25rem 0 0.5rem 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -169,7 +169,7 @@
 .btn-save-set {
   margin-top: 0.75rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -271,10 +271,10 @@
   margin: 0.5rem 0;
 }
 
-.final-score h1 {
+.final-score .final-score-value {
   font-size: 4rem;
   font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -287,7 +287,7 @@
 }
 
 .btn-restart {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   color: white;
   padding: 1rem 3rem;
   border: none;
@@ -384,7 +384,7 @@
 }
 
 .btn-quiz-area {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   color: white;
   padding: 1.25rem 2.5rem;
   border: none;
@@ -464,7 +464,7 @@
 }
 
 .btn-login {
-  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   color: white;
 }
 
@@ -506,4 +506,3 @@
     padding: 1rem 2rem;
   }
 }
-

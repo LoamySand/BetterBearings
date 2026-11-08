@@ -197,9 +197,9 @@ export default function StreetSets() {
       <div className="street-sets-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <div className="street-sets-container">
+        <main className="street-sets-container">
           <p>Loading...</p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -215,83 +215,87 @@ export default function StreetSets() {
       )}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
 
-      <div className="street-sets-header">
-        <div className="header-content">
-          <h1>My Street Sets</h1>
-          <p className="subtitle">Manage your custom street collections</p>
+      <main>
+        <div className="street-sets-header">
+          <div className="header-content">
+            <h1>My Street Sets</h1>
+            <p className="subtitle">Manage your custom street collections</p>
+          </div>
+          <button className="btn-create-new" onClick={handleCreateNew}>
+            <Plus size={20} />
+            Create New Set
+          </button>
         </div>
-        <button className="btn-create-new" onClick={handleCreateNew}>
-          <Plus size={20} />
-          Create New Set
-        </button>
-      </div>
 
-      <div className="street-sets-container">
-        {error && <div className="error-message">{error}</div>}
+        <div className="street-sets-container">
+          {error && <div className="error-message">{error}</div>}
 
-        {streetSets.length === 0 ? (
-          <div className="empty-state">
-            <MapPin size={64} className="empty-icon" />
-            <h2>No Street Sets Yet</h2>
-            <p>Create your first street set by playing a quiz area and saving it!</p>
-            <button className="btn-create-new" onClick={handleCreateNew}>
-              <Plus size={20} />
-              Get Started
-            </button>
-          </div>
-        ) : (
-          <div className="street-sets-grid">
-            {streetSets.map((set) => (
-              <div key={set.id} className="street-set-card">
-                <div className="card-header">
-                  <h3>{set.name}</h3>
-                  <div className="card-actions">
-                    <button
-                      className="btn-icon"
-                      onClick={() => navigate(`/street-sets/${set.id}`)}
-                      title="View details"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button
-                      className="btn-icon btn-delete"
-                      onClick={() => handleDelete(set.id)}
-                      title="Delete"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+          {streetSets.length === 0 ? (
+            <div className="empty-state">
+              <MapPin size={64} className="empty-icon" aria-hidden="true" />
+              <h2>No Street Sets Yet</h2>
+              <p>Create your first street set by playing a quiz area and saving it!</p>
+              <button className="btn-create-new" onClick={handleCreateNew}>
+                <Plus size={20} />
+                Get Started
+              </button>
+            </div>
+          ) : (
+            <div className="street-sets-grid">
+              {streetSets.map((set) => (
+                <div key={set.id} className="street-set-card">
+                  <div className="card-header">
+                    <h2>{set.name}</h2>
+                    <div className="card-actions">
+                      <button
+                        className="btn-icon"
+                        onClick={() => navigate(`/street-sets/${set.id}`)}
+                        title="View details"
+                        aria-label={`View ${set.name}`}
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button
+                        className="btn-icon btn-delete"
+                        onClick={() => handleDelete(set.id)}
+                        title="Delete"
+                        aria-label={`Delete ${set.name}`}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {set.description && <p className="card-description">{set.description}</p>}
+                  {set.description && <p className="card-description">{set.description}</p>}
 
-                <div className="card-stats">
-                  <div className="stat">
-                    <span className="stat-label">Total Streets</span>
-                    <span className="stat-value">{set.totalStreets}</span>
+                  <div className="card-stats">
+                    <div className="stat">
+                      <span className="stat-label">Total Streets</span>
+                      <span className="stat-value">{set.totalStreets}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Included</span>
+                      <span className="stat-value">{set.includedStreets}</span>
+                    </div>
                   </div>
-                  <div className="stat">
-                    <span className="stat-label">Included</span>
-                    <span className="stat-value">{set.includedStreets}</span>
+
+                  <div className="card-footer">
+                    <MapPin size={14} aria-hidden="true" />
+                    <span className="location-text">
+                      {set.center.lat.toFixed(4)}, {set.center.lng.toFixed(4)}
+                    </span>
                   </div>
-                </div>
 
-                <div className="card-footer">
-                  <MapPin size={14} />
-                  <span className="location-text">
-                    {set.center.lat.toFixed(4)}, {set.center.lng.toFixed(4)}
-                  </span>
+                  <button className="btn-play" onClick={() => handlePlay(set)}>
+                    <Play size={20} />
+                    Play This Set
+                  </button>
                 </div>
-
-                <button className="btn-play" onClick={() => handlePlay(set)}>
-                  <Play size={20} />
-                  Play This Set
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

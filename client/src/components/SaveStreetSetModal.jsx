@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import './SaveStreetSetModal.css';
+import useDialog from '../hooks/useDialog';
 
 export default function SaveStreetSetModal({
   onClose,
@@ -17,6 +18,7 @@ export default function SaveStreetSetModal({
   const [difficulty, setDifficulty] = useState('easy');
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const { titleId, dialogProps } = useDialog(onClose);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,12 +52,12 @@ export default function SaveStreetSetModal({
 
   return (
     <div className="save-modal-overlay" onClick={onClose}>
-      <div className="save-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
+      <div className="save-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
 
-        <h2>Save Street Set</h2>
+        <h2 id={titleId}>Save Street Set</h2>
         <p className="modal-subtitle">
           {loading
             ? 'Loading streets from map area...'

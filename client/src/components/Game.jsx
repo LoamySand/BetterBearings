@@ -18,6 +18,7 @@ import { Difficulty } from '../utils/areaTypes';
 import { assignDifficulty } from '../utils/streetDifficulty';
 import './Game.css';
 import { API_URL } from '../config';
+import useDialog from '../hooks/useDialog';
 
 export default function StreetFinderGame() {
   const location = useLocation();
@@ -482,7 +483,7 @@ export default function StreetFinderGame() {
   if (gameMode === 'playing' && loading) {
     return (
       <div className="game-container">
-        <div
+        <main
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -492,12 +493,12 @@ export default function StreetFinderGame() {
             gap: '1rem',
           }}
         >
-          <RefreshCw size={48} className="animate-spin" />
+          <RefreshCw size={48} className="animate-spin" aria-hidden="true" />
           <p>Loading streets...</p>
           <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
             This may take 10-30 seconds on first load. Results will be cached.
           </p>
-        </div>
+        </main>
       </div>
     );
   }
@@ -506,7 +507,7 @@ export default function StreetFinderGame() {
   if (gameMode === 'playing' && error) {
     return (
       <div className="game-container">
-        <div
+        <main
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -518,12 +519,12 @@ export default function StreetFinderGame() {
           }}
           //TODDO Guarentee that user selects a small enough area
         >
-          <h1 style={{ color: '#EF4444' }}>Error loading streets, Try a smaller area </h1>
+          <h2 style={{ color: '#EF4444' }}>Error loading streets, Try a smaller area </h2>
           <p style={{ color: '#EF4444' }}>Error: {error}</p>
           <button onClick={loadStreets} className="btn-primary">
             Retry
           </button>
-        </div>
+        </main>
       </div>
     );
   }
@@ -532,7 +533,7 @@ export default function StreetFinderGame() {
   if (gameMode === 'playing' && activeStreets.length === 0 && !loading && !preloadedStreets) {
     return (
       <div className="game-container">
-        <div
+        <main
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -560,7 +561,7 @@ export default function StreetFinderGame() {
           >
             Choose Different Area
           </button>
-        </div>
+        </main>
       </div>
     );
   }
@@ -598,7 +599,7 @@ export default function StreetFinderGame() {
         </div>
       )}
 
-      <div className="game-content">
+      <main className="game-content">
         {gameMode === 'selecting' && (
           <div className="quiz-button-overlay">
             <QuizAreaModule
@@ -653,37 +654,14 @@ export default function StreetFinderGame() {
             }}
           />
         </div>
-      </div>
+      </main>
 
       {gameMode === 'gameOver' && (
-        <div
-          className="game-over"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000 }}
-        >
-          <div className="game-over-content">
-            <Award size={64} className="trophy-icon" />
-            <h2>Game Over!</h2>
-            <div className="final-score">
-              <p>Final Score</p>
-              <h1>{finalScore}</h1>
-              <p className="score-message">
-                {finalScore >= 40
-                  ? 'Impressive!'
-                  : finalScore >= 25
-                    ? 'Good Try!!'
-                    : 'Keep practicing!'}
-              </p>
-            </div>
-            <div className="game-over-buttons">
-              <button onClick={playSameArea} className="btn-restart">
-                🔄 Play Same Area
-              </button>
-              <button onClick={chooseNewArea} className="btn-restart btn-secondary">
-                🗺️ Choose New Area
-              </button>
-            </div>
-          </div>
-        </div>
+        <GameOverDialog
+          finalScore={finalScore}
+          onPlaySameArea={playSameArea}
+          onChooseNewArea={chooseNewArea}
+        />
       )}
 
       {showSaveModal && (
@@ -709,6 +687,42 @@ export default function StreetFinderGame() {
           radius={quizRadius}
         />
       )}
+    </div>
+  );
+}
+
+// Not closable with Escape: there's nothing to go back to, so the player picks one of the two buttons.
+function GameOverDialog({ finalScore, onPlaySameArea, onChooseNewArea }) {
+  const { titleId, dialogProps } = useDialog(null, { closeOnEscape: false });
+
+  return (
+    <div
+      className="game-over"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000 }}
+    >
+      <div className="game-over-content" {...dialogProps}>
+        <Award size={64} className="trophy-icon" aria-hidden="true" />
+        <h2 id={titleId}>Game Over!</h2>
+        <div className="final-score">
+          <p>Final Score</p>
+          <p className="final-score-value">{finalScore}</p>
+          <p className="score-message">
+            {finalScore >= 40
+              ? 'Impressive!'
+              : finalScore >= 25
+                ? 'Good Try!!'
+                : 'Keep practicing!'}
+          </p>
+        </div>
+        <div className="game-over-buttons">
+          <button onClick={onPlaySameArea} className="btn-restart">
+            🔄 Play Same Area
+          </button>
+          <button onClick={onChooseNewArea} className="btn-restart btn-secondary">
+            🗺️ Choose New Area
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

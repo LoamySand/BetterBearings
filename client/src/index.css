@@ -303,3 +303,8 @@ body {
     transform: scale(1);
   }
 }
+
+/* Leaflet's attribution links differ from the text only by colour; underline them (WCAG 1.4.1) */
+.leaflet-control-attribution a {
+  text-decoration: underline;
+}

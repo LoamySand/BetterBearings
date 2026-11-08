@@ -113,6 +113,37 @@ The server then serves the built app at http://localhost:5000. Stop the Vite dev
 
 Production allows 5 login or signup attempts per 15 minutes. Restarting the server resets the count.
 
+### Lighthouse
+
+Use the CLI in headless Chrome. DevTools Lighthouse in a window gave `NO_FCP` errors, and on Nov 7 it scored prod performance at 63 against the CLI's 84, so the two aren't comparable. Run 3 times and compare medians: on Nov 8 three prod runs scored 94, 100 and 99 on performance. Mobile is the default form factor.
+
+```bash
+URL=https://betterbearings.net/   # or http://localhost:5000/ for the production build above
+for i in 1 2 3; do
+  npx -y lighthouse "$URL" --quiet --chrome-flags="--headless=new" \
+    --only-categories=performance,accessibility,best-practices \
+    --output=json --output-path=/tmp/lh$i.json
+done
+for i in 1 2 3; do jq -r '[.categories[].score*100|round]|@tsv' /tmp/lh$i.json; done   # performance, accessibility, best practices
+```
+
+Checks on each report:
+
+```bash
+for i in 1 2 3; do
+  echo "run $i: console=$(jq -r '.audits["errors-in-console"].score' /tmp/lh$i.json)" \
+    "own-uncached=$(jq -r '[.audits["uses-long-cache-ttl"].details.items[]?.url | select(test("//betterbearings\\.net"))] | length' /tmp/lh$i.json)" \
+    "failing=$(jq -r '[.audits | to_entries[] | select(.value.score == 0) | .key] | join(",")' /tmp/lh$i.json)"
+done
+```
+
+Expect `console=1` and `own-uncached=0`; `failing` lists the audits that scored 0.
+
+Limits:
+
+- The CLI can't log in, and Lighthouse reloads the page, so every report measures `/` as a logged-out visitor sees it. For the quiz panel with saved sets, My Street Sets and a set's detail page, log in and run DevTools Lighthouse with only Accessibility checked. Accessibility doesn't depend on throttling, so those scores compare with the CLI; performance scores don't.
+- If Chrome isn't found, set `CHROME_PATH` to its binary.
+
 ## Production (the ProDesk)
 
 Production and staging run the same `deploy/compose.yml`, each from its own directory with its own `.env`:

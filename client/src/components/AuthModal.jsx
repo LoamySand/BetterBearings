@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import useDialog from '../hooks/useDialog';
 import './AuthModal.css';
 
 export default function AuthModal({ onClose }) {
@@ -13,6 +14,7 @@ export default function AuthModal({ onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login, signup } = useAuth();
+  const { titleId, dialogProps } = useDialog(onClose);
 
   const handleChange = (e) => {
     setFormData({
@@ -49,12 +51,14 @@ export default function AuthModal({ onClose }) {
 
   return (
     <div className="auth-modal-overlay" onClick={onClose}>
-      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="auth-modal-close" onClick={onClose}>
+      <div className="auth-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="auth-modal-close" onClick={onClose} aria-label="Close">
           ✕
         </button>
 
-        <h2 className="auth-modal-title">{isLogin ? 'Welcome Back!' : 'Create Account'}</h2>
+        <h2 id={titleId} className="auth-modal-title">
+          {isLogin ? 'Welcome Back!' : 'Create Account'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (

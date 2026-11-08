@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Play, MapPin } from 'lucide-react';
 import './QuizAreaModule.css';
 
@@ -8,6 +8,11 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
   const [selectedStreetSet, setSelectedStreetSet] = useState('current-location');
   const [difficulty, setDifficulty] = useState('easy');
   const [numQuestions, setNumQuestions] = useState(5);
+  const ids = useId();
+  const setId = `${ids}-set`;
+  const difficultyId = `${ids}-difficulty`;
+  const countId = `${ids}-count`;
+  const countLabelId = `${ids}-count-label`;
 
   // GET /api/street-sets already returns includedStreets per set, so no fetch is needed.
   // Ids are bigint (strings from node-pg) and <select> values are strings; String() keeps it safe.
@@ -31,15 +36,16 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
   return (
     <div className="quiz-area-module">
       <div className="quiz-module-header">
-        <MapPin size={24} />
+        <MapPin size={24} aria-hidden="true" />
         <h2>Quiz This Area</h2>
       </div>
 
       <div className="quiz-module-content">
         {/* Street Set Selector */}
         <div className="form-group">
-          <label>Street Set</label>
+          <label htmlFor={setId}>Street Set</label>
           <select
+            id={setId}
             value={selectedStreetSet}
             onChange={(e) => setSelectedStreetSet(e.target.value)}
             className="form-select"
@@ -55,8 +61,9 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
 
         {/* Difficulty Selector */}
         <div className="form-group">
-          <label>Difficulty</label>
+          <label htmlFor={difficultyId}>Difficulty</label>
           <select
+            id={difficultyId}
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value)}
             className="form-select"
@@ -69,9 +76,12 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
 
         {/* Number of Questions */}
         <div className="form-group">
-          <label>Number of Questions</label>
+          <label htmlFor={countId} id={countLabelId}>
+            Number of Questions
+          </label>
           <div className="number-input-group">
             <input
+              id={countId}
               type="number"
               min="1"
               max={maxQuestions}
@@ -83,13 +93,16 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
             />
             <input
               type="range"
+              aria-labelledby={countLabelId}
               min="1"
               max={maxQuestions}
               value={questions}
               onChange={(e) => setNumQuestions(parseInt(e.target.value))}
               className="number-slider"
             />
-            <span className="number-max">/ {maxQuestions}</span>
+            <span className="number-max" aria-hidden="true">
+              / {maxQuestions}
+            </span>
           </div>
         </div>
 
