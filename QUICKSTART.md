@@ -168,6 +168,13 @@ It prints row counts for the dump and the live database and ends with `PASS` whe
 
 Street data (`osm.streets`) comes from the Geofabrik New Mexico extract and is rebuilt weekly by `betterbearings-osm@prod.timer` (Sundays 02:30), which runs `/srv/betterbearings/bin/osm-rebuild.sh prod`. The job builds `osm.streets_import` next to the live table and swaps it in one transaction, so the app keeps serving. It reports to Uptime Kuma: `up` after a swap, `down` on a failure, and the push monitor alerts after 8 days of silence. Staging and prod share the schedule; a lock runs them one after the other.
 
+Heartbeat URLs live in `/srv/betterbearings/<env>/monitor.env` (`BACKUP_PUSH_URL`, `OFFSITE_PUSH_URL`, `OSM_PUSH_URL`). Use `http://127.0.0.1:3001/api/push/<token>`, plain http, with no query string. The URL Kuma shows uses its Primary Base URL, the Tailscale proxy, which scripts on the host can't verify. Test one without running the job:
+
+```bash
+set -a; . /srv/betterbearings/prod/monitor.env; set +a
+curl -fsS -m 10 -o /dev/null -G --data-urlencode status=up --data-urlencode msg=manual-test "$OSM_PUSH_URL" && echo sent
+```
+
 The job refuses to swap when the new import has under 90% of the current rows, which is what a cut-off download looks like. `osm.streets` is left unchanged and the run reports `down`. If the drop is intended (a `streets.lua` change, say), run it once by hand with the check off:
 
 ```bash
