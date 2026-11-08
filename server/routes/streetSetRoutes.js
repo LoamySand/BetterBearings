@@ -38,12 +38,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
 router.post('/', validate(createStreetSetSchema), async (req, res) => {
   try {
     res.status(201).json(await streetSets.createStreetSet(req.user.userId, req.body));
   } catch (err) {
-    if (err.code === '23503') { // user row is gone: token belongs to a deleted account
+    if (err.code === '23503') {
+      // user row is gone: token belongs to a deleted account
       return res.status(401).json({ message: 'Account no longer exists' });
     }
     serverError(res, 'Create street set', err);
@@ -66,7 +66,6 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     serverError(res, 'Delete street set', err);
   }
-  
 });
 
 module.exports = router;

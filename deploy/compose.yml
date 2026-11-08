@@ -42,6 +42,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS in .env}
       TRUST_PROXY: ${TRUST_PROXY:-0}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      TILE_URL: ${TILE_URL:-}
+      TILE_ATTRIBUTION: ${TILE_ATTRIBUTION:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -49,6 +51,36 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-5000}:5000"
     mem_limit: 512m
+  # One-shot street import (KAN-56). Not started by "up"; run it with:
+  #   docker compose run --rm osm-import
+  osm-import:
+    image: ghcr.io/loamysand/betterbearings-osm:${IMAGE_TAG:-latest}
+    environment:
+      DATABASE_URL: postgres://bb:${POSTGRES_PASSWORD}@db:5432/betterbearings
+      OSM_PBF_URL: ${OSM_PBF_URL:-} # unset means the Geofabrik New Mexico extract
+    volumes:
+      - osmdata:/data # keeps the downloaded extract, so a rerun only downloads when Geofabrik has a newer one
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    mem_limit: ${OSM_MEM_LIMIT:-3g} # set from memory.peak measured on the laptop, see KAN-56
+    profiles: ["osm"]
+
+  # Self-hosted vector tiles (KAN-54). Serves every .pmtiles file in TILES_DIR as
+  # /<name>/{z}/{x}/{y}.mvt, so nm.pmtiles is /nm/{z}/{x}/{y}.mvt. Reached only by cloudflared
+  # on this project's network (tunnel route tiles:8080); no "ports:", so nothing to slip past ufw.
+  # CORS is "*": tiles are public and fetched without credentials, and Cloudflare caches one copy
+  # per URL, so a per-origin header would be served to every other origin (KAN-55).
+  tiles:
+    image: protomaps/go-pmtiles:v1.31.2
+    command: ["serve", "/tiles", "--port=8080", "--cors=*"]
+    volumes:
+      - ${TILES_DIR:-/srv/betterbearings/tiles}:/tiles:ro # one copy shared by staging and prod
+    restart: unless-stopped
+    mem_limit: 128m # go-pmtiles keeps a 64 MB directory cache by default
+    # No healthcheck: the image is distroless, with no shell or curl to run one
+
   cloudflared:
     image: cloudflare/cloudflared:2026.10.7 
     command: ["tunnel", "--no-autoupdate", "run"]
@@ -63,4 +95,5 @@ services:
 
 volumes:
   pgdata:
+  osmdata:
   

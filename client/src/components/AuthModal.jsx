@@ -54,9 +54,7 @@ export default function AuthModal({ onClose }) {
           ✕
         </button>
 
-        <h2 className="auth-modal-title">
-          {isLogin ? 'Welcome Back!' : 'Create Account'}
-        </h2>
+        <h2 className="auth-modal-title">{isLogin ? 'Welcome Back!' : 'Create Account'}</h2>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
@@ -106,11 +104,7 @@ export default function AuthModal({ onClose }) {
 
           {formError && <div className="auth-error">{formError}</div>}
 
-          <button
-            type="submit"
-            className="auth-submit-btn"
-            disabled={isSubmitting}
-          >
+          <button type="submit" className="auth-submit-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Please wait...' : isLogin ? 'Log In' : 'Sign Up'}
           </button>
         </form>

@@ -57,7 +57,23 @@ jobs:
         run: npm run migrate --prefix server -- up
 
       - run: npm test --prefix server
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
 
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
   client-build:
     name: Client build
     runs-on: ubuntu-24.04
@@ -78,7 +94,7 @@ jobs:
 
   image:
     name: Build and push image
-    needs: [server-tests, client-build]
+    needs: [lint, server-tests, client-build]
     # Pushes to release branches and main only; PRs stop after tests and build
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
@@ -114,7 +130,26 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max     
+          cache-to: type=gha,mode=max
+
+      # Street import image (KAN-56), same tags as the app so IMAGE_TAG covers both
+      - id: meta-osm
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/loamysand/betterbearings-osm
+          tags: |
+            type=sha
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=staging,enable=${{ github.ref != 'refs/heads/main' }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: deploy/osm
+          push: true
+          tags: ${{ steps.meta-osm.outputs.tags }}
+          labels: ${{ steps.meta-osm.outputs.labels }}
+          cache-from: type=gha,scope=osm
+          cache-to: type=gha,scope=osm,mode=max     
   deploy:
     name: Deploy
     needs: image

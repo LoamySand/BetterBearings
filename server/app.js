@@ -6,10 +6,10 @@ const rateLimit = require('express-rate-limit');
 const { pool } = require('./db/pool'); // Postgres Connection
 const logger = require('./logger');
 const pinoHttp = require('pino-http');
-
+const { readTileConfig } = require('./tileConfig');
+const { serveClient } = require('./clientStatic');
 
 function createApp() {
-  
   const app = express();
 
   // Fail on startup if missing secret
@@ -26,6 +26,8 @@ function createApp() {
   app.set('trust proxy', trustProxy);
 
   const isProd = process.env.NODE_ENV === 'production';
+  const tiles = readTileConfig(); // throws on a bad TILE_URL
+  const tileSrc = tiles.origin ? [tiles.origin] : [];
 
   app.use(
     pinoHttp({
@@ -71,14 +73,10 @@ function createApp() {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org'],
-          connectSrc: [
-            "'self'",
-            // Overpass endpoints, tried in order by client/src/utils/overpassFetcher.js
-            'https://overpass-api.de',
-            'https://overpass.private.coffee',
-            'https://maps.mail.ru',
-          ],
+          // Raster tiles load as images, vector tiles (T3) as fetches, so the tile origin goes in both
+          imgSrc: ["'self'", 'data:', ...tileSrc],
+          // Street data comes from our own /api/streets (KAN-58), so only the tile origin is extra
+          connectSrc: ["'self'", ...tileSrc],
           fontSrc: ["'self'"],
           upgradeInsecureRequests: servedOverHttps ? [] : null, // null removes helmet's default
         },
@@ -166,14 +164,19 @@ function createApp() {
     res.json({ message: 'How local are you?' });
   });
 
+  // Runtime client config. no-cache: revalidate on every load, so an .env change shows up at once
+  app.get('/api/config', (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.json({ tiles: { url: tiles.url, attribution: tiles.attribution } });
+  });
+
   app.use('/api/auth', require('./routes/authRoutes'));
   app.use('/api/street-sets', require('./routes/streetSetRoutes'));
+  app.use('/api/streets', require('./routes/streetRoutes'));
 
   // Serve static files from the frontend build in production
   if (process.env.NODE_ENV === 'production') {
-    const buildPath = path.join(__dirname, '..', 'client', 'dist');
-    app.use(express.static(buildPath));
-    app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+    serveClient(app, path.join(__dirname, '..', 'client', 'dist'));
   }
 
   // Body-parser errors are client errors, not 500s

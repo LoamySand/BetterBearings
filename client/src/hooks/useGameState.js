@@ -3,8 +3,8 @@ import { useState, useRef, useCallback } from 'react';
 /**
  * Custom hook to manage game state and logic
  */
-export function useGameState(totalRounds = 5) {
-  const [gameMode, setGameMode] = useState('selecting');
+export function useGameState(totalRounds = 5, initialMode = 'selecting') {
+  const [gameMode, setGameMode] = useState(initialMode);
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(1);
   const [currentStreet, setCurrentStreet] = useState(null);
@@ -80,7 +80,7 @@ export function useGameState(totalRounds = 5) {
     finalScore,
     streetsRef,
     usedStreetIndices,
-    
+
     // Setters
     setGameMode,
     setScore,
@@ -89,7 +89,7 @@ export function useGameState(totalRounds = 5) {
     setGameActive,
     setFeedback,
     setFinalScore,
-    
+
     // Functions
     getRandomStreet,
     startNewRound,

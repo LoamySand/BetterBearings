@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly BetterBearings street data rebuild (%i)
+
+[Timer]
+# Sunday, before that night's 03:20 backup and 04:40 offsite copy
+OnCalendar=Sun *-*-* 02:30
+RandomizedDelaySec=10m
+# If the ProDesk was off, run at next boot instead of skipping the week
+Persistent=true
+
+[Install]
+WantedBy=timers.target

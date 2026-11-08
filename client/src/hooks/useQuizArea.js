@@ -3,9 +3,9 @@ import { useState, useCallback } from 'react';
 /**
  * Custom hook to manage quiz area selection
  */
-export function useQuizArea() {
-  const [quizCenter, setQuizCenter] = useState(null);
-  const [quizRadius, setQuizRadius] = useState(5000); // 5km default
+export function useQuizArea({ initialCenter = null, initialRadius = 5000 } = {}) {
+  const [quizCenter, setQuizCenter] = useState(initialCenter);
+  const [quizRadius, setQuizRadius] = useState(initialRadius); // 5km default
 
   const handleQuizThisArea = useCallback((mapInstance, onAreaSelected) => {
     if (!mapInstance) {
@@ -16,7 +16,7 @@ export function useQuizArea() {
     const map = mapInstance;
     const center = map.getCenter();
     const bounds = map.getBounds();
-    
+
     // Calculate radius from bounds (approximate)
     const ne = bounds.getNorthEast();
     const radiusMeters = Math.round(center.distanceTo(ne));

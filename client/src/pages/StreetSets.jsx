@@ -7,6 +7,7 @@ import AuthModal from '../components/AuthModal';
 import CreateStreetSetModal from '../components/CreateStreetSetModal';
 import './StreetSets.css';
 import { API_URL } from '../config';
+import { assignDifficulty } from '../utils/streetDifficulty';
 
 export default function StreetSets() {
   const { user, isAuthenticated } = useAuth();
@@ -30,7 +31,7 @@ export default function StreetSets() {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/street-sets`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -57,7 +58,7 @@ export default function StreetSets() {
       const response = await fetch(`${API_URL}/street-sets/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -65,7 +66,7 @@ export default function StreetSets() {
         throw new Error('Failed to delete street set');
       }
 
-      setStreetSets(streetSets.filter(set => set.id !== id));
+      setStreetSets(streetSets.filter((set) => set.id !== id));
     } catch (err) {
       alert('Error deleting street set: ' + err.message);
     }
@@ -78,59 +79,45 @@ export default function StreetSets() {
   const handleSaveStreetSet = async (streetSetData) => {
     try {
       const token = localStorage.getItem('authToken');
-      
-      console.log('handleSaveStreetSet called with:', streetSetData);
-      console.log('First street in streetSetData:', streetSetData.streets[0]);
-      console.log('First street points:', streetSetData.streets[0]?.points);
-      
-      // Map difficulty string to numeric value
-      const difficultyMap = {
-        'easy': 1,
-        'medium': 2,
-        'hard': 3,
-      };
-      const difficultyLevel = difficultyMap[streetSetData.difficulty] || 2;
-      
-      // Prepare streets for saving
-      const streetsToSave = streetSetData.streets.map(street => {
-        if (!street.points || !Array.isArray(street.points)) {
-          console.warn('Street missing points:', street.name, 'points:', street.points);
-          return null;
-        }
-        
-        console.log(`Converting street "${street.name}", points length:`, street.points.length, 'first point:', street.points[0]);
-        
-        return {
-          osmId: street.osmId,
-          name: street.name,
-          // Convert from [{lat, lng}, ...] to [[lat, lng], ...]
-          coordinates: street.points.map(polyline => 
-            Array.isArray(polyline) ? polyline.map(point => [point.lat, point.lng]) : []
-          ),
-          type: street.type,
-          length: street.length,
-          width: street.width,
-          alternativeName: street.alternativeName,
-          isEnclosedArea: street.isEnclosedArea,
-          included: true,
-          difficulty: difficultyLevel, // Use the selected difficulty level
-        };
-      }).filter(s => s !== null);
 
-      console.log('Streets to save:', streetsToSave[0]);
+      // Prepare streets for saving
+      const streetsToSave = streetSetData.streets
+        .map((street) => {
+          if (!street.points || !Array.isArray(street.points)) {
+            console.warn('Street missing points:', street.name);
+            return null;
+          }
+
+          return {
+            osmId: street.osmId,
+            name: street.name,
+            // Convert from [{lat, lng}, ...] to [[lat, lng], ...]
+            coordinates: street.points.map((polyline) =>
+              Array.isArray(polyline) ? polyline.map((point) => [point.lat, point.lng]) : []
+            ),
+            type: street.type,
+            length: street.length,
+            width: street.width,
+            alternativeName: street.alternativeName,
+            isEnclosedArea: street.isEnclosedArea,
+            included: true,
+          };
+        })
+        .filter((s) => s !== null);
 
       const response = await fetch(`${API_URL}/street-sets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: streetSetData.name,
           description: streetSetData.description,
           center: streetSetData.center,
           radius: streetSetData.radius,
-          streets: streetsToSave,
+          // Easy/Medium/Hard thirds within this set (KAN-72)
+          streets: assignDifficulty(streetsToSave),
         }),
       });
 
@@ -140,7 +127,7 @@ export default function StreetSets() {
 
       const savedSet = await response.json();
       setShowCreateModal(false);
-      
+
       // Navigate to StreetSetDetail editor
       navigate(`/street-sets/${savedSet.id}`);
     } catch (err) {
@@ -155,7 +142,7 @@ export default function StreetSets() {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/street-sets/${streetSet.id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -164,39 +151,41 @@ export default function StreetSets() {
       }
 
       const fullStreetSet = await response.json();
-      
+
       if (!fullStreetSet.streets || fullStreetSet.streets.length === 0) {
         alert('This street set has no streets to play with.');
         return;
       }
-      
-      navigate('/', { 
-        state: { 
+
+      navigate('/', {
+        state: {
           streetSet: {
             name: fullStreetSet.name,
             center: fullStreetSet.center,
             radius: fullStreetSet.radius,
-            streets: fullStreetSet.streets.filter(s => s.included).map(s => ({
-              name: s.name,
-              // Convert coordinates array format [[lat, lng], ...] back to points format [{lat, lng}, ...]
-              points: s.coordinates.map(polyline => 
-                polyline.map(coord => {
-                  // Handle both [lat, lng] array format and {lat, lng} object format
-                  if (Array.isArray(coord)) {
-                    return { lat: coord[0], lng: coord[1] };
-                  }
-                  return coord; // Already in {lat, lng} format
-                })
-              ),
-              osmId: s.osmId,
-              type: s.type,
-              length: s.length,
-              width: s.width,
-              alternativeName: s.alternativeName,
-              isEnclosedArea: s.isEnclosedArea || false
-            }))
-          }
-        } 
+            streets: fullStreetSet.streets
+              .filter((s) => s.included)
+              .map((s) => ({
+                name: s.name,
+                // Convert coordinates array format [[lat, lng], ...] back to points format [{lat, lng}, ...]
+                points: s.coordinates.map((polyline) =>
+                  polyline.map((coord) => {
+                    // Handle both [lat, lng] array format and {lat, lng} object format
+                    if (Array.isArray(coord)) {
+                      return { lat: coord[0], lng: coord[1] };
+                    }
+                    return coord; // Already in {lat, lng} format
+                  })
+                ),
+                osmId: s.osmId,
+                type: s.type,
+                length: s.length,
+                width: s.width,
+                alternativeName: s.alternativeName,
+                isEnclosedArea: s.isEnclosedArea || false,
+              })),
+          },
+        },
       });
     } catch (err) {
       alert('Error loading street set: ' + err.message);
@@ -225,7 +214,7 @@ export default function StreetSets() {
         />
       )}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
-      
+
       <div className="street-sets-header">
         <div className="header-content">
           <h1>My Street Sets</h1>
@@ -274,9 +263,7 @@ export default function StreetSets() {
                   </div>
                 </div>
 
-                {set.description && (
-                  <p className="card-description">{set.description}</p>
-                )}
+                {set.description && <p className="card-description">{set.description}</p>}
 
                 <div className="card-stats">
                   <div className="stat">
@@ -296,10 +283,7 @@ export default function StreetSets() {
                   </span>
                 </div>
 
-                <button 
-                  className="btn-play"
-                  onClick={() => handlePlay(set)}
-                >
+                <button className="btn-play" onClick={() => handlePlay(set)}>
                   <Play size={20} />
                   Play This Set
                 </button>
@@ -311,4 +295,3 @@ export default function StreetSets() {
     </div>
   );
 }
-
