@@ -7,6 +7,7 @@ const { pool } = require('./db/pool'); // Postgres Connection
 const logger = require('./logger');
 const pinoHttp = require('pino-http');
 const { readTileConfig } = require('./tileConfig');
+const { serveClient } = require('./clientStatic');
 
 function createApp() {
   const app = express();
@@ -175,9 +176,7 @@ function createApp() {
 
   // Serve static files from the frontend build in production
   if (process.env.NODE_ENV === 'production') {
-    const buildPath = path.join(__dirname, '..', 'client', 'dist');
-    app.use(express.static(buildPath));
-    app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+    serveClient(app, path.join(__dirname, '..', 'client', 'dist'));
   }
 
   // Body-parser errors are client errors, not 500s
