@@ -1,0 +1,14 @@
+[Unit]
+Description=BetterBearings street data rebuild (%i)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=loamy
+EnvironmentFile=-/srv/betterbearings/%i/monitor.env
+# flock: staging and prod share this timer's schedule; one import at a time, so each can use
+# the full osm-import mem_limit (3 GB) without the two running together
+ExecStart=/usr/bin/flock /run/lock/betterbearings-osm.lock /srv/betterbearings/bin/osm-rebuild.sh %i
+# A stuck download shouldn't hold the lock forever; the import itself takes minutes
+TimeoutStartSec=2h

@@ -164,6 +164,23 @@ Test that the newest dump restores (into a throwaway container, live data untouc
 
 It prints row counts for the dump and the live database and ends with `PASS` when they match.
 
+### Street data rebuild
+
+Street data (`osm.streets`) comes from the Geofabrik New Mexico extract and is rebuilt weekly by `betterbearings-osm@prod.timer` (Sundays 02:30), which runs `/srv/betterbearings/bin/osm-rebuild.sh prod`. The job builds `osm.streets_import` next to the live table and swaps it in one transaction, so the app keeps serving. It reports to Uptime Kuma: `up` after a swap, `down` on a failure, and the push monitor alerts after 8 days of silence. Staging and prod share the schedule; a lock runs them one after the other.
+
+The job refuses to swap when the new import has under 90% of the current rows, which is what a cut-off download looks like. `osm.streets` is left unchanged and the run reports `down`. If the drop is intended (a `streets.lua` change, say), run it once by hand with the check off:
+
+```bash
+/srv/betterbearings/bin/osm-rebuild.sh prod -e OSM_FORCE_SWAP=1
+```
+
+Past runs, newest first:
+
+```bash
+cd /srv/betterbearings/prod
+docker compose exec -T db psql -U bb -d betterbearings -c "SELECT finished_at, data_timestamp, row_count, pg_size_pretty(total_bytes) AS size, seconds FROM osm.import_log ORDER BY id DESC LIMIT 5"
+```
+
 ### Restoring a backup
 
 This replaces the live database. Take a fresh dump first so the current state can be recovered:
@@ -181,6 +198,12 @@ docker compose up -d
 Pause the environment's `/healthz` monitor in Uptime Kuma first; the app is down for the restore and will otherwise alert. Unpause it after `docker compose up -d`.
 
 `template0` gives an empty database; the dump recreates PostGIS and every table, the same way `restore-test.sh` does.
+
+The dump has no street data (`--exclude-schema=osm`), so `/api/streets` returns 503 and games fail until the street data is rebuilt. Run it right after the restore:
+
+```bash
+/srv/betterbearings/bin/osm-rebuild.sh prod
+```
 
 To restore from the offsite copy, download and decrypt it on a machine with the private age key, then copy the `.dump` to `/srv/backups/betterbearings/prod/`:
 

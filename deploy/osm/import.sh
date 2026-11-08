@@ -56,12 +56,35 @@ osm2pgsql --create --slim --drop --output=flex --style /osm/streets.lua \
   --middle-schema=osm --cache="${OSM_CACHE_MB:-256}" --log-level=warn \
   -d "$DATABASE_URL" "$filtered"
 
-stage "index and swap"
+stage "index"
 psql_q <<'SQL'
 CREATE INDEX streets_import_geom_gist ON osm.streets_import USING gist (geom);
 CREATE INDEX streets_import_name_idx ON osm.streets_import (name);
 ANALYZE osm.streets_import;
+SQL
+
+# Sanity check (KAN-59): a cut-off download or a broken filter shows up as far fewer rows.
+# Keep the current data instead of swapping it out. streets_import stays for inspection;
+# the next run drops it. OSM_FORCE_SWAP=1 skips the check for an intended drop (a streets.lua change).
+new_rows=$(psql_q -tAc "SELECT count(*) FROM osm.streets_import")
+old_rows=0
+if [ "$(psql_q -tAc "SELECT to_regclass('osm.streets') IS NOT NULL")" = "t" ]; then
+  old_rows=$(psql_q -tAc "SELECT count(*) FROM osm.streets")
+fi
+min_rows=$(( old_rows * ${OSM_MIN_PERCENT:-90} / 100 ))
+stage "rows: new $new_rows, current $old_rows, minimum $min_rows"
+if [ "$new_rows" -lt "$min_rows" ] && [ "${OSM_FORCE_SWAP:-}" != "1" ]; then
+  echo "ABORT: new import has $new_rows rows, under ${OSM_MIN_PERCENT:-90}% of the current $old_rows." >&2
+  echo "osm.streets is unchanged. Rerun with OSM_FORCE_SWAP=1 if the drop is intended." >&2
+  exit 1
+fi
+
+stage "swap"
+# lock_timeout: the DROP needs an exclusive lock, and new /api/streets queries queue behind it
+# while it waits. If a long query holds the table, give up after 10 s and keep the old data.
+psql_q <<'SQL'
 BEGIN;
+SET LOCAL lock_timeout = '10s';
 DROP TABLE IF EXISTS osm.streets;
 ALTER TABLE osm.streets_import RENAME TO streets;
 ALTER INDEX osm.streets_import_geom_gist RENAME TO streets_geom_gist;
