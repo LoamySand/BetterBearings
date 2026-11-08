@@ -10,7 +10,7 @@ import { API_URL } from '../config';
 import { assignDifficulty } from '../utils/streetDifficulty';
 
 export default function StreetSets() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [streetSets, setStreetSets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,12 +19,14 @@ export default function StreetSets() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
+    // On a direct load or refresh the stored token is still being checked; wait for it
+    if (authLoading) return;
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
     fetchStreetSets();
-  }, [isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate]);
 
   const fetchStreetSets = async () => {
     try {

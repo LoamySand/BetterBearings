@@ -11,7 +11,7 @@ import { addBaseLayer } from '../utils/tileLayer';
 export default function StreetSetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [streetSet, setStreetSet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -72,12 +72,14 @@ export default function StreetSetDetail() {
   };
 
   useEffect(() => {
+    // On a direct load or refresh the stored token is still being checked; wait for it
+    if (authLoading) return;
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
     fetchStreetSet();
-  }, [id, isAuthenticated, navigate]);
+  }, [id, authLoading, isAuthenticated, navigate]);
 
   const fetchStreetSet = async () => {
     try {
