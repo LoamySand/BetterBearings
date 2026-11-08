@@ -1,6 +1,6 @@
 # Quick Start
 
-BetterBearings is a street-learning game: you're shown a street name and click it on the map. Street data comes from OpenStreetMap's Overpass API, fetched in the browser. Accounts and saved street sets live in PostgreSQL with PostGIS.
+BetterBearings is a street-learning game: you're shown a street name and click it on the map. Street data is our own import of an OpenStreetMap extract into PostGIS, served by `/api/streets`, and the map is self-hosted vector tiles with street labels removed. Accounts and saved street sets live in PostgreSQL with PostGIS.
 
 ## Prerequisites
 
@@ -212,10 +212,14 @@ cd /srv/betterbearings/staging && docker compose restart tiles
 
 Cloudflare doesn't cache `.mvt` by default, and go-pmtiles sends no `Cache-Control`, so a Cache Rule does it: **Caching, Cache Rules**, hostname is in `tiles.betterbearings.net tiles-staging.betterbearings.net`, **Eligible for cache**, Edge TTL ignore origin 30 days, Browser TTL 1 day. After refreshing the archive, purge the tile hostname's cache (**Caching, Configuration, Custom Purge, Hostname**).
 
+Cloudflare caches one copy of each tile for every visitor, so the CORS header must be the same for all of them. A Response Header Transform Rule sets it at the edge, including on cache hits: **Rules, Transform Rules, Modify Response Header**, same hostname match, set static `Access-Control-Allow-Origin` to `*`.
+
+The site uses the tiles when `TILE_URL` in the environment's `.env` points at them (see `deploy/.env.example`). After changing it, run `docker compose up -d app`; `restart` doesn't reread `.env`.
+
 Check a tile (the second request should say `HIT`):
 
 ```bash
-curl -sI https://tiles.betterbearings.net/nm/15/6676/12969.mvt | grep -iE '^HTTP|cf-cache-status|content-type'
+curl -sI https://tiles.betterbearings.net/nm/15/6676/12969.mvt | grep -iE '^HTTP|cf-cache-status|content-type|access-control-allow-origin'
 ```
 
 ## Troubleshooting

@@ -70,9 +70,11 @@ services:
   # Self-hosted vector tiles (KAN-54). Serves every .pmtiles file in TILES_DIR as
   # /<name>/{z}/{x}/{y}.mvt, so nm.pmtiles is /nm/{z}/{x}/{y}.mvt. Reached only by cloudflared
   # on this project's network (tunnel route tiles:8080); no "ports:", so nothing to slip past ufw.
+  # CORS is "*": tiles are public and fetched without credentials, and Cloudflare caches one copy
+  # per URL, so a per-origin header would be served to every other origin (KAN-55).
   tiles:
     image: protomaps/go-pmtiles:v1.31.2
-    command: ["serve", "/tiles", "--port=8080", "--cors=${CORS_ORIGINS}"]
+    command: ["serve", "/tiles", "--port=8080", "--cors=*"]
     volumes:
       - ${TILES_DIR:-/srv/betterbearings/tiles}:/tiles:ro # one copy shared by staging and prod
     restart: unless-stopped

@@ -4,10 +4,12 @@
   "private": true,
   "license": "MIT",
   "dependencies": {
+    "@protomaps/basemaps": "5.7.2",
     "@turf/turf": "^7.3.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.559.0",
     "point-in-polygon": "^1.1.0",
+    "protomaps-leaflet": "5.1.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-router-dom": "^7.10.1"
