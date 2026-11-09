@@ -138,60 +138,9 @@ export default function StreetSets() {
     }
   };
 
-  const handlePlay = async (streetSet) => {
-    try {
-      // Fetch full street set data including streets
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_URL}/street-sets/${streetSet.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load street set details');
-      }
-
-      const fullStreetSet = await response.json();
-
-      if (!fullStreetSet.streets || fullStreetSet.streets.length === 0) {
-        alert('This street set has no streets to play with.');
-        return;
-      }
-
-      navigate('/', {
-        state: {
-          streetSet: {
-            name: fullStreetSet.name,
-            center: fullStreetSet.center,
-            radius: fullStreetSet.radius,
-            streets: fullStreetSet.streets
-              .filter((s) => s.included)
-              .map((s) => ({
-                name: s.name,
-                // Convert coordinates array format [[lat, lng], ...] back to points format [{lat, lng}, ...]
-                points: s.coordinates.map((polyline) =>
-                  polyline.map((coord) => {
-                    // Handle both [lat, lng] array format and {lat, lng} object format
-                    if (Array.isArray(coord)) {
-                      return { lat: coord[0], lng: coord[1] };
-                    }
-                    return coord; // Already in {lat, lng} format
-                  })
-                ),
-                osmId: s.osmId,
-                type: s.type,
-                length: s.length,
-                width: s.width,
-                alternativeName: s.alternativeName,
-                isEnclosedArea: s.isEnclosedArea || false,
-              })),
-          },
-        },
-      });
-    } catch (err) {
-      alert('Error loading street set: ' + err.message);
-    }
+  // The quiz panel on / opens with this set selected, so the player picks the question count
+  const handlePlay = (streetSet) => {
+    navigate('/', { state: { streetSetId: streetSet.id } });
   };
 
   if (loading) {

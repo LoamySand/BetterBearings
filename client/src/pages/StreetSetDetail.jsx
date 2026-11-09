@@ -356,38 +356,11 @@ export default function StreetSetDetail() {
     }
   };
 
+  // The quiz panel on / opens with this set selected, so the player picks the question count.
+  // It plays the saved set, so unsaved changes here are left out.
   const handlePlay = () => {
     if (!streetSet) return;
-
-    navigate('/', {
-      state: {
-        streetSet: {
-          name: streetSet.name,
-          center: streetSet.center,
-          radius: streetSet.radius,
-          streets: streetSet.streets
-            .filter((s) => s.included)
-            .map((s) => ({
-              name: s.name,
-              // Convert coordinates array format to points format
-              points: s.coordinates.map((polyline) =>
-                polyline.map((coord) => {
-                  if (Array.isArray(coord)) {
-                    return { lat: coord[0], lng: coord[1] };
-                  }
-                  return coord;
-                })
-              ),
-              osmId: s.osmId,
-              type: s.type,
-              length: s.length,
-              width: s.width,
-              alternativeName: s.alternativeName,
-              isEnclosedArea: s.isEnclosedArea || false,
-            })),
-        },
-      },
-    });
+    navigate('/', { state: { streetSetId: streetSet.id } });
   };
 
   if (loading) {

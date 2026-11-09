@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Trophy, Target, Star, Award, RefreshCw, User, LogOut, Save } from 'lucide-react';
 import { useStreets } from '../hooks/useStreets';
@@ -16,9 +16,13 @@ import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty } from '../utils/areaTypes';
 import { assignDifficulty } from '../utils/streetDifficulty';
+import { planGame } from '../utils/gamePlan';
 import './Game.css';
 import { API_URL } from '../config';
 import useDialog from '../hooks/useDialog';
+
+// Current Location asks /api/streets for its maximum; every street returned is an option (KAN-70)
+const CURRENT_LOCATION_POOL = 200;
 
 export default function StreetFinderGame() {
   const location = useLocation();
@@ -28,11 +32,13 @@ export default function StreetFinderGame() {
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  // "Play" on StreetSets or StreetSetDetail navigates to / with the set in navigation state, which
-  // mounts this component fresh. Read it once here instead of copying it into state in an effect.
-  const [initialSet] = useState(() => location.state?.streetSet ?? null);
-  const [preloadedStreets, setPreloadedStreets] = useState(initialSet?.streets ?? null);
-  const [streetSetName, setStreetSetName] = useState(initialSet?.name ?? null);
+  // "Play This Set" on StreetSets or StreetSetDetail navigates to / with the set's id in navigation
+  // state. The quiz panel opens with that set selected so the player picks the question count.
+  const [initialSetId] = useState(() => location.state?.streetSetId ?? null);
+  const [preloadedStreets, setPreloadedStreets] = useState(null);
+  const [streetSetName, setStreetSetName] = useState(null);
+  // Play Same Area bumps this to draw new questions from the same pool
+  const [planSeed, setPlanSeed] = useState(0);
 
   const { user, logout, isAuthenticated } = useAuth();
 
@@ -54,7 +60,7 @@ export default function StreetFinderGame() {
     endGame,
     resetGame,
     updateStreetsRef,
-  } = useGameState(totalRounds, initialSet ? 'playing' : 'selecting');
+  } = useGameState(totalRounds, 'selecting');
 
   // Quiz area management
   const {
@@ -65,13 +71,13 @@ export default function StreetFinderGame() {
     handleQuizThisArea,
     resetQuizArea,
   } = useQuizArea({
-    initialCenter: initialSet?.center ?? null,
-    initialRadius: initialSet?.radius ?? 5000,
+    initialCenter: null,
+    initialRadius: 5000,
   });
 
   // Load streets from /api/streets - only when no preloaded streets
-  // For 'creating' mode, fetch more streets (50). For 'playing' mode, use totalRounds.
-  const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : totalRounds;
+  // For 'creating' mode, fetch 50. For 'playing' mode, fetch the whole pool; the plan picks questions.
+  const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : CURRENT_LOCATION_POOL;
 
   const { streets, loading, error, loadStreets } = useStreets({
     center: !preloadedStreets ? quizCenter : null,
@@ -80,13 +86,16 @@ export default function StreetFinderGame() {
     numberOfQuestions: numberOfQuestionsForAPI,
   });
 
-  // Use preloaded streets if available, otherwise use fetched streets
-  // For 'creating' mode, don't limit. For 'playing' mode, limit to totalRounds.
-  const activeStreets = preloadedStreets
-    ? preloadedStreets.slice(0, totalRounds)
-    : gameMode === 'creating'
-      ? streets
-      : streets.slice(0, totalRounds);
+  // Plan the game once per pool and question count (utils/gamePlan.js). Planning on every render
+  // would reshuffle mid-game and redraw the map. planSeed is a dependency on purpose: Play Same
+  // Area changes it to draw new questions from the same pool.
+  const pool = preloadedStreets ?? streets;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const plan = useMemo(() => planGame(pool, totalRounds), [pool, totalRounds, planSeed]);
+  const roundsInGame = plan.count;
+
+  // Every street in the pool is drawn as an option. 'creating' mode shows what will be saved.
+  const activeStreets = gameMode === 'creating' ? streets : plan.options;
 
   // Game refs
   const { gameActiveRef, currentStreetRef, gameOverRef, roundRef } = useGameRefs(
@@ -131,7 +140,7 @@ export default function StreetFinderGame() {
     currentStreetRef,
     gameOverRef,
     roundRef,
-    totalRounds,
+    totalRounds: roundsInGame,
     setScore,
     setFeedback,
     setGameActive,
@@ -166,15 +175,15 @@ export default function StreetFinderGame() {
     }
   }, [quizCenter, difficulty, gameMode, loadStreets, preloadedStreets]);
 
-  // Update streets ref when streets change
+  // Hand the planned questions to the round logic
   useEffect(() => {
-    updateStreetsRef(activeStreets);
-  }, [activeStreets, updateStreetsRef]);
+    updateStreetsRef(plan.questions);
+  }, [plan, updateStreetsRef]);
 
   // Clear the navigation state so a refresh doesn't replay the set
   useEffect(() => {
-    if (initialSet) window.history.replaceState({}, document.title);
-  }, [initialSet]);
+    if (initialSetId) window.history.replaceState({}, document.title);
+  }, [initialSetId]);
 
   // Load user's street sets on mount
   useEffect(() => {
@@ -284,11 +293,10 @@ export default function StreetFinderGame() {
                   ) || [],
               }));
 
-              // Randomly select streets based on numQuestions
-              const shuffled = convertedStreets.sort(() => Math.random() - 0.5);
-              const selectedStreets = shuffled.slice(0, config.numQuestions);
-              setPreloadedStreets(selectedStreets);
-              console.log('✅ Converted and selected streets:', selectedStreets.length);
+              // The whole set is the pool; planGame picks the questions
+              setPreloadedStreets(convertedStreets);
+            } else {
+              setPreloadedStreets([]);
             }
           } catch (err) {
             console.error('Error loading street set:', err);
@@ -391,6 +399,7 @@ export default function StreetFinderGame() {
   // Play same area again
   const playSameArea = () => {
     resetGame();
+    setPlanSeed((seed) => seed + 1);
     resetPolylineColors();
     setGameMode('playing');
     // Start new round after a short delay to ensure state is updated
@@ -530,7 +539,8 @@ export default function StreetFinderGame() {
   }
 
   // Show error only when in playing mode
-  if (gameMode === 'playing' && activeStreets.length === 0 && !loading && !preloadedStreets) {
+  // Nothing to play: no streets, or fewer than the 2 a game needs
+  if (gameMode === 'playing' && plan.count === 0 && !loading) {
     return (
       <div className="game-container">
         <main
@@ -545,7 +555,11 @@ export default function StreetFinderGame() {
             textAlign: 'center',
           }}
         >
-          <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>No streets found in this area</p>
+          <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+            {plan.options.length === 1
+              ? 'Only one street here, and a game needs at least 2'
+              : 'No streets found in this area'}
+          </p>
           <p style={{ color: '#6b7280' }}>Try a different area or zoom level</p>
           <button
             onClick={chooseNewArea}
@@ -581,6 +595,11 @@ export default function StreetFinderGame() {
             {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
             {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
           </span>
+          {plan.capped && plan.count > 0 && (
+            <span className="game-meta game-capped" role="status">
+              {plan.options.length} streets here, so this game has {plan.count} questions
+            </span>
+          )}
 
           {gameMode === 'playing' && (
             <div className="game-stats">
@@ -591,7 +610,7 @@ export default function StreetFinderGame() {
               <div className="stat">
                 <Trophy size={20} />
                 <span>
-                  Round: {round}/{totalRounds}
+                  Round: {round}/{roundsInGame}
                 </span>
               </div>
             </div>
@@ -604,6 +623,7 @@ export default function StreetFinderGame() {
           <div className="quiz-button-overlay">
             <QuizAreaModule
               streetSets={streetSets}
+              initialStreetSetId={initialSetId}
               onQuizStart={handleQuizModuleStart}
               mapCenter={quizCenter}
               mapRadius={quizRadius}

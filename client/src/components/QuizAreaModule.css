@@ -145,7 +145,19 @@
   margin-top: 1rem;
 }
 
-.btn-play:hover {
+.btn-play:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.quiz-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.btn-play:hover:not(:disabled) {
   background: #4338CA;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);

@@ -1,11 +1,21 @@
 import { useId, useState } from 'react';
 import { Play, MapPin } from 'lucide-react';
+import { maxQuestionsFor } from '../utils/gamePlan';
 import './QuizAreaModule.css';
 
 const CURRENT_LOCATION_MAX = 10;
 
-export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, mapRadius }) {
-  const [selectedStreetSet, setSelectedStreetSet] = useState('current-location');
+export default function QuizAreaModule({
+  streetSets,
+  initialStreetSetId = null,
+  onQuizStart,
+  mapCenter,
+  mapRadius,
+}) {
+  // Play This Set opens this panel with its set already chosen
+  const [selectedStreetSet, setSelectedStreetSet] = useState(() =>
+    initialStreetSetId ? String(initialStreetSetId) : 'current-location'
+  );
   const [difficulty, setDifficulty] = useState('easy');
   const [numQuestions, setNumQuestions] = useState(5);
   const ids = useId();
@@ -16,12 +26,17 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
 
   // GET /api/street-sets already returns includedStreets per set, so no fetch is needed.
   // Ids are bigint (strings from node-pg) and <select> values are strings; String() keeps it safe.
+  const isCurrentLocation = selectedStreetSet === 'current-location';
   const selectedSet = streetSets.find((set) => String(set.id) === selectedStreetSet);
-  const maxQuestions = selectedSet
-    ? Math.max(selectedSet.includedStreets || 0, 1)
-    : CURRENT_LOCATION_MAX;
+  // A set's pool must be at least 2x the questions, so it allows half its included streets
+  const maxQuestions = isCurrentLocation
+    ? CURRENT_LOCATION_MAX
+    : maxQuestionsFor(selectedSet?.includedStreets || 0);
+  const setStillLoading = !isCurrentLocation && !selectedSet;
+  const canPlay = isCurrentLocation || (!setStillLoading && maxQuestions >= 1);
+  const sliderMax = Math.max(maxQuestions, 1);
   // Switching to a smaller set shouldn't leave the count above its new maximum
-  const questions = Math.min(numQuestions, maxQuestions);
+  const questions = Math.min(numQuestions, sliderMax);
 
   const handlePlay = () => {
     onQuizStart({
@@ -84,10 +99,11 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
               id={countId}
               type="number"
               min="1"
-              max={maxQuestions}
+              max={sliderMax}
               value={questions}
+              disabled={!canPlay}
               onChange={(e) =>
-                setNumQuestions(Math.min(Math.max(1, parseInt(e.target.value) || 1), maxQuestions))
+                setNumQuestions(Math.min(Math.max(1, parseInt(e.target.value) || 1), sliderMax))
               }
               className="number-input"
             />
@@ -95,19 +111,24 @@ export default function QuizAreaModule({ streetSets, onQuizStart, mapCenter, map
               type="range"
               aria-labelledby={countLabelId}
               min="1"
-              max={maxQuestions}
+              max={sliderMax}
               value={questions}
+              disabled={!canPlay}
               onChange={(e) => setNumQuestions(parseInt(e.target.value))}
               className="number-slider"
             />
             <span className="number-max" aria-hidden="true">
-              / {maxQuestions}
+              / {sliderMax}
             </span>
           </div>
+          {setStillLoading && <p className="quiz-note">Loading your street sets...</p>}
+          {!setStillLoading && !canPlay && (
+            <p className="quiz-note">This set needs at least 2 included streets to play.</p>
+          )}
         </div>
 
         {/* Play Button */}
-        <button onClick={handlePlay} className="btn-play">
+        <button onClick={handlePlay} className="btn-play" disabled={!canPlay}>
           <Play size={20} />
           Play
         </button>

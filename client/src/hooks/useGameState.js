@@ -12,29 +12,20 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
   const [feedback, setFeedback] = useState('');
   const [finalScore, setFinalScore] = useState(0);
 
+  // The game's questions, already shuffled and free of repeats (utils/gamePlan.js).
+  // Rounds ask them in order.
   const streetsRef = useRef([]);
-  const usedStreetIndices = useRef(new Set());
+  const nextQuestionIndex = useRef(0);
 
-  const getRandomStreet = useCallback(() => {
-    if (streetsRef.current.length === 0) return null;
-
-    // If we've used all streets, reset
-    if (usedStreetIndices.current.size >= streetsRef.current.length) {
-      usedStreetIndices.current.clear();
-    }
-
-    // Find unused street
-    let randomIndex;
-    do {
-      randomIndex = Math.floor(Math.random() * streetsRef.current.length);
-    } while (usedStreetIndices.current.has(randomIndex));
-
-    usedStreetIndices.current.add(randomIndex);
-    return streetsRef.current[randomIndex];
+  const getNextStreet = useCallback(() => {
+    const street = streetsRef.current[nextQuestionIndex.current];
+    if (!street) return null;
+    nextQuestionIndex.current += 1;
+    return street;
   }, []);
 
   const startNewRound = useCallback(() => {
-    const newStreet = getRandomStreet();
+    const newStreet = getNextStreet();
     if (!newStreet) {
       console.error('No streets available');
       return;
@@ -45,7 +36,7 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
     setCurrentStreet(newStreet);
     setGameActive(true);
     setFeedback('');
-  }, [getRandomStreet]);
+  }, [getNextStreet]);
 
   const endGame = useCallback(() => {
     setGameMode('gameOver');
@@ -58,15 +49,14 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
     setRound(1);
     setFinalScore(0);
     setFeedback('');
-    usedStreetIndices.current.clear();
+    // Without this, the previous game's last street shows as round 1 until the new round starts
+    setCurrentStreet(null);
+    nextQuestionIndex.current = 0;
   }, []);
 
-  const updateStreetsRef = useCallback((streets) => {
-    if (streets && streets.length > 0) {
-      streetsRef.current = streets;
-      usedStreetIndices.current.clear();
-      console.log('Streets loaded:', streets.length);
-    }
+  const updateStreetsRef = useCallback((questions) => {
+    streetsRef.current = questions ?? [];
+    nextQuestionIndex.current = 0;
   }, []);
 
   return {
@@ -79,7 +69,6 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
     feedback,
     finalScore,
     streetsRef,
-    usedStreetIndices,
 
     // Setters
     setGameMode,
@@ -91,7 +80,7 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
     setFinalScore,
 
     // Functions
-    getRandomStreet,
+    getNextStreet,
     startNewRound,
     endGame,
     resetGame,
