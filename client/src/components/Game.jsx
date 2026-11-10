@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Trophy, Target, Star, Award, RefreshCw, User, LogOut, Save } from 'lucide-react';
+import { Trophy, Star, Award, RefreshCw, Save, MapPin } from 'lucide-react';
 import { useStreets } from '../hooks/useStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
@@ -11,7 +11,6 @@ import { useStreetPolylines } from '../hooks/useStreetPolylines';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from './AppHeader';
 import AuthModal from './AuthModal';
-import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty } from '../utils/areaTypes';
@@ -22,6 +21,15 @@ import useDialog from '../hooks/useDialog';
 
 // Current Location asks /api/streets for its maximum; every street returned is an option (KAN-70)
 const CURRENT_LOCATION_POOL = 200;
+
+const LEVEL_LABELS = {
+  [Difficulty.Tourist]: 'Easy (Major roads)',
+  [Difficulty.Resident]: 'Medium (+ Tertiary roads)',
+  [Difficulty.TaxiDriver]: 'Hard (All roads)',
+};
+
+// Matches the CSS breakpoint where the quiz panel becomes a bottom sheet
+const PHONE_QUERY = '(max-width: 767px)';
 
 export default function StreetFinderGame() {
   const location = useLocation();
@@ -38,8 +46,15 @@ export default function StreetFinderGame() {
   const [streetSetName, setStreetSetName] = useState(null);
   // Play Same Area bumps this to draw new questions from the same pool
   const [planSeed, setPlanSeed] = useState(0);
+  // Phones show the quiz panel as a bottom sheet behind a button so the map comes first.
+  // Play This Set opens it, since the player came here to pick a question count.
+  // Ignored at 768 px and up, where the panel is always shown top right.
+  const [quizPanelOpen, setQuizPanelOpen] = useState(() => Boolean(initialSetId));
+  const quizToggleRef = useRef(null);
+  const quizPanelRef = useRef(null);
+  const quizPanelId = useId();
 
-  const { user, logout, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   // Game state management
   const {
@@ -62,14 +77,7 @@ export default function StreetFinderGame() {
   } = useGameState(totalRounds, 'selecting');
 
   // Quiz area management
-  const {
-    quizCenter,
-    quizRadius,
-    setQuizCenter,
-    setQuizRadius,
-    handleQuizThisArea,
-    resetQuizArea,
-  } = useQuizArea({
+  const { quizCenter, quizRadius, setQuizCenter, setQuizRadius, resetQuizArea } = useQuizArea({
     initialCenter: null,
     initialRadius: 5000,
   });
@@ -115,7 +123,6 @@ export default function StreetFinderGame() {
   // Playing map (during the game)
   const {
     mapInstanceRef: playingMapInstanceRef,
-    mapInitialized: playingMapInitialized,
     isMapReady: playingMapReady,
     cleanupMap: cleanupPlayingMap,
   } = usePlayingMap({
@@ -124,9 +131,6 @@ export default function StreetFinderGame() {
     streets: activeStreets,
     mapRef,
   });
-
-  // Use the appropriate map instance based on game mode
-  const mapInstanceRef = gameMode === 'selecting' ? selectionMapInstanceRef : playingMapInstanceRef;
 
   // Street polylines management (only for playing mode)
   const { resetPolylineColors, clearPolylines } = useStreetPolylines({
@@ -184,6 +188,19 @@ export default function StreetFinderGame() {
     if (initialSetId) window.history.replaceState({}, document.title);
   }, [initialSetId]);
 
+  const openQuizPanel = () => {
+    setQuizPanelOpen(true);
+    // Move focus into the sheet once it's rendered
+    requestAnimationFrame(() => quizPanelRef.current?.querySelector('select')?.focus());
+  };
+
+  const closeQuizPanel = () => {
+    setQuizPanelOpen(false);
+    if (window.matchMedia(PHONE_QUERY).matches) {
+      requestAnimationFrame(() => quizToggleRef.current?.focus());
+    }
+  };
+
   // Load user's street sets on mount
   useEffect(() => {
     const fetchStreetSets = async () => {
@@ -202,6 +219,8 @@ export default function StreetFinderGame() {
           setStreetSets(data);
         }
       } catch (err) {
+        // The panel still works with Current Location; log so a failing list isn't silent
+        // eslint-disable-next-line no-console
         console.error('Failed to load street sets:', err);
       }
     };
@@ -301,8 +320,7 @@ export default function StreetFinderGame() {
             } else {
               setPreloadedStreets([]);
             }
-          } catch (err) {
-            console.error('Error loading street set:', err);
+          } catch {
             alert('Error loading street set. Please try again.');
             return;
           }
@@ -318,85 +336,9 @@ export default function StreetFinderGame() {
         selectionMapInstanceRef.current = null;
       }
       setGameMode('playing');
-    } catch (err) {
-      console.error('Error starting quiz:', err);
+    } catch {
       alert('Error starting quiz. Please try again.');
     }
-  };
-
-  // Handle creating a new street set from selected area
-  const handleCreateStreetSet = (config) => {
-    console.log('handleCreateStreetSet called with config:', config);
-    console.log('selectionMapInstanceRef.current:', selectionMapInstanceRef.current);
-    console.log('quizCenter:', quizCenter, 'quizRadius:', quizRadius);
-
-    let center = config.center || quizCenter;
-    let radius = config.radius || quizRadius;
-
-    // If user hasn't explicitly selected an area, get current map bounds
-    if (!center || !radius) {
-      if (!selectionMapInstanceRef.current) {
-        alert('Map not initialized. Please try again.');
-        return;
-      }
-
-      try {
-        const map = selectionMapInstanceRef.current;
-        const bounds = map.getBounds();
-        const mapCenter = bounds.getCenter();
-
-        console.log('Got map bounds, center:', mapCenter);
-
-        // Calculate radius from bounds
-        const maxDist = Math.max(
-          map.distance(mapCenter, bounds.getNorthWest()),
-          map.distance(mapCenter, bounds.getNorthEast()),
-          map.distance(mapCenter, bounds.getSouthWest()),
-          map.distance(mapCenter, bounds.getSouthEast())
-        );
-
-        // Cap radius at 3km
-        radius = Math.min(maxDist, 3000);
-
-        if (radius < 500) {
-          alert('Area too small. Please zoom out more.');
-          return;
-        }
-
-        center = { lat: mapCenter.lat, lng: mapCenter.lng };
-        console.log('Calculated center and radius:', center, radius);
-      } catch (err) {
-        console.error('Error getting map bounds:', err);
-        alert('Could not get map bounds. Please try again.');
-        return;
-      }
-    }
-
-    console.log('Creating street set with center:', center, 'radius:', radius);
-    setQuizCenter(center);
-    setQuizRadius(radius);
-
-    // Trigger the /api/streets call by removing preloaded streets
-    setPreloadedStreets(null);
-
-    // Set a flag so we know to open save modal after streets load
-    setStreetSetName(null);
-
-    // Start loading the streets - this will trigger the useEffect to call loadStreets
-    // Once streets are loaded, we'll open the save modal
-    setGameMode('creating');
-  };
-
-  // Handle "Quiz this Area" button click (legacy)
-  const handleQuizThisAreaClick = () => {
-    handleQuizThisArea(mapInstanceRef.current, () => {
-      // Remove selection map and transition to playing mode
-      if (selectionMapInstanceRef.current) {
-        selectionMapInstanceRef.current.remove();
-        selectionMapInstanceRef.current.current = null;
-      }
-      setGameMode('playing');
-    });
   };
 
   // Play same area again
@@ -441,10 +383,7 @@ export default function StreetFinderGame() {
 
       const streetsToSave = activeStreets
         .map((street) => {
-          if (!street.points || !Array.isArray(street.points)) {
-            console.warn('Street missing points:', street.name);
-            return null;
-          }
+          if (!street.points || !Array.isArray(street.points)) return null;
 
           return {
             osmId: street.osmId,
@@ -486,7 +425,6 @@ export default function StreetFinderGame() {
 
       alert('Street set saved successfully!');
     } catch (err) {
-      console.error('Save error:', err);
       throw new Error(err.message || 'Failed to save street set');
     }
   };
@@ -593,9 +531,7 @@ export default function StreetFinderGame() {
         <div className="game-info-bar">
           {streetSetName && <span className="street-set-badge">📚 {streetSetName}</span>}
           <span className="game-meta">
-            {difficulty === Difficulty.Tourist && 'Difficulty: Easy (Major roads)'}
-            {difficulty === Difficulty.Resident && 'Difficulty: Medium (+ Tertiary roads)'}
-            {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
+            Difficulty: {LEVEL_LABELS[difficulty]}
             {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
           </span>
           {plan.capped && plan.count > 0 && (
@@ -623,21 +559,54 @@ export default function StreetFinderGame() {
 
       <main className="game-content">
         {gameMode === 'selecting' && (
-          <div className="quiz-button-overlay">
-            <QuizAreaModule
-              streetSets={streetSets}
-              initialStreetSetId={initialSetId}
-              onQuizStart={handleQuizModuleStart}
-              mapCenter={quizCenter}
-              mapRadius={quizRadius}
-            />
-          </div>
+          <>
+            <button
+              ref={quizToggleRef}
+              type="button"
+              className="quiz-toggle"
+              aria-expanded={quizPanelOpen}
+              aria-controls={quizPanelId}
+              onClick={openQuizPanel}
+            >
+              <MapPin size={20} aria-hidden="true" />
+              Quiz this area
+            </button>
+            <div
+              ref={quizPanelRef}
+              id={quizPanelId}
+              className={`quiz-button-overlay${quizPanelOpen ? ' is-open' : ''}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && quizPanelOpen) closeQuizPanel();
+              }}
+            >
+              <QuizAreaModule
+                streetSets={streetSets}
+                initialStreetSetId={initialSetId}
+                onQuizStart={handleQuizModuleStart}
+                onClose={closeQuizPanel}
+                mapCenter={quizCenter}
+                mapRadius={quizRadius}
+              />
+            </div>
+          </>
         )}
 
         {gameMode === 'playing' && (
           <div className="question-panel">
             {currentStreet ? (
               <>
+                {/* Phones hide the info bar, so round and score live here (CSS shows this under 768 px) */}
+                <div className="question-stats">
+                  <span>
+                    Round {round}/{roundsInGame}
+                  </span>
+                  <span>Score {score}</span>
+                </div>
+                {plan.capped && (
+                  <p className="question-capped">
+                    {plan.options.length} streets here, so {plan.count} questions
+                  </p>
+                )}
                 <h2 className="question">Find this street:</h2>
                 <h3 className="street-name">{currentStreet.name}</h3>
                 {feedback && (
@@ -648,7 +617,7 @@ export default function StreetFinderGame() {
                   </div>
                 )}
                 <p className="instruction">
-                  {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
+                  {gameActive ? 'Click or tap it on the map' : 'Wait for next round...'}
                 </p>
                 {isAuthenticated && !streetSetName && (
                   <button
@@ -668,14 +637,7 @@ export default function StreetFinderGame() {
         )}
 
         <div className="map-wrapper">
-          <div
-            ref={mapRef}
-            style={{
-              height: '100%',
-              width: '100%',
-              minHeight: '500px',
-            }}
-          />
+          <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
         </div>
       </main>
 

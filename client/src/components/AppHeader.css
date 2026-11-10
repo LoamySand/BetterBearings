@@ -1,7 +1,9 @@
 .app-header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 1.5rem;
+  /* viewport-fit=cover (index.html) puts the page under notches; keep the header inside the safe area */
+  padding: calc(1.5rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right)) 1.5rem
+    calc(1.5rem + env(safe-area-inset-left));
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
@@ -46,7 +48,8 @@
 
 @media (max-width: 768px) {
   .app-header {
-    padding: 0.5rem 0 !important;
+    padding: calc(0.5rem + env(safe-area-inset-top)) env(safe-area-inset-right) 0.5rem
+      env(safe-area-inset-left) !important;
     gap: 0.5rem !important;
   }
 

@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Play, MapPin } from 'lucide-react';
+import { Play, MapPin, X } from 'lucide-react';
 import { maxQuestionsFor } from '../utils/gamePlan';
 import './QuizAreaModule.css';
 
@@ -15,6 +15,7 @@ export default function QuizAreaModule({
   streetSets,
   initialStreetSetId = null,
   onQuizStart,
+  onClose,
   mapCenter,
   mapRadius,
 }) {
@@ -64,6 +65,17 @@ export default function QuizAreaModule({
       <div className="quiz-module-header">
         <MapPin size={24} aria-hidden="true" />
         <h2>Quiz This Area</h2>
+        {/* Shown only on phones, where the panel is a bottom sheet (Game.css) */}
+        {onClose && (
+          <button
+            type="button"
+            className="quiz-close"
+            onClick={onClose}
+            aria-label="Close quiz panel"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="quiz-module-content">
@@ -105,9 +117,14 @@ export default function QuizAreaModule({
 
         {/* Number of Questions */}
         <div className="form-group">
-          <label htmlFor={countId} id={countLabelId}>
-            Number of Questions
-          </label>
+          <div className="count-label-row">
+            <label htmlFor={countId} id={countLabelId}>
+              Number of Questions
+            </label>
+            <span className="number-max" aria-hidden="true">
+              max {sliderMax}
+            </span>
+          </div>
           <div className="number-input-group">
             <input
               id={countId}
@@ -131,9 +148,6 @@ export default function QuizAreaModule({
               onChange={(e) => setNumQuestions(parseInt(e.target.value))}
               className="number-slider"
             />
-            <span className="number-max" aria-hidden="true">
-              / {sliderMax}
-            </span>
           </div>
           {setStillLoading && <p className="quiz-note">Loading your street sets...</p>}
           {!setStillLoading && !canPlay && (
