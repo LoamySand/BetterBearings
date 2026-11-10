@@ -16,6 +16,15 @@ const TAXI_DRIVER = [
 
 const DIFFICULTIES = ['major-state-roads', 'tourist', 'resident', 'taxi-driver'];
 
+// Per-street label stored in a street set (KAN-73): 1 Easy, 2 Medium, 3 Hard. Same tiers as the
+// Current Location difficulties, so an Easy set holds only Easy streets. `type` is the street's
+// dominant road class (most meters), picked in db/streets.js.
+function levelFor(type) {
+  if (TOURIST.includes(type)) return 1;
+  if (RESIDENT.includes(type)) return 2;
+  return 3;
+}
+
 // Every type a game can use. Same-name segments of these types merge into one street, even
 // when only some of them pass the chosen difficulty's rules.
 const GAME_TYPES = TAXI_DRIVER;
@@ -62,4 +71,5 @@ module.exports = {
   EXCLUDED_NAME_PATTERN,
   MIN_SEGMENT_METERS,
   rulesFor,
+  levelFor,
 };

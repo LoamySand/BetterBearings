@@ -7,7 +7,6 @@ import AuthModal from '../components/AuthModal';
 import CreateStreetSetModal from '../components/CreateStreetSetModal';
 import './StreetSets.css';
 import { API_URL } from '../config';
-import { assignDifficulty } from '../utils/streetDifficulty';
 
 export default function StreetSets() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -118,8 +117,8 @@ export default function StreetSets() {
           description: streetSetData.description,
           center: streetSetData.center,
           radius: streetSetData.radius,
-          // Easy/Medium/Hard thirds within this set (KAN-72)
-          streets: assignDifficulty(streetsToSave),
+          // The server labels each street from its road type (KAN-73)
+          streets: streetsToSave,
         }),
       });
 

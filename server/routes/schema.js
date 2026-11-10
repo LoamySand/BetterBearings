@@ -77,7 +77,7 @@ const street = z.object({
   width: z.number().nonnegative().nullish(),
   isEnclosedArea: z.boolean().optional(),
   included: z.boolean().optional(),
-  difficulty: z.int().min(1).max(3).optional(),
+  difficulty: z.int().min(1).max(3).optional(), // ignored: the server sets it from type (KAN-73)
   coordinates: z.array(line).min(1).max(MAX_LINES_PER_STREET),
 });
 

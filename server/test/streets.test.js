@@ -129,6 +129,52 @@ describe('GET /api/streets', () => {
     assert.equal((await near({ difficulty: 'taxi-driver' })).body.streets.length, 3);
   });
 
+  test('a street takes its dominant class, by meters (KAN-73)', async () => {
+    // Osuna: the oldest segment (lowest osm_id) is a short tertiary end; most of it is secondary
+    await insertOsmStreet({
+      osmId: 1,
+      name: 'Osuna Road',
+      highway: 'tertiary',
+      coordinates: ns(LNG),
+    });
+    await insertOsmStreet({
+      osmId: 2,
+      name: 'Osuna Road',
+      highway: 'secondary',
+      coordinates: ns(LNG, LAT + 0.002, LAT + 0.004),
+    });
+    await insertOsmStreet({
+      osmId: 3,
+      name: 'Osuna Road',
+      highway: 'secondary',
+      coordinates: ns(LNG, LAT + 0.004, LAT + 0.006),
+    });
+    // Mostly residential, with one secondary block long enough to qualify on its own
+    await insertOsmStreet({
+      osmId: 4,
+      name: 'Edith Boulevard',
+      highway: 'secondary',
+      coordinates: ns(LNG + 0.002),
+    });
+    for (const [i, lat0] of [LAT + 0.002, LAT + 0.004].entries()) {
+      await insertOsmStreet({
+        osmId: 5 + i,
+        name: 'Edith Boulevard',
+        highway: 'residential',
+        coordinates: ns(LNG + 0.002, lat0, lat0 + 0.002),
+      });
+    }
+
+    const types = async (difficulty) =>
+      Object.fromEntries((await near({ difficulty })).body.streets.map((s) => [s.name, s.type]));
+    assert.deepEqual(await types('tourist'), { 'Osuna Road': 'secondary' });
+    assert.deepEqual(await types('resident'), { 'Osuna Road': 'secondary' });
+    assert.deepEqual(await types('taxi-driver'), {
+      'Osuna Road': 'secondary',
+      'Edith Boulevard': 'residential',
+    });
+  });
+
   test('major state roads match on ref, not type', async () => {
     await insertOsmStreet({
       osmId: 1,

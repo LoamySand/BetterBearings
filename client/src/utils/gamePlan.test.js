@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planGame, maxQuestionsFor, shuffle } from './gamePlan.js';
+import { planGame, maxQuestionsFor, shuffle, filterByLevel } from './gamePlan.js';
 
 const pool = (n) => Array.from({ length: n }, (_, i) => ({ name: `Street ${i + 1}` }));
 
@@ -83,4 +83,17 @@ test('shuffle reaches every position (not a biased sort)', () => {
 test('requested counts below 1 or non-numeric become 1', () => {
   assert.equal(planGame(pool(10), 0).count, 1);
   assert.equal(planGame(pool(10), 'abc').count, 1);
+});
+
+test('filterByLevel is cumulative: easy, then easy + medium, then all', () => {
+  const streets = [1, 2, 3, 1, 2, undefined].map((difficulty, i) => ({
+    name: `S${i}`,
+    difficulty,
+  }));
+  const names = (level) => filterByLevel(streets, level).map((s) => s.name);
+  assert.deepEqual(names('easy'), ['S0', 'S3']);
+  assert.deepEqual(names('medium'), ['S0', 'S1', 'S3', 'S4']);
+  assert.deepEqual(names('hard'), ['S0', 'S1', 'S2', 'S3', 'S4', 'S5']);
+  assert.equal(filterByLevel(streets, 'unknown').length, 6, 'unknown level plays everything');
+  assert.deepEqual(filterByLevel(null, 'easy'), []);
 });

@@ -8,6 +8,18 @@
 
 export const MIN_POOL = 2;
 
+// Quiz This Area levels to the per-street labels saved in a set (KAN-73): 1 Easy, 2 Medium, 3 Hard.
+export const LEVELS = { easy: 1, medium: 2, hard: 3 };
+
+// Cumulative, like Tourist/Resident/Taxi Driver: Medium plays Easy and Medium streets.
+// A street with no label counts as Hard, so it only shows up when everything is allowed.
+export function filterByLevel(streets, level) {
+  const max = LEVELS[level] ?? LEVELS.hard;
+  return (Array.isArray(streets) ? streets : []).filter(
+    (s) => (s.difficulty ?? LEVELS.hard) <= max
+  );
+}
+
 // Fisher-Yates on a copy. `random` is injectable so tests can make it deterministic.
 export function shuffle(items, random = Math.random) {
   const out = items.slice();

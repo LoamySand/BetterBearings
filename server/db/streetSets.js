@@ -1,4 +1,5 @@
 const { pool, withTransaction } = require('./pool');
+const { levelFor } = require('../streetRules');
 
 // Client sends [lat, lng]; PostGIS stores [lng, lat]. Same swap both directions.
 const swap = (lines) => lines.map((line) => line.map(([a, b]) => [b, a]));
@@ -9,7 +10,9 @@ const SUMMARY_SQL = `
          ST_X(s.center::geometry) AS lng,
          s.radius, s.created_at, s.updated_at,
          count(st.id)::int                            AS total_streets,
-         count(st.id) FILTER (WHERE st.included)::int AS included_streets
+         count(st.id) FILTER (WHERE st.included)::int AS included_streets,
+         count(st.id) FILTER (WHERE st.included AND st.difficulty = 1)::int AS included_easy,
+         count(st.id) FILTER (WHERE st.included AND st.difficulty <= 2)::int AS included_medium
   FROM street_sets s
   LEFT JOIN street_set_streets st ON st.street_set_id = s.id
   WHERE s.user_id = $1
@@ -48,7 +51,8 @@ function toDbStreets(streets) {
     width: s.width ?? null,
     is_enclosed_area: Boolean(s.isEnclosedArea),
     included: s.included !== false,
-    difficulty: s.difficulty ?? 2,
+    // The server owns the label (KAN-73): it follows the road class, whatever the client sent
+    difficulty: levelFor(s.type),
     geom: { type: 'MultiLineString', coordinates: swap(s.coordinates) },
   }));
 }
@@ -77,6 +81,8 @@ function toApiStreetSet(r) {
     radius: r.radius,
     totalStreets: r.total_streets,
     includedStreets: r.included_streets,
+    // Cumulative, like the game levels: medium counts Easy and Medium, hard is the whole set
+    includedByLevel: { easy: r.included_easy, medium: r.included_medium, hard: r.included_streets },
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };

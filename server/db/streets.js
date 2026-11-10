@@ -4,10 +4,16 @@ const rules = require('../streetRules');
 // Picks up to `count` random streets near a point from osm.streets and merges each street's
 // segments into one MultiLineString.
 //
-// area:    every game-type segment within the radius, flagged if it passes this difficulty's rules
-// grouped: one row per name (case-insensitive), all its segments merged, in one GROUP BY pass
-// final:   names with at least one qualifying segment, random pick. Named after its first
-//          qualifying segment, like targetElement in the client.
+// area:    every game-type segment within the radius, flagged if it passes this difficulty's rules,
+//          with the meters its name has in its road class (a window sum)
+// grouped: one row per name (case-insensitive), all its segments merged, in one GROUP BY pass.
+//          The type is the dominant class, the one with the most meters (KAN-73): it decides the
+//          level, so a mostly-secondary road with a tertiary end is Easy, and a residential street
+//          with a short secondary piece stays out of Easy games.
+//          A window, not a join: the planner estimates `area` at 1 row (geography ST_DWithin), and
+//          a join on it ran as a nested loop, 8x slower at 7,900 segments.
+// final:   names with at least one qualifying segment and a dominant class this difficulty
+//          allows, random pick. Named after its first qualifying segment.
 const PICK_SQL = `
   WITH center AS (
     SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326) AS pt
@@ -18,6 +24,8 @@ const PICK_SQL = `
            coalesce(s.tags->>'area' = 'yes', false) OR ST_IsClosed(s.geom) AS enclosed,
            s.geom,
            ST_Length(s.geom::geography) AS meters,
+           -- Meters of this name in this road class, for the dominant class below
+           sum(ST_Length(s.geom::geography)) OVER (PARTITION BY lower(s.name), s.highway) AS class_meters,
            (s.highway = ANY($5::text[])
              AND ($6::text IS NULL OR s.ref ~* $6)
              AND ($7::boolean OR coalesce(s.tags->>'access', '') <> 'private')
@@ -32,7 +40,9 @@ const PICK_SQL = `
   grouped AS (
     SELECT min(osm_id) FILTER (WHERE qualifies) AS osm_id,
            (array_agg(name ORDER BY osm_id) FILTER (WHERE qualifies))[1] AS name,
-           (array_agg(highway ORDER BY osm_id) FILTER (WHERE qualifies))[1] AS highway,
+           -- Dominant class; ties go to the easier class ($4 lists Easy, then Medium, then Hard)
+           (array_agg(highway ORDER BY class_meters DESC, array_position($4::text[], highway)))[1]
+             AS highway,
            (array_agg(ref ORDER BY osm_id) FILTER (WHERE qualifies))[1] AS ref,
            (array_agg(old_name ORDER BY osm_id) FILTER (WHERE qualifies))[1] AS old_name,
            (array_agg(loc_name ORDER BY osm_id) FILTER (WHERE qualifies))[1] AS loc_name,
@@ -43,6 +53,8 @@ const PICK_SQL = `
     FROM area
     GROUP BY key
     HAVING bool_or(qualifies)
+       AND (array_agg(highway ORDER BY class_meters DESC, array_position($4::text[], highway)))[1]
+           = ANY($5::text[])
   )
   SELECT osm_id, name, highway, ref, old_name, loc_name, meters, width, enclosed,
          ST_AsGeoJSON(geom)::json AS geom

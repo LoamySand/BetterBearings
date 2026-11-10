@@ -15,8 +15,7 @@ import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty } from '../utils/areaTypes';
-import { assignDifficulty } from '../utils/streetDifficulty';
-import { planGame } from '../utils/gamePlan';
+import { planGame, filterByLevel } from '../utils/gamePlan';
 import './Game.css';
 import { API_URL } from '../config';
 import useDialog from '../hooks/useDialog';
@@ -220,6 +219,9 @@ export default function StreetFinderGame() {
         hard: Difficulty.TaxiDriver,
       };
 
+      // Current Location: which road classes to fetch. Saved set: shown in the info bar.
+      setDifficulty(difficultyMap[config.difficulty] ?? Difficulty.Tourist);
+
       if (config.streetSet === 'current-location') {
         // Get current map bounds
         if (!selectionMapInstanceRef.current) {
@@ -248,7 +250,6 @@ export default function StreetFinderGame() {
         }
 
         // The Quiz This Area selector picks which road classes /api/streets may return
-        setDifficulty(difficultyMap[config.difficulty] ?? Difficulty.Tourist);
         // Set center as object {lat, lng}, not array
         setQuizCenter({ lat: center.lat, lng: center.lng });
         setQuizRadius(radius);
@@ -274,9 +275,11 @@ export default function StreetFinderGame() {
             setQuizRadius(fullStreetSet.radius);
             setStreetSetName(fullStreetSet.name);
 
-            // Filter to only included streets and convert format
-            const includedStreets =
-              fullStreetSet.streets?.filter((s) => s.included !== false) || [];
+            // Included streets at or below the chosen level (KAN-73), converted for the game
+            const includedStreets = filterByLevel(
+              fullStreetSet.streets?.filter((s) => s.included !== false),
+              config.difficulty
+            );
 
             if (includedStreets.length > 0) {
               // Convert database format to game format
@@ -471,8 +474,8 @@ export default function StreetFinderGame() {
           description,
           center: quizCenter,
           radius: quizRadius,
-          // Easy/Medium/Hard thirds within this set (KAN-72)
-          streets: assignDifficulty(streetsToSave),
+          // The server labels each street from its road type (KAN-73)
+          streets: streetsToSave,
         }),
       });
 

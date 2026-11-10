@@ -5,6 +5,12 @@ import './QuizAreaModule.css';
 
 const CURRENT_LOCATION_MAX = 10;
 
+const LEVEL_OPTIONS = [
+  { value: 'easy', label: 'Easy', roads: 'Major roads' },
+  { value: 'medium', label: 'Medium', roads: '+ Tertiary roads' },
+  { value: 'hard', label: 'Hard', roads: 'All roads' },
+];
+
 export default function QuizAreaModule({
   streetSets,
   initialStreetSetId = null,
@@ -16,7 +22,8 @@ export default function QuizAreaModule({
   const [selectedStreetSet, setSelectedStreetSet] = useState(() =>
     initialStreetSetId ? String(initialStreetSetId) : 'current-location'
   );
-  const [difficulty, setDifficulty] = useState('easy');
+  // Play This Set starts on Hard, which plays the whole set; Current Location starts on Easy
+  const [difficulty, setDifficulty] = useState(initialStreetSetId ? 'hard' : 'easy');
   const [numQuestions, setNumQuestions] = useState(5);
   const ids = useId();
   const setId = `${ids}-set`;
@@ -28,10 +35,14 @@ export default function QuizAreaModule({
   // Ids are bigint (strings from node-pg) and <select> values are strings; String() keeps it safe.
   const isCurrentLocation = selectedStreetSet === 'current-location';
   const selectedSet = streetSets.find((set) => String(set.id) === selectedStreetSet);
-  // A set's pool must be at least 2x the questions, so it allows half its included streets
+  // A saved set plays only the streets at or below the chosen level (KAN-73)
+  const streetsAt = (level) =>
+    selectedSet?.includedByLevel?.[level] ?? selectedSet?.includedStreets ?? 0;
+  // A set's pool must be at least 2x the questions, so it allows half its streets at this level
   const maxQuestions = isCurrentLocation
     ? CURRENT_LOCATION_MAX
-    : maxQuestionsFor(selectedSet?.includedStreets || 0);
+    : maxQuestionsFor(streetsAt(difficulty));
+  const levelLabel = LEVEL_OPTIONS.find((o) => o.value === difficulty)?.label;
   const setStillLoading = !isCurrentLocation && !selectedSet;
   const canPlay = isCurrentLocation || (!setStillLoading && maxQuestions >= 1);
   const sliderMax = Math.max(maxQuestions, 1);
@@ -83,9 +94,12 @@ export default function QuizAreaModule({
             onChange={(e) => setDifficulty(e.target.value)}
             className="form-select"
           >
-            <option value="easy">Easy (Major roads)</option>
-            <option value="medium">Medium (+ Tertiary roads)</option>
-            <option value="hard">Hard (All roads)</option>
+            {LEVEL_OPTIONS.map(({ value, label, roads }) => (
+              <option key={value} value={value}>
+                {label} ({roads}
+                {selectedSet ? `, ${streetsAt(value)} streets` : ''})
+              </option>
+            ))}
           </select>
         </div>
 
@@ -123,7 +137,11 @@ export default function QuizAreaModule({
           </div>
           {setStillLoading && <p className="quiz-note">Loading your street sets...</p>}
           {!setStillLoading && !canPlay && (
-            <p className="quiz-note">This set needs at least 2 included streets to play.</p>
+            <p className="quiz-note">
+              {maxQuestionsFor(selectedSet?.includedStreets || 0) >= 1
+                ? `This set has fewer than 2 streets at ${levelLabel}. Pick a harder level.`
+                : 'This set needs at least 2 included streets to play.'}
+            </p>
           )}
         </div>
 
