@@ -15,6 +15,7 @@ export default function QuizAreaModule({
   streetSets,
   initialStreetSetId = null,
   onQuizStart,
+  onSelectionChange,
   onClose,
   mapCenter,
   mapRadius,
@@ -85,7 +86,11 @@ export default function QuizAreaModule({
           <select
             id={setId}
             value={selectedStreetSet}
-            onChange={(e) => setSelectedStreetSet(e.target.value)}
+            onChange={(e) => {
+              setSelectedStreetSet(e.target.value);
+              // Game shows the quiz circle only for Current Location
+              onSelectionChange?.(e.target.value === 'current-location');
+            }}
             className="form-select"
           >
             <option value="current-location">📍 Current Location</option>
@@ -166,7 +171,9 @@ export default function QuizAreaModule({
         </button>
       </div>
 
-      <p className="quiz-instruction">Pan and zoom the map to select your quiz area</p>
+      <p className="quiz-instruction">
+        Pan and zoom to move the circle. Streets inside it are quizzed.
+      </p>
     </div>
   );
 }

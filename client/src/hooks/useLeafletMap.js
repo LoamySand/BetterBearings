@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { addBaseLayer } from '../utils/tileLayer';
 
 /**
@@ -13,6 +13,9 @@ export function useLeafletMap({
   const mapInstanceRef = useRef(null);
   const mapInitialized = useRef(false);
   const selectionMapInitialized = useRef(false);
+  // The selection map is created asynchronously below. Holding it in state too re-renders the
+  // caller each time a new one exists, so it can draw on it (useQuizCircle, KAN-76).
+  const [selectionMap, setSelectionMap] = useState(null);
 
   // Initialize selection map (before quiz starts)
   useEffect(() => {
@@ -61,6 +64,7 @@ export function useLeafletMap({
 
         mapInstanceRef.current = map;
         selectionMapInitialized.current = true;
+        setSelectionMap(map);
 
         console.log('✅ Selection map initialized');
 
@@ -182,6 +186,7 @@ export function useLeafletMap({
       }
       mapInstanceRef.current = null;
       selectionMapInitialized.current = false;
+      setSelectionMap(null);
     }
   };
 
@@ -196,12 +201,14 @@ export function useLeafletMap({
     }
     mapInitialized.current = false;
     selectionMapInitialized.current = false;
+    setSelectionMap(null);
   };
 
   return {
     mapInstanceRef,
     mapInitialized,
     selectionMapInitialized,
+    selectionMap,
     removeSelectionMap,
     cleanupMap,
   };

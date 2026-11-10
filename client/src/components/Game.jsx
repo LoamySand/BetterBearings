@@ -8,6 +8,7 @@ import { useQuizArea } from '../hooks/useQuizArea';
 import { useLeafletMap } from '../hooks/useLeafletMap';
 import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
+import { useQuizCircle } from '../hooks/useQuizCircle';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from './AppHeader';
 import AuthModal from './AuthModal';
@@ -15,6 +16,7 @@ import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty } from '../utils/areaTypes';
 import { planGame, filterByLevel } from '../utils/gamePlan';
+import { quizAreaFor, formatRadius } from '../utils/quizArea';
 import './Game.css';
 import { API_URL } from '../config';
 import useDialog from '../hooks/useDialog';
@@ -53,6 +55,9 @@ export default function StreetFinderGame() {
   const quizToggleRef = useRef(null);
   const quizPanelRef = useRef(null);
   const quizPanelId = useId();
+  // The circle is the Current Location area; a saved set has its own center and radius.
+  // QuizAreaModule starts on the Play This Set set, else on Current Location.
+  const [quizCurrentLocation, setQuizCurrentLocation] = useState(() => !initialSetId);
 
   const { isAuthenticated } = useAuth();
 
@@ -113,12 +118,15 @@ export default function StreetFinderGame() {
   );
 
   // Selection map (before quiz starts)
-  const { mapInstanceRef: selectionMapInstanceRef } = useLeafletMap({
+  const { mapInstanceRef: selectionMapInstanceRef, selectionMap } = useLeafletMap({
     gameMode,
     quizCenter: null,
     mapType: 'selecting',
     mapRef,
   });
+
+  // The Current Location area, drawn on the selection map (KAN-76)
+  useQuizCircle({ map: selectionMap, active: gameMode === 'selecting' && quizCurrentLocation });
 
   // Playing map (during the game)
   const {
@@ -248,31 +256,19 @@ export default function StreetFinderGame() {
           return;
         }
 
-        const map = selectionMapInstanceRef.current;
-        const bounds = map.getBounds();
-        const center = bounds.getCenter();
+        // Same area as the circle on the map (utils/quizArea.js)
+        const { center, radius, tooSmall } = quizAreaFor(selectionMapInstanceRef.current);
 
-        // Calculate radius from bounds (max distance from center to corner)
-        const maxDist = Math.max(
-          map.distance(center, bounds.getNorthWest()),
-          map.distance(center, bounds.getNorthEast()),
-          map.distance(center, bounds.getSouthWest()),
-          map.distance(center, bounds.getSouthEast())
-        );
-
-        // Cap radius at 3km for performance
-        const radius = Math.min(maxDist, 3000);
-
-        if (radius < 500) {
+        if (tooSmall) {
           alert('Area too small. Please zoom out more.');
           return;
         }
 
         // The Quiz This Area selector picks which road classes /api/streets may return
         // Set center as object {lat, lng}, not array
-        setQuizCenter({ lat: center.lat, lng: center.lng });
+        setQuizCenter(center);
         setQuizRadius(radius);
-        setStreetSetName(`${Math.round(radius / 1000)}km area`);
+        setStreetSetName(`${formatRadius(radius)} area`);
         setPreloadedStreets(null); // No preloaded streets for current location
       } else {
         // Load streets from selected street set
@@ -363,6 +359,8 @@ export default function StreetFinderGame() {
     streetsLoadedForCenter.current = null;
     setPreloadedStreets(null);
     setStreetSetName(null);
+    // The quiz panel remounts on its starting selection
+    setQuizCurrentLocation(!initialSetId);
     setGameMode('selecting');
   };
 
@@ -532,7 +530,7 @@ export default function StreetFinderGame() {
           {streetSetName && <span className="street-set-badge">📚 {streetSetName}</span>}
           <span className="game-meta">
             Difficulty: {LEVEL_LABELS[difficulty]}
-            {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
+            {quizRadius && ` • ${formatRadius(quizRadius)} radius`}
           </span>
           {plan.capped && plan.count > 0 && (
             <span className="game-meta game-capped" role="status">
@@ -583,6 +581,7 @@ export default function StreetFinderGame() {
                 streetSets={streetSets}
                 initialStreetSetId={initialSetId}
                 onQuizStart={handleQuizModuleStart}
+                onSelectionChange={setQuizCurrentLocation}
                 onClose={closeQuizPanel}
                 mapCenter={quizCenter}
                 mapRadius={quizRadius}
