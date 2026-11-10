@@ -12,8 +12,13 @@ const rules = require('../streetRules');
 //          with a short secondary piece stays out of Easy games.
 //          A window, not a join: the planner estimates `area` at 1 row (geography ST_DWithin), and
 //          a join on it ran as a nested loop, 8x slower at 7,900 segments.
-// final:   names with at least one qualifying segment and a dominant class this difficulty
-//          allows, random pick. Named after its first qualifying segment.
+// leveled: names with at least one qualifying segment and a dominant class this difficulty
+//          allows, named after their first qualifying segment, numbered 1, 2, 3... in random
+//          order within their level (1 Easy, 2 Medium, 3 Hard; KAN-75)
+// final:   dealt in rounds: one street of each level per round, until `count`. When a level
+//          runs out the others keep going, so a short level rolls its slots over to the rest.
+//          Northeast Hard at 200 (16 / 52 / 1,519 in the area) gives 16 / 52 / 132, and an area
+//          with plenty of every level 67 / 67 / 66. planGame shuffles, so the order is not seen.
 const PICK_SQL = `
   WITH center AS (
     SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326) AS pt
@@ -55,11 +60,20 @@ const PICK_SQL = `
     HAVING bool_or(qualifies)
        AND (array_agg(highway ORDER BY class_meters DESC, array_position($4::text[], highway)))[1]
            = ANY($5::text[])
+  ),
+  leveled AS (
+    SELECT g.*, l.level, row_number() OVER (PARTITION BY l.level ORDER BY random()) AS rn
+    FROM grouped g
+    CROSS JOIN LATERAL (
+      SELECT CASE WHEN g.highway = ANY($12::text[]) THEN 1
+                  WHEN g.highway = ANY($13::text[]) THEN 2
+                  ELSE 3 END AS level
+    ) l
   )
   SELECT osm_id, name, highway, ref, old_name, loc_name, meters, width, enclosed,
          ST_AsGeoJSON(geom)::json AS geom
-  FROM grouped
-  ORDER BY random()
+  FROM leveled
+  ORDER BY rn, level
   LIMIT $11`;
 
 const majorRef = new RegExp(rules.MAJOR_REF_PATTERN, 'i');
@@ -89,6 +103,8 @@ async function pickStreets({ lat, lng, radius, difficulty, count }) {
     rules.EXCLUDED_NAME_PATTERN,
     rules.MIN_SEGMENT_METERS,
     count,
+    rules.TOURIST,
+    rules.RESIDENT,
   ]);
   return rows.map((row) => ({
     osmId: Number(row.osm_id),

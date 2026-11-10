@@ -72,4 +72,7 @@ module.exports = {
   MIN_SEGMENT_METERS,
   rulesFor,
   levelFor,
+  // For the level in PICK_SQL (KAN-75); same tiers as levelFor
+  TOURIST,
+  RESIDENT,
 };

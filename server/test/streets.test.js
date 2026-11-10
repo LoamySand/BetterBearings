@@ -288,6 +288,61 @@ describe('GET /api/streets', () => {
     assert.equal(new Set(names(res)).size, 3);
   });
 
+  describe('balanced pick across levels (KAN-75)', () => {
+    // n streets of one road class, 22 m apart, all inside the 1 km radius
+    let nextId = 1;
+    const addStreets = async (highway, n) => {
+      for (let i = 0; i < n; i++) {
+        const id = nextId++;
+        await insertOsmStreet({
+          osmId: id,
+          name: `${highway} ${i}`,
+          highway,
+          coordinates: ns(LNG + id * 0.0002),
+        });
+      }
+    };
+    const LEVEL = { secondary: 'easy', tertiary: 'medium', residential: 'hard' };
+    const split = async (query) => {
+      const counts = { easy: 0, medium: 0, hard: 0 };
+      const res = await near({ difficulty: 'taxi-driver', ...query });
+      for (const s of res.body.streets) counts[LEVEL[s.type]]++;
+      return counts;
+    };
+    beforeEach(() => {
+      nextId = 1;
+    });
+
+    test('a third of count per level when every level has enough', async () => {
+      await addStreets('secondary', 10);
+      await addStreets('tertiary', 10);
+      await addStreets('residential', 10);
+      assert.deepEqual(await split({ count: 9 }), { easy: 3, medium: 3, hard: 3 });
+      // Uneven count: the extra goes to the easier level
+      assert.deepEqual(await split({ count: 10 }), { easy: 4, medium: 3, hard: 3 });
+    });
+
+    test('a short level rolls its slots over to the others', async () => {
+      await addStreets('secondary', 1);
+      await addStreets('tertiary', 10);
+      await addStreets('residential', 10);
+      assert.deepEqual(await split({ count: 9 }), { easy: 1, medium: 4, hard: 4 });
+      // Medium level allows no Hard: Easy runs out, Medium takes the rest
+      assert.deepEqual(await split({ count: 9, difficulty: 'resident' }), {
+        easy: 1,
+        medium: 8,
+        hard: 0,
+      });
+    });
+
+    test('an area with fewer streets than count gives every street', async () => {
+      await addStreets('secondary', 2);
+      await addStreets('tertiary', 1);
+      await addStreets('residential', 3);
+      assert.deepEqual(await split({ count: 50 }), { easy: 2, medium: 1, hard: 3 });
+    });
+  });
+
   test('an area with no streets gives an empty list', async () => {
     const res = await near();
     assert.equal(res.status, 200);

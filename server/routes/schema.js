@@ -3,7 +3,9 @@ const { z } = require('zod');
 // bcrypt reads only the first 72 bytes and silently ignores the rest
 const MAX_PASSWORD_BYTES = 72;
 
-// Structural caps, provisional until measured (step 3). The 1.5mb body limit is the outer bound.
+// Structural caps. The 1.5mb body limit is the outer bound.
+// 200 streets, measured Nov 10 (KAN-75): a 5 km Northeast circle has ~1,590 streets, 8x the cap,
+// and the excess is residential; the balanced pick keeps every Easy and Medium street within it.
 // Mirrors the client cap in CreateStreetSetModal.jsx (numberOfQuestions: 200). Change both together.
 const MAX_STREETS = 200;
 const MAX_LINES_PER_STREET = 500; // 94 measured at ~2 km; long arterials scale with diameter
