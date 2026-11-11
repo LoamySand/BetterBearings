@@ -45,15 +45,15 @@
 
 .auth-modal-close {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.75rem;
+  right: 0.75rem;
   background: none;
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
   color: #6b7280;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,4 +167,68 @@
 .auth-toggle-btn:hover {
   color: #4338CA;
   text-decoration: underline;
+}
+
+.auth-submit-btn {
+  min-height: 48px;
+}
+
+.auth-toggle-btn {
+  min-height: 44px;
+  padding: 0 0.5rem;
+}
+
+/* Phones: a full-width sheet at the top of the screen, so the submit button stays above the
+   on-screen keyboard, which rises from the bottom (KAN-61). Inputs keep 16 px text so iOS
+   doesn't zoom on focus. */
+@media (max-width: 479px) {
+  .auth-modal-overlay {
+    align-items: flex-start;
+  }
+
+  .auth-modal {
+    width: 100%;
+    max-width: none;
+    max-height: 100dvh;
+    overflow-y: auto;
+    border-radius: 0 0 16px 16px;
+    padding: max(1rem, env(safe-area-inset-top)) 1.25rem 1.25rem;
+    animation-name: slideDown;
+  }
+
+  .auth-modal-close {
+    top: max(0.25rem, env(safe-area-inset-top));
+    right: 0.25rem;
+  }
+
+  .auth-modal-title {
+    font-size: 1.375rem;
+    margin-bottom: 1rem;
+    padding: 0 2.75rem;
+  }
+
+  .auth-form {
+    gap: 0.875rem;
+  }
+
+  .auth-field input {
+    min-height: 44px;
+    font-size: 1rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .auth-toggle {
+    margin-top: 0.75rem;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

@@ -7,6 +7,11 @@
   background: none;
   border: none;
   padding: 0;
+  /* 44 px tap target around the 40 px avatar; the negative margin keeps the header's height */
+  width: 44px;
+  height: 44px;
+  margin: -2px;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -37,6 +42,8 @@
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   min-width: 220px;
+  /* The menu hangs from the right edge of the button; at 360 px a long email can't push it off screen */
+  max-width: calc(100vw - 1.5rem);
   z-index: 2002;
   overflow: hidden;
   animation: dropdownFade 0.2s ease-out;
@@ -84,6 +91,7 @@
 
 .dropdown-item {
   width: 100%;
+  min-height: 44px;
   padding: 0.75rem 1rem;
   background: none;
   border: none;
@@ -111,4 +119,17 @@
 
 .dropdown-item svg {
   flex-shrink: 0;
+}
+
+.user-name,
+.user-email {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-button:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
 }

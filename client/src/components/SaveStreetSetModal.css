@@ -109,6 +109,16 @@
   min-height: 80px;
 }
 
+.save-capped {
+  margin: -0.75rem 0 1.25rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 .save-error {
   background: #fee2e2;
   color: #dc2626;

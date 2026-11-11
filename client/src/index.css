@@ -309,3 +309,14 @@ body {
 .leaflet-control-attribution a {
   text-decoration: underline;
 }
+
+/* Leaflet's zoom buttons are 30 px on touch screens; make them 44 px tap targets (KAN-61).
+   Mouse users keep the standard size. */
+@media (pointer: coarse) {
+  .leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 24px;
+  }
+}

@@ -4,6 +4,9 @@ import './SaveStreetSetModal.css';
 import useDialog from '../hooks/useDialog';
 import { Spinner } from './StatusPanel';
 
+// Same cap as the server (server/routes/schema.js) and CreateStreetSetModal's request
+const MAX_STREETS = 200;
+
 export default function SaveStreetSetModal({
   onClose,
   onSave,
@@ -69,6 +72,13 @@ export default function SaveStreetSetModal({
           <div className="save-error" style={{ marginBottom: '1rem' }}>
             {error}
           </div>
+        )}
+
+        {isCreating && !loading && streets?.length >= MAX_STREETS && (
+          <p className="save-capped">
+            Sets hold up to {MAX_STREETS} streets, so a busy area can leave some out. Zoom in on a
+            smaller area to keep every street.
+          </p>
         )}
 
         {loading && (

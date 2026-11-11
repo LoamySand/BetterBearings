@@ -96,8 +96,7 @@
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-/* The input is 44 px tall for touch; the visible track is drawn 6 px tall inside it.
-   Two classes so AuthModal.css's global .quiz-field input border and padding don't apply. */
+/* The input is 44 px tall for touch; the visible track is drawn 6 px tall inside it. */
 .number-input-group .number-slider {
   flex: 1;
   min-width: 0;

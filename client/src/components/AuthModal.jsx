@@ -74,6 +74,11 @@ export default function AuthModal({ onClose }) {
                 placeholder="Choose a username"
                 minLength={3}
                 maxLength={30}
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
               />
             </div>
           )}
@@ -88,6 +93,11 @@ export default function AuthModal({ onClose }) {
               onChange={handleChange}
               required
               placeholder="your@email.com"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
             />
           </div>
 
@@ -103,10 +113,17 @@ export default function AuthModal({ onClose }) {
               minLength={isLogin ? undefined : 12}
               maxLength={72}
               placeholder={isLogin ? 'Your password' : 'At least 12 characters'}
+              // Lets password managers fill on login and offer a strong password on signup
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              enterKeyHint="go"
             />
           </div>
 
-          {formError && <div className="auth-error">{formError}</div>}
+          {formError && (
+            <div className="auth-error" role="alert">
+              {formError}
+            </div>
+          )}
 
           <button type="submit" className="auth-submit-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Please wait...' : isLogin ? 'Log In' : 'Sign Up'}
