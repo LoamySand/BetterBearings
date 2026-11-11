@@ -499,11 +499,23 @@ export default function StreetSetDetail() {
                       <div
                         key={originalIndex}
                         className={`street-item ${street.included ? 'included' : 'excluded'}`}
+                        // A checkbox for keyboards and screen readers: Tab reaches it, Space toggles (KAN-64)
+                        role="checkbox"
+                        aria-checked={street.included}
+                        tabIndex={0}
                         onClick={() => handleToggleStreet(originalIndex)}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            handleToggleStreet(originalIndex);
+                          }
+                        }}
+                        onFocus={() => setHoveredStreetIndex(originalIndex)}
+                        onBlur={() => setHoveredStreetIndex(null)}
                         onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
                         onMouseLeave={() => setHoveredStreetIndex(null)}
                       >
-                        <div className="checkbox">
+                        <div className="checkbox" aria-hidden="true">
                           {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
                         </div>
                         <div className="street-info">

@@ -21,6 +21,7 @@ import { useQuizArea } from '../hooks/useQuizArea';
 import { useLeafletMap } from '../hooks/useLeafletMap';
 import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
+import { useKeyboardPlay } from '../hooks/useKeyboardPlay';
 import { useQuizCircle } from '../hooks/useQuizCircle';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from './AppHeader';
@@ -158,23 +159,34 @@ export default function StreetFinderGame() {
   });
 
   // Street polylines management (only for playing mode)
-  const { resetPolylineColors, clearPolylines } = useStreetPolylines({
-    streets: activeStreets,
-    quizCenter,
-    mapRef,
+  const { resetPolylineColors, clearPolylines, polylinesRef, guess, skip, setHighlight } =
+    useStreetPolylines({
+      streets: activeStreets,
+      quizCenter,
+      mapRef,
+      mapInstanceRef: playingMapInstanceRef,
+      isMapReady: playingMapReady,
+      gameActiveRef,
+      currentStreetRef,
+      gameOverRef,
+      roundRef,
+      totalRounds: roundsInGame,
+      setScore,
+      setFeedback,
+      setGameActive,
+      setRound,
+      startNewRound,
+      endGame,
+    });
+
+  const keyStatus = useKeyboardPlay({
+    active: gameMode === 'playing' && gameActive,
+    round,
     mapInstanceRef: playingMapInstanceRef,
-    isMapReady: playingMapReady,
-    gameActiveRef,
-    currentStreetRef,
-    gameOverRef,
-    roundRef,
-    totalRounds: roundsInGame,
-    setScore,
-    setFeedback,
-    setGameActive,
-    setRound,
-    startNewRound,
-    endGame,
+    polylinesRef,
+    setHighlight,
+    guess,
+    skip,
   });
 
   // Load streets when quiz area is selected (only on initial load)
@@ -612,6 +624,9 @@ export default function StreetFinderGame() {
                 <p className="instruction">
                   {gameActive ? 'Click or tap it on the map' : 'Wait for next round...'}
                 </p>
+                <p className="sr-only" role="status">
+                  {keyStatus}
+                </p>
                 {isAuthenticated && !streetSetName && (
                   <button
                     onClick={() => setShowSaveModal(true)}
@@ -632,6 +647,21 @@ export default function StreetFinderGame() {
         <div className="map-wrapper">
           <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
         </div>
+
+        {/* Keyboard play hint, out of the way at the bottom left (hidden on phones) */}
+        {gameMode === 'playing' && (
+          <p className="keys-hint">
+            <span>
+              <kbd>Space</kbd> next street
+            </span>{' '}
+            <span>
+              <kbd>Enter</kbd> guess
+            </span>{' '}
+            <span>
+              <kbd>S</kbd> skip
+            </span>
+          </p>
+        )}
       </main>
 
       {gameMode === 'gameOver' && (
@@ -674,10 +704,7 @@ function GameOverDialog({ finalScore, onPlaySameArea, onChooseNewArea }) {
   const { titleId, dialogProps } = useDialog(null, { closeOnEscape: false });
 
   return (
-    <div
-      className="game-over"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000 }}
-    >
+    <div className="game-over">
       <div className="game-over-content" {...dialogProps}>
         <Award size={64} className="trophy-icon" aria-hidden="true" />
         <h2 id={titleId}>Game Over!</h2>

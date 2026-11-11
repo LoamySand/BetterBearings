@@ -1,4 +1,16 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
+
+// Street colors. Each polyline keeps its own resting weight (areas are drawn thinner).
+const PAINT = {
+  hover: { color: '#f1ee30ff', opacity: 0.9 },
+  highlight: { color: '#f59e0b', opacity: 1, extraWeight: 4 },
+  correct: { color: '#10B981', opacity: 1 },
+  wrong: { color: '#EF4444', opacity: 1 },
+};
+const BASE_COLOR = '#3B82F6';
+const BASE_OPACITY = 0.7;
+// How long the result colors stay before the next round
+const RESULT_MS = 2000;
 
 /**
  * Custom hook to manage street polylines on the map
@@ -23,6 +35,26 @@ export function useStreetPolylines({
 }) {
   const polylinesRef = useRef({});
   const firstRoundStartedRef = useRef(false);
+  // The street the keyboard has highlighted (useKeyboardPlay), so hover-out restores it
+  const highlightedRef = useRef(null);
+  // Set while drawStreets has run: resolves a guess for clicks, Enter and Skip alike
+  const resolveRef = useRef(null);
+
+  // Paints every segment of one street. 'base' restores the resting style.
+  const paint = useCallback((name, kind) => {
+    const segments = polylinesRef.current[name];
+    if (!segments) return;
+    segments.forEach((segment) => {
+      const weight = segment.baseWeight ?? 6;
+      if (kind === 'base') {
+        segment.setStyle({ color: BASE_COLOR, weight, opacity: BASE_OPACITY });
+        return;
+      }
+      const { extraWeight = 0, ...style } = PAINT[kind];
+      segment.setStyle({ ...style, weight: weight + extraWeight });
+      segment.bringToFront();
+    });
+  }, []);
 
   // Draw streets on map once it's initialized
   useEffect(() => {
@@ -76,59 +108,37 @@ export function useStreetPolylines({
       });
       polylinesRef.current = {};
 
-      // Define event handlers
-      const handleStreetClick = (e, street) => {
-        window.L.DomEvent.stopPropagation(e);
-        console.log('=== STREET CLICKED ===');
-        console.log('Clicked:', street.name);
-        console.log('Target:', currentStreetRef.current?.name);
-
-        // Do nothing if game is over or not active
+      // One path for a click, Enter on a highlighted street, and Skip (street = null).
+      // A wrong guess or a skip shows the right street in green before the next round (KAN-64).
+      const resolveGuess = (street) => {
         if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
-          console.log('Click ignored - game not active');
           return;
         }
+        const answer = currentStreetRef.current;
+        const isCorrect = !!street && street.name.toLowerCase() === answer.name.toLowerCase();
 
-        // Compare by name
-        const clickedName = street.name.toLowerCase();
-        const currentName = currentStreetRef.current.name.toLowerCase();
-        const isCorrect = clickedName === currentName;
-
-        // Visual feedback - flash ALL segments of the clicked street
-        const allSegments = polylinesRef.current[street.name];
-        if (allSegments) {
-          allSegments.forEach((segment) => {
-            segment.setStyle({
-              color: isCorrect ? '#10B981' : '#EF4444',
-              weight: 6,
-              opacity: 1,
-            });
-          });
+        if (highlightedRef.current) {
+          paint(highlightedRef.current, 'base');
+          highlightedRef.current = null;
         }
 
         if (isCorrect) {
+          paint(street.name, 'correct');
           setScore((prevScore) => prevScore + 10);
           setFeedback('🎉 Correct! +10 points');
-          console.log('✓ CORRECT!');
         } else {
-          setFeedback(`❌ Wrong! That was ${street.name}, not ${currentStreetRef.current.name}`);
-          console.log('✗ INCORRECT');
+          if (street) paint(street.name, 'wrong');
+          paint(answer.name, 'correct');
+          revealOnMap(answer.name);
+          setFeedback(street ? `❌ Wrong! That was ${street.name}.` : '⏭️ Skipped.');
         }
 
-        // Prevent clicks in between rounds for 2 seconds and reset color
+        // No guesses while the result shows
         setGameActive(false);
 
         setTimeout(() => {
-          // Reset ALL segments of this street back to blue
-          if (allSegments) {
-            allSegments.forEach((segment) => {
-              segment.setStyle({
-                color: '#3B82F6',
-                weight: 6,
-                opacity: 0.7,
-              });
-            });
-          }
+          if (street) paint(street.name, 'base');
+          paint(answer.name, 'base');
 
           if (roundRef.current < totalRounds) {
             setRound((prevRound) => prevRound + 1);
@@ -136,24 +146,32 @@ export function useStreetPolylines({
           } else {
             endGame();
           }
-        }, 2000);
+        }, RESULT_MS);
+      };
+      resolveRef.current = resolveGuess;
+
+      // Pans to the answer when none of it is on screen
+      const revealOnMap = (name) => {
+        const segments = polylinesRef.current[name];
+        if (!segments?.length) return;
+        // A fresh bounds object: extend() changes it in place, and getBounds() is the polyline's own
+        const bounds = segments.reduce(
+          (b, seg) => b.extend(seg.getBounds()),
+          window.L.latLngBounds([])
+        );
+        if (!map.getBounds().intersects(bounds)) map.panTo(bounds.getCenter());
       };
 
+      const handleStreetClick = (e, street) => {
+        window.L.DomEvent.stopPropagation(e);
+        resolveGuess(street);
+      };
+
+      // Hover only while a round is live, so it can't repaint a result
       const handleStreetHover = (streetName, isHovering) => {
-        const allSegments = polylinesRef.current[streetName];
-        if (allSegments) {
-          allSegments.forEach((segment) => {
-            if (isHovering) {
-              segment.setStyle({ color: '#f1ee30ff', weight: 6, opacity: 0.9 });
-            } else {
-              segment.setStyle({
-                color: '#3B82F6',
-                weight: 6,
-                opacity: 0.7,
-              });
-            }
-          });
-        }
+        if (!gameActiveRef.current) return;
+        if (isHovering) paint(streetName, 'hover');
+        else paint(streetName, highlightedRef.current === streetName ? 'highlight' : 'base');
       };
 
       let totalPolylinesDrawn = 0;
@@ -183,6 +201,8 @@ export function useStreetPolylines({
 
             polyline.streetId = street.name;
             polyline.streetName = street.name;
+            polyline.street = street;
+            polyline.baseWeight = street.isEnclosedArea ? 3 : 6;
 
             // Click handler
             polyline.on('click', (e) => {
@@ -240,23 +260,30 @@ export function useStreetPolylines({
     gameOverRef,
     roundRef,
     totalRounds,
+    paint,
   ]);
 
   const resetPolylineColors = () => {
-    Object.values(polylinesRef.current).forEach((polylineArray) => {
-      if (Array.isArray(polylineArray)) {
-        polylineArray.forEach((polyline) => {
-          if (polyline && polyline.setStyle) {
-            polyline.setStyle({
-              color: '#3B82F6',
-              weight: 4,
-              opacity: 0.7,
-            });
-          }
-        });
-      }
-    });
+    highlightedRef.current = null;
+    Object.keys(polylinesRef.current).forEach((name) => paint(name, 'base'));
   };
+
+  // For keyboard play: guess a street by name, skip, and move the highlight
+  const guess = useCallback((name) => {
+    const street = polylinesRef.current[name]?.[0]?.street;
+    if (street) resolveRef.current?.(street);
+  }, []);
+  const skip = useCallback(() => resolveRef.current?.(null), []);
+  const setHighlight = useCallback(
+    (name) => {
+      if (highlightedRef.current && highlightedRef.current !== name) {
+        paint(highlightedRef.current, 'base');
+      }
+      highlightedRef.current = name;
+      if (name) paint(name, 'highlight');
+    },
+    [paint]
+  );
 
   const clearPolylines = () => {
     Object.values(polylinesRef.current).forEach((polylineArray) => {
@@ -269,6 +296,8 @@ export function useStreetPolylines({
       }
     });
     polylinesRef.current = {};
+    highlightedRef.current = null;
+    resolveRef.current = null;
     firstRoundStartedRef.current = false; // Reset so next round can start
   };
 
@@ -276,5 +305,8 @@ export function useStreetPolylines({
     polylinesRef,
     resetPolylineColors,
     clearPolylines,
+    guess,
+    skip,
+    setHighlight,
   };
 }

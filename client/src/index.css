@@ -320,3 +320,32 @@ body {
     font-size: 24px;
   }
 }
+
+/* Visible keyboard focus on every control (KAN-64). Inputs and selects keep their own
+   focus border; :where() keeps this at zero specificity so component styles can override it. */
+:where(button, a[href], summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 3px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Leaflet's map container takes focus for its arrow-key panning */
+.leaflet-container:focus-visible {
+  outline: 3px solid #4f46e5;
+  outline-offset: -3px;
+}
+
+/* Read by screen readers, not shown */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Comfortable line length for long text (about 70 characters), for pages like the L1 policies */
+.readable {
+  max-width: 70ch;
+}
