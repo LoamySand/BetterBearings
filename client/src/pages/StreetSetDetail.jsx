@@ -1,7 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Save, CheckSquare, Square, Play, Star, TriangleAlert } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  CheckSquare,
+  Square,
+  Play,
+  Star,
+  TriangleAlert,
+  List,
+  Map as MapIcon,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
@@ -20,6 +32,9 @@ export default function StreetSetDetail() {
   const [selectAll, setSelectAll] = useState(true);
   const [hoveredStreetIndex, setHoveredStreetIndex] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  // Phones show one panel at a time (KAN-62); wider screens can hide the list for a larger map
+  const [phoneView, setPhoneView] = useState('list');
+  const [mapLarge, setMapLarge] = useState(false);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -102,8 +117,6 @@ export default function StreetSetDetail() {
 
       const data = await response.json();
       setStreetSet(data);
-      console.log('Loaded street set:', data);
-      console.log('First street:', data.streets[0]);
 
       // Check if all streets are included
       const allIncluded = data.streets.every((s) => s.included);
@@ -118,8 +131,6 @@ export default function StreetSetDetail() {
   // Initialize map when street set loads
   useEffect(() => {
     if (!streetSet || !mapRef.current || mapInstanceRef.current) return;
-
-    console.log('Initializing map for street set');
 
     const map = window.L.map(mapRef.current, {
       center: [streetSet.center.lat, streetSet.center.lng],
@@ -211,8 +222,6 @@ export default function StreetSetDetail() {
         polylinesRef.current[streetIndex].push(polyline);
       });
     });
-
-    console.log('Drew streets on map');
   };
 
   // Update street colors based on included status and hover state
@@ -279,6 +288,15 @@ export default function StreetSetDetail() {
     // Update previous hover index
     previousHoverIndexRef.current = hoveredStreetIndex;
   }, [hoveredStreetIndex, streetSet]);
+
+  // A panel that was hidden or resized leaves Leaflet with a stale size; on phones the map
+  // starts hidden, so its first real size arrives here. invalidateSize keeps the center.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return undefined;
+    const frame = requestAnimationFrame(() => map.invalidateSize());
+    return () => cancelAnimationFrame(frame);
+  }, [phoneView, mapLarge]);
 
   const handleToggleStreet = (index) => {
     // Save current map view before updating state
@@ -418,8 +436,8 @@ export default function StreetSetDetail() {
       <main>
         <div className="detail-header">
           <button onClick={() => navigate('/street-sets')} className="btn-back">
-            <ArrowLeft size={20} />
-            Back
+            <ArrowLeft size={20} aria-hidden="true" />
+            <span className="btn-back-label">Back</span>
           </button>
           <div className="header-content">
             <h1>{streetSet.name}</h1>
@@ -430,11 +448,11 @@ export default function StreetSetDetail() {
           </div>
           <div className="header-actions">
             <button onClick={handleSave} className="btn-save" disabled={saving}>
-              <Save size={20} />
+              <Save size={20} aria-hidden="true" />
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <button onClick={handlePlay} className="btn-play-set">
-              <Play size={20} />
+              <Play size={20} aria-hidden="true" />
               Play This Set
             </button>
           </div>
@@ -442,7 +460,27 @@ export default function StreetSetDetail() {
 
         <div className="detail-container">
           <div>
-            <div className="content-split">
+            <div className="view-toggle" role="group" aria-label="Show">
+              <button
+                type="button"
+                className="view-toggle-button"
+                aria-pressed={phoneView === 'list'}
+                onClick={() => setPhoneView('list')}
+              >
+                <List size={18} aria-hidden="true" />
+                List
+              </button>
+              <button
+                type="button"
+                className="view-toggle-button"
+                aria-pressed={phoneView === 'map'}
+                onClick={() => setPhoneView('map')}
+              >
+                <MapIcon size={18} aria-hidden="true" />
+                Map
+              </button>
+            </div>
+            <div className={`content-split show-${phoneView}${mapLarge ? ' map-large' : ''}`}>
               <div className="left-panel">
                 <div className="select-all-section">
                   <button onClick={handleSelectAll} className="select-all-button">
@@ -489,6 +527,19 @@ export default function StreetSetDetail() {
 
               <div className="right-panel">
                 <div ref={mapRef} className="detail-map" />
+                <button
+                  type="button"
+                  className="btn-map-size"
+                  aria-pressed={mapLarge}
+                  onClick={() => setMapLarge((large) => !large)}
+                >
+                  {mapLarge ? (
+                    <Minimize2 size={18} aria-hidden="true" />
+                  ) : (
+                    <Maximize2 size={18} aria-hidden="true" />
+                  )}
+                  {mapLarge ? 'Show list' : 'Larger map'}
+                </button>
               </div>
             </div>
           </div>

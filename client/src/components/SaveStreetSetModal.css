@@ -40,6 +40,15 @@
   justify-content: center;
 }
 
+/* 44 px tap target (KAN-62). Scoped: CreateStreetSetModal.css has its own .modal-close */
+.save-modal .modal-close {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
 .modal-close:hover {
   background: #f3f4f6;
   color: #1f2937;
