@@ -25,7 +25,8 @@ const TOO_SMALL_STYLE = {
  */
 export function useQuizCircle({ map, active }) {
   useEffect(() => {
-    if (!active || !map || !window.L) return undefined;
+    // Leaflet deletes _mapPane in map.remove(); a removed map can't take layers or give bounds
+    if (!active || !map || !map._mapPane || !window.L) return undefined;
     const L = window.L;
 
     const area = quizAreaFor(map);

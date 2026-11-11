@@ -118,7 +118,11 @@ export default function StreetFinderGame() {
   );
 
   // Selection map (before quiz starts)
-  const { mapInstanceRef: selectionMapInstanceRef, selectionMap } = useLeafletMap({
+  const {
+    mapInstanceRef: selectionMapInstanceRef,
+    selectionMap,
+    removeSelectionMap,
+  } = useLeafletMap({
     gameMode,
     quizCenter: null,
     mapType: 'selecting',
@@ -326,11 +330,10 @@ export default function StreetFinderGame() {
       // Set total rounds from selected number of questions
       setTotalRounds(config.numQuestions);
 
-      // Remove selection map and transition to playing mode
-      if (selectionMapInstanceRef.current) {
-        selectionMapInstanceRef.current.remove();
-        selectionMapInstanceRef.current = null;
-      }
+      // Remove the selection map through the hook, which also clears its selectionMap state.
+      // Removing it here directly left the circle holding a dead map on the way back to
+      // the map screen, and Leaflet threw (KAN-76).
+      removeSelectionMap();
       setGameMode('playing');
     } catch {
       alert('Error starting quiz. Please try again.');
