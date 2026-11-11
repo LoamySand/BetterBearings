@@ -7,6 +7,7 @@ import AuthModal from '../components/AuthModal';
 import CreateStreetSetModal from '../components/CreateStreetSetModal';
 import './StreetSets.css';
 import { API_URL } from '../config';
+import StatusPanel from '../components/StatusPanel';
 
 export default function StreetSets() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -147,8 +148,8 @@ export default function StreetSets() {
       <div className="street-sets-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <main className="street-sets-container">
-          <p>Loading...</p>
+        <main className="status-page">
+          <StatusPanel variant="loading" title="Loading your street sets..." />
         </main>
       </div>
     );

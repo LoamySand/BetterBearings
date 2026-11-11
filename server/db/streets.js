@@ -118,4 +118,19 @@ async function pickStreets({ lat, lng, radius, difficulty, count }) {
   }));
 }
 
-module.exports = { pickStreets, PICK_SQL };
+// Any street at all in the circle, of any type. Asked only when the pick is empty, to tell
+// "outside the imported extract" (none) from "nothing at this level here" (some) (KAN-63).
+const HAS_DATA_SQL = `
+  WITH center AS (SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326) AS pt)
+  SELECT EXISTS (
+    SELECT 1 FROM osm.streets s, center c
+    WHERE s.geom && ST_Envelope(ST_Buffer(c.pt::geography, $3)::geometry)
+      AND ST_DWithin(s.geom::geography, c.pt::geography, $3)
+  ) AS has_data`;
+
+async function hasStreetData({ lat, lng, radius }) {
+  const { rows } = await pool.query(HAS_DATA_SQL, [lng, lat, radius]);
+  return rows[0].has_data;
+}
+
+module.exports = { pickStreets, hasStreetData, PICK_SQL };

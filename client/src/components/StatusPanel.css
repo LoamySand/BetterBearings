@@ -1,0 +1,130 @@
+/* Shared loading, error and empty card (StatusPanel.jsx, KAN-63) */
+.status-panel {
+  width: min(28rem, 100%);
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  color: #1f2937;
+}
+
+.status-panel-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: #4f46e5;
+}
+
+.status-panel--error .status-panel-icon {
+  color: #dc2626;
+}
+
+.status-panel-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.375rem;
+  line-height: 1.3;
+}
+
+.status-panel-message {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.status-panel-message p {
+  margin: 0;
+}
+
+.status-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Buttons and router links share one look */
+.status-panel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0 1.5rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.status-panel-action--secondary {
+  background: white;
+  color: #4338ca;
+  border: 2px solid #c7d2fe;
+}
+
+.status-panel-action:focus-visible {
+  outline: 3px solid #1f2937;
+  outline-offset: 2px;
+}
+
+.bb-spinner {
+  display: inline-block;
+  border: 4px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: bb-spin 0.8s linear infinite;
+}
+
+@keyframes bb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bb-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* Full-area wrapper for pages and the game screen */
+.status-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem calc(1rem + env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom))
+    calc(1rem + env(safe-area-inset-left));
+}
+
+@media (max-width: 767px) {
+  .status-panel {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .status-panel-actions {
+    flex-direction: column;
+  }
+
+  .status-panel-action {
+    width: 100%;
+  }
+}
+
+/* A page that is only a status card: 404, the error boundary. Same background as the
+   street-set pages. */
+.status-layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+}

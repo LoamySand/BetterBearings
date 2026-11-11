@@ -7,7 +7,11 @@ const router = express.Router();
 // Public: logged-out games use it. Covered by the /api limiter in app.js.
 router.get('/', validate(streetsQuerySchema, 'query'), async (req, res) => {
   try {
-    res.json({ streets: await streets.pickStreets(req.validatedQuery) });
+    const picked = await streets.pickStreets(req.validatedQuery);
+    if (picked.length > 0) return res.json({ streets: picked });
+    // Empty: say whether the circle has street data at all, so the client can tell
+    // "outside coverage" from "nothing at this level" (KAN-63)
+    res.json({ streets: [], hasData: await streets.hasStreetData(req.validatedQuery) });
   } catch (err) {
     // 42P01: osm.streets missing, i.e. osm-import hasn't run in this environment yet
     if (err.code === '42P01') {

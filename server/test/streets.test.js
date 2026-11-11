@@ -343,10 +343,36 @@ describe('GET /api/streets', () => {
     });
   });
 
-  test('an area with no streets gives an empty list', async () => {
+  test('an area with no streets gives an empty list and hasData false', async () => {
+    // What a circle outside the imported extract gets (KAN-63)
     const res = await near();
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { streets: [] });
+    assert.deepEqual(res.body, { streets: [], hasData: false });
+  });
+
+  test('streets in the area but none at this level give hasData true', async () => {
+    // A residential street is Hard; an Easy (tourist) game finds nothing to ask
+    await insertOsmStreet({
+      osmId: 1,
+      name: 'Quiet Lane',
+      highway: 'residential',
+      coordinates: ns(LNG),
+    });
+    const res = await near({ difficulty: 'tourist' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { streets: [], hasData: true });
+  });
+
+  test('hasData is only sent with an empty list', async () => {
+    await insertOsmStreet({
+      osmId: 1,
+      name: 'Central Avenue',
+      highway: 'primary',
+      coordinates: ns(LNG),
+    });
+    const res = await near({ difficulty: 'tourist' });
+    assert.equal(res.body.streets.length, 1);
+    assert.equal('hasData' in res.body, false);
   });
 
   test('radius over 5000 is a 400', async () => {

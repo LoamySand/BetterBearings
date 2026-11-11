@@ -1,6 +1,19 @@
 import { useState, useEffect, useRef, useMemo, useId } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Trophy, Star, Award, RefreshCw, Save, MapPin } from 'lucide-react';
+import {
+  Trophy,
+  Star,
+  Award,
+  RefreshCw,
+  Save,
+  MapPin,
+  WifiOff,
+  TriangleAlert,
+  MapPinOff,
+  SearchX,
+} from 'lucide-react';
+import StatusPanel from './StatusPanel';
+import { describeStreetError } from '../utils/streetErrors';
 import { useStreets } from '../hooks/useStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
@@ -91,7 +104,7 @@ export default function StreetFinderGame() {
   // For 'creating' mode, fetch 50. For 'playing' mode, fetch the whole pool; the plan picks questions.
   const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : CURRENT_LOCATION_POOL;
 
-  const { streets, loading, error, loadStreets } = useStreets({
+  const { streets, loading, error, errorKind, loadStreets } = useStreets({
     center: !preloadedStreets ? quizCenter : null,
     radius: quizRadius,
     difficulty,
@@ -430,95 +443,73 @@ export default function StreetFinderGame() {
     }
   };
 
-  // Show loading state only when in playing mode
+  // Loading, error and empty states keep the header and put one card where the map goes (KAN-63)
+  const statusScreen = (panel) => (
+    <div className="game-container">
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      <AppHeader onSignIn={() => setShowAuthModal(true)} />
+      <main className="status-page">{panel}</main>
+    </div>
+  );
+
+  const newAreaButton = (
+    <button type="button" className="status-panel-action" onClick={chooseNewArea}>
+      <MapPin size={20} aria-hidden="true" />
+      Choose another area
+    </button>
+  );
+
   if (gameMode === 'playing' && loading) {
-    return (
-      <div className="game-container">
-        <main
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: '1rem',
-          }}
-        >
-          <RefreshCw size={48} className="animate-spin" aria-hidden="true" />
-          <p>Loading streets...</p>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            This may take 10-30 seconds on first load. Results will be cached.
-          </p>
-        </main>
-      </div>
-    );
+    return statusScreen(<StatusPanel variant="loading" title="Loading streets..." />);
   }
 
-  // Show error state only when in playing mode
   if (gameMode === 'playing' && error) {
-    return (
-      <div className="game-container">
-        <main
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: '1rem',
-            padding: '2rem',
-          }}
-          //TODDO Guarentee that user selects a small enough area
-        >
-          <h2 style={{ color: '#EF4444' }}>Error loading streets, Try a smaller area </h2>
-          <p style={{ color: '#EF4444' }}>Error: {error}</p>
-          <button onClick={loadStreets} className="btn-primary">
-            Retry
-          </button>
-        </main>
-      </div>
+    const problem = describeStreetError({ kind: errorKind, message: error });
+    const icon =
+      { offline: WifiOff, outside: MapPinOff, empty: SearchX }[problem.kind] ?? TriangleAlert;
+    return statusScreen(
+      <StatusPanel
+        variant={problem.action === 'retry' ? 'error' : 'info'}
+        icon={icon}
+        title={problem.title}
+        actions={
+          problem.action === 'retry' ? (
+            <>
+              <button type="button" className="status-panel-action" onClick={loadStreets}>
+                <RefreshCw size={20} aria-hidden="true" />
+                Try again
+              </button>
+              <button
+                type="button"
+                className="status-panel-action status-panel-action--secondary"
+                onClick={chooseNewArea}
+              >
+                Choose another area
+              </button>
+            </>
+          ) : (
+            newAreaButton
+          )
+        }
+      >
+        <p>{problem.message}</p>
+      </StatusPanel>
     );
   }
 
-  // Show error only when in playing mode
-  // Nothing to play: no streets, or fewer than the 2 a game needs
+  // Streets came back, but fewer than the 2 a game needs
   if (gameMode === 'playing' && plan.count === 0 && !loading) {
-    return (
-      <div className="game-container">
-        <main
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: '1rem',
-            padding: '2rem',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
-            {plan.options.length === 1
-              ? 'Only one street here, and a game needs at least 2'
-              : 'No streets found in this area'}
-          </p>
-          <p style={{ color: '#6b7280' }}>Try a different area or zoom level</p>
-          <button
-            onClick={chooseNewArea}
-            style={{
-              padding: '1rem 2rem',
-              background: '#4F46E5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Choose Different Area
-          </button>
-        </main>
-      </div>
+    return statusScreen(
+      <StatusPanel
+        variant="info"
+        icon={SearchX}
+        title={
+          plan.options.length === 1 ? 'Only one street here' : 'No streets for this level here'
+        }
+        actions={newAreaButton}
+      >
+        <p>A game needs at least 2. Try a harder level, or zoom out to make the circle bigger.</p>
+      </StatusPanel>
     );
   }
 

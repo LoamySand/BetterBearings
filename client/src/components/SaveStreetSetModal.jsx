@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import './SaveStreetSetModal.css';
 import useDialog from '../hooks/useDialog';
+import { Spinner } from './StatusPanel';
 
 export default function SaveStreetSetModal({
   onClose,
@@ -71,8 +72,8 @@ export default function SaveStreetSetModal({
         )}
 
         {loading && (
-          <div className="loading-message">
-            <div className="spinner"></div>
+          <div className="loading-message" role="status">
+            <Spinner size={24} />
             Loading streets...
           </div>
         )}

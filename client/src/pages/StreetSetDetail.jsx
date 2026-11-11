@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Save, CheckSquare, Square, Play, Star } from 'lucide-react';
+import { ArrowLeft, Save, CheckSquare, Square, Play, Star, TriangleAlert } from 'lucide-react';
 import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
 import { API_URL } from '../config';
 import { addBaseLayer } from '../utils/tileLayer';
+import StatusPanel from '../components/StatusPanel';
 
 export default function StreetSetDetail() {
   const { id } = useParams();
@@ -91,7 +92,12 @@ export default function StreetSetDetail() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch street set');
+        // The API answers 404 for another user's set too, so existence isn't revealed
+        throw new Error(
+          response.status === 404
+            ? "This street set doesn't exist, or it belongs to another account."
+            : 'Something went wrong loading it. Try again in a moment.'
+        );
       }
 
       const data = await response.json();
@@ -368,8 +374,8 @@ export default function StreetSetDetail() {
       <div className="street-set-detail-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <main className="detail-container">
-          <p>Loading...</p>
+        <main className="status-page">
+          <StatusPanel variant="loading" title="Loading street set..." />
         </main>
       </div>
     );
@@ -380,7 +386,20 @@ export default function StreetSetDetail() {
       <div className="street-set-detail-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <main className="error-message">{error}</main>
+        <main className="status-page">
+          <StatusPanel
+            variant="error"
+            icon={TriangleAlert}
+            title="Couldn't open this street set"
+            actions={
+              <Link to="/street-sets" className="status-panel-action">
+                Back to my street sets
+              </Link>
+            }
+          >
+            <p>{error}</p>
+          </StatusPanel>
+        </main>
       </div>
     );
   }

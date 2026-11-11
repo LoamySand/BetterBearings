@@ -1,11 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, MapPin } from 'lucide-react';
+import { describeStreetError } from '../utils/streetErrors';
 import { useStreets } from '../hooks/useStreets';
 import { Difficulty } from '../utils/areaTypes';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import './CreateStreetSetModal.css';
 import { addBaseLayer } from '../utils/tileLayer';
 import useDialog from '../hooks/useDialog';
+
+// The modal has room for one line: title and message together (KAN-63)
+const streetErrorText = (kind, message) => {
+  const { title, message: detail } = describeStreetError({ kind, message });
+  return `${title}. ${detail}`;
+};
 
 export default function CreateStreetSetModal({ onClose, onSave }) {
   const [step, setStep] = useState('selectArea'); // 'selectArea' or 'savingSet'
@@ -24,7 +31,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   };
 
   // Load streets based on difficulty
-  const { streets, loading, error, loadStreets } = useStreets({
+  const { streets, loading, error, errorKind, loadStreets } = useStreets({
     center: step === 'savingSet' && quizCenter ? quizCenter : null,
     radius: quizRadius,
     difficulty: difficultyMap[selectedDifficulty],
@@ -142,7 +149,7 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
         radius={quizRadius}
         isCreating={true}
         loading={loading}
-        error={error}
+        error={error && streetErrorText(errorKind, error)}
       />
     );
   }
