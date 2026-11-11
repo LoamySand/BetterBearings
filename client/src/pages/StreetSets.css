@@ -33,7 +33,7 @@
   }
 }
 
-.street-sets-header .header-content h1 {
+.street-sets-header .sets-header-text h1 {
   font-size: 2.5rem;
   color: white;
   margin: 0 0 0.5rem 0;
@@ -41,7 +41,7 @@
 }
 
 @media (max-width: 768px) {
-  .street-sets-header .header-content h1 {
+  .street-sets-header .sets-header-text h1 {
     font-size: 1.75rem;
   }
 }
@@ -94,7 +94,7 @@
   }
 }
 
-.error-message {
+.sets-error {
   background: #fee2e2;
   color: #dc2626;
   padding: 1rem;
@@ -209,10 +209,14 @@
   border-radius: 12px;
 }
 
-.stat {
+.set-stat {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  align-items: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #4b5563;
 }
 
 .stat-label {
@@ -245,7 +249,7 @@
   font-family: monospace;
 }
 
-.btn-play {
+.set-card-play {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,14 +265,16 @@
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   margin-top: 0.5rem;
+  min-height: 48px;
 }
 
-.btn-play:hover {
+.set-card-play:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  background: #4338ca;
 }
 
-.btn-play:active {
+.set-card-play:active {
   transform: translateY(0);
 }
 
@@ -282,11 +288,22 @@
     align-items: stretch;
   }
 
-  .header-content h1 {
+  .sets-header-text h1 {
     font-size: 2rem;
   }
 
   .street-sets-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Up to 768 px (KAN-61: these came from AppHeader.css and Game.css before the class names were split) */
+@media (max-width: 768px) {
+  .sets-header-text {
+    padding: 0 0.75rem;
+  }
+
+  .set-stat {
+    font-size: 0.95rem;
   }
 }

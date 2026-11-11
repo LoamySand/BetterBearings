@@ -168,7 +168,7 @@ export default function StreetSets() {
 
       <main>
         <div className="street-sets-header">
-          <div className="header-content">
+          <div className="sets-header-text">
             <h1>My Street Sets</h1>
             <p className="subtitle">Manage your custom street collections</p>
           </div>
@@ -179,7 +179,7 @@ export default function StreetSets() {
         </div>
 
         <div className="street-sets-container">
-          {error && <div className="error-message">{error}</div>}
+          {error && <div className="sets-error">{error}</div>}
 
           {streetSets.length === 0 ? (
             <div className="empty-state">
@@ -220,11 +220,11 @@ export default function StreetSets() {
                   {set.description && <p className="card-description">{set.description}</p>}
 
                   <div className="card-stats">
-                    <div className="stat">
+                    <div className="set-stat">
                       <span className="stat-label">Total Streets</span>
                       <span className="stat-value">{set.totalStreets}</span>
                     </div>
-                    <div className="stat">
+                    <div className="set-stat">
                       <span className="stat-label">Included</span>
                       <span className="stat-value">{set.includedStreets}</span>
                     </div>
@@ -237,7 +237,7 @@ export default function StreetSets() {
                     </span>
                   </div>
 
-                  <button className="btn-play" onClick={() => handlePlay(set)}>
+                  <button className="set-card-play" onClick={() => handlePlay(set)}>
                     <Play size={20} />
                     Play This Set
                   </button>

@@ -62,7 +62,7 @@ export default function AuthModal({ onClose }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {!isLogin && (
-            <div className="form-group">
+            <div className="auth-field">
               <label htmlFor="username">Username</label>
               <input
                 type="text"
@@ -78,7 +78,7 @@ export default function AuthModal({ onClose }) {
             </div>
           )}
 
-          <div className="form-group">
+          <div className="auth-field">
             <label htmlFor="email">Email</label>
             <input
               type="email"
@@ -91,7 +91,7 @@ export default function AuthModal({ onClose }) {
             />
           </div>
 
-          <div className="form-group">
+          <div className="auth-field">
             <label htmlFor="password">Password</label>
             <input
               type="password"

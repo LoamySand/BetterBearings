@@ -115,22 +115,22 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   return (
     <div className="create-modal-overlay" onClick={onClose}>
       <div className="create-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+        <button type="button" className="create-modal-close" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
 
         <h2 id={titleId}>Create New Street Set</h2>
-        <p className="modal-subtitle">Select a difficulty level and area</p>
+        <p className="create-modal-subtitle">Select a difficulty level and area</p>
 
         <div className="create-modal-content">
           {/* Difficulty Selector */}
-          <div className="form-group">
+          <div className="create-field">
             <label htmlFor="difficulty">Difficulty Level</label>
             <select
               id="difficulty"
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="form-select"
+              className="create-select"
             >
               <option value="easy">Easy (Major roads)</option>
               <option value="medium">Medium (+ Tertiary roads)</option>
@@ -145,8 +145,8 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
           </div>
 
           {/* Actions */}
-          <div className="modal-actions">
-            <button type="button" onClick={onClose} className="btn-cancel">
+          <div className="create-modal-actions">
+            <button type="button" onClick={onClose} className="create-cancel">
               Cancel
             </button>
             <button

@@ -81,7 +81,7 @@ export default function QuizAreaModule({
 
       <div className="quiz-module-content">
         {/* Street Set Selector */}
-        <div className="form-group">
+        <div className="quiz-field">
           <label htmlFor={setId}>Street Set</label>
           <select
             id={setId}
@@ -91,7 +91,7 @@ export default function QuizAreaModule({
               // Game shows the quiz circle only for Current Location
               onSelectionChange?.(e.target.value === 'current-location');
             }}
-            className="form-select"
+            className="quiz-select"
           >
             <option value="current-location">📍 Current Location</option>
             {streetSets.map((set) => (
@@ -103,13 +103,13 @@ export default function QuizAreaModule({
         </div>
 
         {/* Difficulty Selector */}
-        <div className="form-group">
+        <div className="quiz-field">
           <label htmlFor={difficultyId}>Difficulty</label>
           <select
             id={difficultyId}
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value)}
-            className="form-select"
+            className="quiz-select"
           >
             {LEVEL_OPTIONS.map(({ value, label, roads }) => (
               <option key={value} value={value}>
@@ -121,7 +121,7 @@ export default function QuizAreaModule({
         </div>
 
         {/* Number of Questions */}
-        <div className="form-group">
+        <div className="quiz-field">
           <div className="count-label-row">
             <label htmlFor={countId} id={countLabelId}>
               Number of Questions
@@ -165,13 +165,13 @@ export default function QuizAreaModule({
         </div>
 
         {/* Play Button */}
-        <button onClick={handlePlay} className="btn-play" disabled={!canPlay}>
+        <button onClick={handlePlay} className="quiz-play" disabled={!canPlay}>
           <Play size={20} />
           Play
         </button>
       </div>
 
-      <p className="quiz-instruction">
+      <p className="quiz-area-instruction">
         Pan and zoom to move the circle. Streets inside it are quizzed.
       </p>
     </div>

@@ -439,15 +439,15 @@ export default function StreetSetDetail() {
             <ArrowLeft size={20} aria-hidden="true" />
             <span className="btn-back-label">Back</span>
           </button>
-          <div className="header-content">
+          <div className="detail-header-text">
             <h1>{streetSet.name}</h1>
             {streetSet.description && <p className="subtitle">{streetSet.description}</p>}
             <p className="street-count">
               {includedCount} of {streetSet.streets.length} streets selected
             </p>
           </div>
-          <div className="header-actions">
-            <button onClick={handleSave} className="btn-save" disabled={saving}>
+          <div className="detail-actions">
+            <button onClick={handleSave} className="detail-save" disabled={saving}>
               <Save size={20} aria-hidden="true" />
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -507,7 +507,7 @@ export default function StreetSetDetail() {
                           {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
                         </div>
                         <div className="street-info">
-                          <span className="street-name">{street.name}</span>
+                          <span className="detail-street-name">{street.name}</span>
                           {street.alternativeName && (
                             <span className="alt-name">({street.alternativeName})</span>
                           )}

@@ -55,11 +55,11 @@
   transform: translateY(-2px);
 }
 
-.detail-header .header-content {
+.detail-header .detail-header-text {
   flex: 1;
 }
 
-.detail-header .header-content h1 {
+.detail-header .detail-header-text h1 {
   font-size: 2.5rem;
   color: white;
   margin: 0 0 0.5rem 0;
@@ -67,12 +67,12 @@
 }
 
 @media (max-width: 767px) {
-  .detail-header .header-content h1 {
+  .detail-header .detail-header-text h1 {
     font-size: 1.5rem;
   }
 }
 
-.detail-header .header-content .subtitle {
+.detail-header .detail-header-text .subtitle {
   color: rgba(255, 255, 255, 0.9);
   font-size: 1.125rem;
   margin: 0 0 0.5rem 0;
@@ -85,13 +85,13 @@
   font-weight: 500;
 }
 
-.header-actions {
+.detail-actions {
   display: flex;
   gap: 1rem;
   align-items: center;
 }
 
-.btn-save {
+.detail-save {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -105,14 +105,15 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  justify-content: center;
 }
 
-.btn-save:hover:not(:disabled) {
+.detail-save:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
-.btn-save:disabled {
+.detail-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -194,7 +195,7 @@
   height: 100%;
 }
 
-.error-message {
+.detail-error {
   background: #fee2e2;
   color: #dc2626;
   padding: 1rem;
@@ -271,7 +272,7 @@
   opacity: 0.5;
 }
 
-.street-item.excluded .street-name {
+.street-item.excluded .detail-street-name {
   text-decoration: line-through;
 }
 
@@ -312,10 +313,15 @@
   line-height: 1;
 }
 
-.street-name {
+.detail-street-name {
   font-size: 1rem;
   font-weight: 500;
   color: #1f2937;
+  margin: 0.25rem 0 0.5rem 0;
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .alt-name {
@@ -423,19 +429,19 @@
     white-space: nowrap;
   }
 
-  .detail-header .header-content h1,
-  .detail-header .header-content .subtitle {
+  .detail-header .detail-header-text h1,
+  .detail-header .detail-header-text .subtitle {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .detail-header .header-content h1 {
+  .detail-header .detail-header-text h1 {
     font-size: 1.25rem;
     margin: 0 0 0.125rem;
   }
 
-  .detail-header .header-content .subtitle {
+  .detail-header .detail-header-text .subtitle {
     font-size: 0.875rem;
     margin: 0;
   }
@@ -444,14 +450,14 @@
     font-size: 0.8125rem;
   }
 
-  .header-actions {
+  .detail-actions {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
   }
 
-  .btn-save,
+  .detail-save,
   .btn-play-set {
     justify-content: center;
     min-height: 44px;
@@ -541,7 +547,22 @@
     font-size: 1rem;
   }
 
-  .street-name {
+  .detail-street-name {
     font-size: 0.95rem;
+  }
+}
+
+/* Up to 768 px the header text and buttons get 0.75rem side padding (KAN-61: this came from
+   AppHeader.css's .header-content and .header-actions before the class names were split) */
+@media (max-width: 768px) {
+  .detail-actions,
+  .detail-header-text {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .detail-street-name {
+    margin: 0.125rem 0 0.25rem 0;
   }
 }

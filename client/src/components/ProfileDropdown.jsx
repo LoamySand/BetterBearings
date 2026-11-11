@@ -48,7 +48,7 @@ export default function ProfileDropdown() {
       {isOpen && (
         <div className="dropdown-menu">
           <div className="dropdown-header">
-            <div className="user-info">
+            <div className="profile-user-info">
               <div className="user-name">{user?.username || 'User'}</div>
               <div className="user-email">{user?.email || ''}</div>
             </div>

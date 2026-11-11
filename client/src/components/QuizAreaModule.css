@@ -31,35 +31,36 @@
   gap: 1rem;
 }
 
-.form-group {
+.quiz-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.form-group label {
+.quiz-field label {
   font-weight: 600;
   color: #374151;
   font-size: 0.95rem;
 }
 
-.form-select {
+.quiz-select {
   width: 100%;
   min-height: 44px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem;
   border: 2px solid #E5E7EB;
   border-radius: 8px;
   font-size: 1rem;
   background-color: #F9FAFB;
   cursor: pointer;
   transition: border-color 0.2s;
+  font-family: inherit;
 }
 
-.form-select:hover {
+.quiz-select:hover {
   border-color: #4F46E5;
 }
 
-.form-select:focus {
+.quiz-select:focus {
   outline: none;
   border-color: #4F46E5;
   background-color: white;
@@ -81,7 +82,7 @@
 .number-input {
   width: 4.5rem;
   min-height: 44px;
-  padding: 0.5rem;
+  padding: 0.75rem 1rem;
   border: 2px solid #E5E7EB;
   border-radius: 8px;
   font-size: 1rem;
@@ -92,10 +93,11 @@
 .number-input:focus {
   outline: none;
   border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* The input is 44 px tall for touch; the visible track is drawn 6 px tall inside it.
-   Two classes so AuthModal.css's global .form-group input border and padding don't apply. */
+   Two classes so AuthModal.css's global .quiz-field input border and padding don't apply. */
 .number-input-group .number-slider {
   flex: 1;
   min-width: 0;
@@ -108,6 +110,7 @@
   background: transparent;
   -webkit-appearance: none;
   appearance: none;
+  font-size: 1rem;
 }
 
 .number-slider::-webkit-slider-runnable-track {
@@ -167,25 +170,26 @@
   white-space: nowrap;
 }
 
-.btn-play {
+.quiz-play {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   min-height: 48px;
-  padding: 0.75rem 1rem;
-  background: #4F46E5;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.btn-play:disabled {
+.quiz-play:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
@@ -197,20 +201,20 @@
   color: #4b5563;
 }
 
-.btn-play:hover:not(:disabled) {
+.quiz-play:hover:not(:disabled) {
   background: #4338CA;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
-.btn-play:active {
+.quiz-play:active {
   transform: translateY(0);
 }
 
-.quiz-instruction {
+.quiz-area-instruction {
   text-align: center;
   color: #6B7280;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   margin: 1rem 0 0 0;
   font-style: italic;
 }
@@ -252,12 +256,5 @@
     gap: 0.75rem;
   }
 
-  .form-group {
-    gap: 0.25rem;
-  }
 
-  .quiz-instruction {
-    font-size: 0.8125rem;
-    margin-top: 0.5rem;
-  }
 }

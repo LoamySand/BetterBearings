@@ -54,19 +54,19 @@ export default function SaveStreetSetModal({
   return (
     <div className="save-modal-overlay" onClick={onClose}>
       <div className="save-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+        <button type="button" className="save-modal-close" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
 
         <h2 id={titleId}>Save Street Set</h2>
-        <p className="modal-subtitle">
+        <p className="save-modal-subtitle">
           {loading
             ? 'Loading streets from map area...'
             : `Save these ${streets?.length || 0} streets for future practice`}
         </p>
 
         {error && (
-          <div className="error-message" style={{ marginBottom: '1rem' }}>
+          <div className="save-error" style={{ marginBottom: '1rem' }}>
             {error}
           </div>
         )}
@@ -80,7 +80,7 @@ export default function SaveStreetSetModal({
 
         {!loading && (
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
+            <div className="save-field">
               <label htmlFor="name">Name *</label>
               <input
                 type="text"
@@ -94,7 +94,7 @@ export default function SaveStreetSetModal({
               />
             </div>
 
-            <div className="form-group">
+            <div className="save-field">
               <label htmlFor="description">Description (optional)</label>
               <textarea
                 id="description"
@@ -106,13 +106,13 @@ export default function SaveStreetSetModal({
               />
             </div>
 
-            {submitError && <div className="error-message">{submitError}</div>}
+            {submitError && <div className="save-error">{submitError}</div>}
 
-            <div className="modal-actions">
-              <button type="button" onClick={onClose} className="btn-cancel" disabled={loading}>
+            <div className="save-modal-actions">
+              <button type="button" onClick={onClose} className="save-cancel" disabled={loading}>
                 Cancel
               </button>
-              <button type="submit" className="btn-save" disabled={saving || loading}>
+              <button type="submit" className="save-submit" disabled={saving || loading}>
                 <Save size={18} />
                 {saving ? 'Saving...' : 'Save Street Set'}
               </button>

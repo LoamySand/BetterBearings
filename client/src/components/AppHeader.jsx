@@ -9,7 +9,7 @@ export default function AppHeader({ onSignIn }) {
 
   return (
     <header className="app-header">
-      <div className="header-content">
+      <div className="app-header-brand">
         <h1 className="app-title">
           <Link to="/" className="app-title-link">
             <Target className="app-icon" aria-hidden="true" />
@@ -18,11 +18,11 @@ export default function AppHeader({ onSignIn }) {
         </h1>
       </div>
 
-      <div className="header-actions">
+      <div className="app-header-actions">
         {isAuthenticated ? (
           <ProfileDropdown />
         ) : (
-          <button onClick={onSignIn} className="btn-login">
+          <button onClick={onSignIn} className="app-header-sign-in">
             <User size={18} />
             Sign In
           </button>

@@ -29,13 +29,13 @@
   color: #1F2937;
 }
 
-.modal-subtitle {
+.create-modal-subtitle {
   margin: 0 0 1.5rem 0;
   color: #6B7280;
   font-size: 0.95rem;
 }
 
-.modal-close {
+.create-modal-close {
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -48,9 +48,10 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  border-radius: 8px;
 }
 
-.modal-close:hover {
+.create-modal-close:hover {
   color: #1F2937;
 }
 
@@ -60,19 +61,19 @@
   gap: 1.5rem;
 }
 
-.form-group {
+.create-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.form-group label {
+.create-field label {
   font-weight: 600;
   color: #374151;
   font-size: 0.95rem;
 }
 
-.form-select {
+.create-select {
   padding: 0.75rem;
   border: 2px solid #E5E7EB;
   border-radius: 8px;
@@ -80,13 +81,15 @@
   background-color: #F9FAFB;
   cursor: pointer;
   transition: border-color 0.2s;
+  min-height: 44px;
+  font-family: inherit;
 }
 
-.form-select:hover {
+.create-select:hover {
   border-color: #4F46E5;
 }
 
-.form-select:focus {
+.create-select:focus {
   outline: none;
   border-color: #4F46E5;
   background-color: white;
@@ -113,13 +116,14 @@
   text-align: center;
 }
 
-.modal-actions {
+.create-modal-actions {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+  margin-top: 1.5rem;
 }
 
-.btn-cancel,
+.create-cancel,
 .btn-select {
   padding: 0.75rem 1.5rem;
   border: none;
@@ -133,12 +137,14 @@
   gap: 0.5rem;
 }
 
-.btn-cancel {
+.create-cancel {
   background: #E5E7EB;
   color: #374151;
+  justify-content: center;
+  flex: 1;
 }
 
-.btn-cancel:hover {
+.create-cancel:hover {
   background: #D1D5DB;
 }
 
@@ -185,11 +191,11 @@
     padding-right: 2.5rem;
   }
 
-  .modal-subtitle {
+  .create-modal-subtitle {
     margin-bottom: 1rem;
   }
 
-  .create-modal .modal-close {
+  .create-modal .create-modal-close {
     top: max(0.5rem, env(safe-area-inset-top));
     right: 0.5rem;
     width: 44px;
@@ -213,13 +219,13 @@
     min-height: 240px;
   }
 
-  .modal-actions {
+  .create-modal-actions {
     display: grid;
     grid-template-columns: 1fr 2fr;
     gap: 0.75rem;
   }
 
-  .btn-cancel,
+  .create-cancel,
   .btn-select {
     justify-content: center;
     min-height: 44px;

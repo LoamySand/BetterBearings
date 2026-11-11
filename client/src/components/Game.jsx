@@ -534,11 +534,11 @@ export default function StreetFinderGame() {
 
           {gameMode === 'playing' && (
             <div className="game-stats">
-              <div className="stat">
+              <div className="game-stat">
                 <Star size={20} />
                 <span>Score: {score}</span>
               </div>
-              <div className="stat">
+              <div className="game-stat">
                 <Trophy size={20} />
                 <span>
                   Round: {round}/{roundsInGame}
@@ -601,7 +601,7 @@ export default function StreetFinderGame() {
                   </p>
                 )}
                 <h2 className="question">Find this street:</h2>
-                <h3 className="street-name">{currentStreet.name}</h3>
+                <h3 className="game-street-name">{currentStreet.name}</h3>
                 {feedback && (
                   <div
                     className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}

@@ -59,10 +59,11 @@
   color: white;
 }
 
-.user-info {
+.profile-user-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 1rem;
+  align-items: center;
 }
 
 .user-name {
