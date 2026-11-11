@@ -156,6 +156,12 @@
   transform: translateY(0);
 }
 
+.btn-select:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .create-modal {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, MapPin } from 'lucide-react';
 import { describeStreetError } from '../utils/streetErrors';
 import { useStreets } from '../hooks/useStreets';
@@ -7,6 +7,12 @@ import SaveStreetSetModal from './SaveStreetSetModal';
 import './CreateStreetSetModal.css';
 import { addBaseLayer } from '../utils/tileLayer';
 import useDialog from '../hooks/useDialog';
+import { useQuizCircle } from '../hooks/useQuizCircle';
+import { quizAreaFor } from '../utils/quizArea';
+
+// Same opening view as the game's selection map (useLeafletMap)
+const START_CENTER = [35.0844, -106.6504];
+const START_ZOOM = 11.5;
 
 // The modal has room for one line: title and message together (KAN-63)
 const streetErrorText = (kind, message) => {
@@ -19,8 +25,9 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
   const [selectedDifficulty, setSelectedDifficulty] = useState('easy');
   const [quizCenter, setQuizCenter] = useState(null);
   const [quizRadius, setQuizRadius] = useState(null);
-  const mapRef = useRef(null); // Create the ref inside the component
-  const mapInstanceRef = useRef(null);
+  // The map lives in state so the quiz circle can draw on it, and so it's gone once removed
+  const [map, setMap] = useState(null);
+  const [tooSmall, setTooSmall] = useState(false);
   const { titleId, dialogProps } = useDialog(onClose);
 
   // Difficulty map
@@ -46,85 +53,36 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
     }
   }, [step, quizCenter, quizRadius, loadStreets, loading, error, streets.length]);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapRef?.current) {
-      console.log('Map ref not ready yet');
-      return;
-    }
-
-    // Check if map is already initialized
-    if (mapRef.current._leaflet_id) {
-      console.log('Map already initialized');
-      return;
-    }
-
-    let checkInterval;
-    const initMap = () => {
-      if (!window.L) {
-        console.log('Leaflet not loaded yet');
-        return;
-      }
-
-      try {
-        // Ensure the container exists and is in the DOM
-        if (!mapRef.current || !document.body.contains(mapRef.current)) {
-          console.log('Container not in DOM yet');
-          return;
-        }
-
-        console.log('Initializing map...');
-        const map = window.L.map(mapRef.current).setView([40, -95], 4);
-        addBaseLayer(map);
-
-        mapInstanceRef.current = map;
-        console.log('Map initialized successfully');
-        clearInterval(checkInterval);
-      } catch (err) {
-        console.error('Error initializing map:', err);
-      }
+  // One map per mounted container (KAN-62). A callback ref runs when the div mounts and its
+  // cleanup when it unmounts (React 19), so the map can't outlive the div or be created twice
+  // on it. The old effect polled every 100 ms and never stopped, calling L.map() on a container
+  // Leaflet already owned: "Map container is already initialized" 10 times a second.
+  const mapContainerRef = useCallback((el) => {
+    if (!el) return undefined;
+    const created = window.L.map(el, { center: START_CENTER, zoom: START_ZOOM, zoomControl: true });
+    addBaseLayer(created);
+    const check = () => setTooSmall(quizAreaFor(created).tooSmall);
+    created.on('moveend zoomend resize', check);
+    check();
+    setMap(created);
+    return () => {
+      created.off('moveend zoomend resize', check);
+      created.remove();
+      setMap(null);
     };
+  }, []);
 
-    initMap();
-    checkInterval = setInterval(initMap, 100);
-
-    return () => clearInterval(checkInterval);
-  }, [mapRef]);
+  // The circle shows exactly the area Select Area saves, the same as the game's (KAN-76)
+  useQuizCircle({ map, active: step === 'selectArea' });
 
   const handleSelectArea = () => {
-    if (!mapInstanceRef.current) {
-      console.error('Map instance not initialized:', mapInstanceRef.current);
-      alert('Map not initialized. Please wait a moment and try again.');
-      return;
-    }
-
-    try {
-      const map = mapInstanceRef.current;
-      const bounds = map.getBounds();
-      const center = bounds.getCenter();
-
-      // Calculate radius from bounds
-      const maxDist = Math.max(
-        map.distance(center, bounds.getNorthWest()),
-        map.distance(center, bounds.getNorthEast()),
-        map.distance(center, bounds.getSouthWest()),
-        map.distance(center, bounds.getSouthEast())
-      );
-
-      const radius = Math.min(maxDist, 5000);
-
-      if (radius < 500) {
-        alert('Area too small. Please zoom out more.');
-        return;
-      }
-
-      setQuizCenter({ lat: center.lat, lng: center.lng });
-      setQuizRadius(radius);
-      setStep('savingSet');
-    } catch (err) {
-      console.error('Error selecting area:', err);
-      alert('Error selecting area. Please try again.');
-    }
+    if (!map) return;
+    const area = quizAreaFor(map);
+    // The button is disabled while the circle is red; this only guards a race with a zoom
+    if (area.tooSmall) return;
+    setQuizCenter(area.center);
+    setQuizRadius(area.radius);
+    setStep('savingSet');
   };
 
   const handleSaveStreetSet = async (config) => {
@@ -182,8 +140,8 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
 
           {/* Map Container */}
           <div className="map-container">
-            <div ref={mapRef} className="create-map" />
-            <p className="map-instruction">Pan and zoom to select your area</p>
+            <div ref={mapContainerRef} className="create-map" />
+            <p className="map-instruction">Pan and zoom until the circle covers your area</p>
           </div>
 
           {/* Actions */}
@@ -191,9 +149,14 @@ export default function CreateStreetSetModal({ onClose, onSave }) {
             <button type="button" onClick={onClose} className="btn-cancel">
               Cancel
             </button>
-            <button type="button" onClick={handleSelectArea} className="btn-select">
-              <MapPin size={18} />
-              Select Area & Continue
+            <button
+              type="button"
+              onClick={handleSelectArea}
+              className="btn-select"
+              disabled={!map || tooSmall}
+            >
+              <MapPin size={18} aria-hidden="true" />
+              {tooSmall ? 'Zoom out to continue' : 'Select Area & Continue'}
             </button>
           </div>
         </div>

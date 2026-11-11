@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { quizAreaFor, circleLabel } from '../utils/quizArea';
+import './useQuizCircle.css';
 
 const OK_STYLE = {
   color: '#4f46e5',
