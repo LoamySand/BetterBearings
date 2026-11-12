@@ -38,12 +38,17 @@
 
 .street-set-badge {
   display: inline-block;
+  text-decoration: none;
   background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.street-set-badge:hover {
+  filter: brightness(1.1);
 }
 
 .game-meta {
@@ -577,4 +582,12 @@
   .keys-hint {
     display: none;
   }
+}
+
+/* After saving mid-game, the Save Set button becomes a link to the new set (KAN-78) */
+.saved-set-link {
+  text-decoration: none;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
 }

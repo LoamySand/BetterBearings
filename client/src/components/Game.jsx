@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useId } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import {
   Trophy,
   Star,
@@ -11,6 +11,7 @@ import {
   TriangleAlert,
   MapPinOff,
   SearchX,
+  Check,
 } from 'lucide-react';
 import StatusPanel from './StatusPanel';
 import { describeStreetError } from '../utils/streetErrors';
@@ -59,7 +60,11 @@ export default function StreetFinderGame() {
   // state. The quiz panel opens with that set selected so the player picks the question count.
   const [initialSetId] = useState(() => location.state?.streetSetId ?? null);
   const [preloadedStreets, setPreloadedStreets] = useState(null);
+  // The saved set this game plays, if any (KAN-78). A Current Location game has neither, so it
+  // shows no set badge and offers Save Set; saving one turns the game into that set.
   const [streetSetName, setStreetSetName] = useState(null);
+  const [savedSetId, setSavedSetId] = useState(null);
+  const [saveNotice, setSaveNotice] = useState('');
   // Play Same Area bumps this to draw new questions from the same pool
   const [planSeed, setPlanSeed] = useState(0);
   // Phones show the quiz panel as a bottom sheet behind a button so the map comes first.
@@ -297,7 +302,8 @@ export default function StreetFinderGame() {
         // Set center as object {lat, lng}, not array
         setQuizCenter(center);
         setQuizRadius(radius);
-        setStreetSetName(`${formatRadius(radius)} area`);
+        setStreetSetName(null);
+        setSavedSetId(null);
         setPreloadedStreets(null); // No preloaded streets for current location
       } else {
         // Load streets from selected street set
@@ -318,6 +324,7 @@ export default function StreetFinderGame() {
             setQuizCenter(fullStreetSet.center);
             setQuizRadius(fullStreetSet.radius);
             setStreetSetName(fullStreetSet.name);
+            setSavedSetId(fullStreetSet.id);
 
             // Included streets at or below the chosen level (KAN-73), converted for the game
             const includedStreets = filterByLevel(
@@ -387,6 +394,8 @@ export default function StreetFinderGame() {
     streetsLoadedForCenter.current = null;
     setPreloadedStreets(null);
     setStreetSetName(null);
+    setSavedSetId(null);
+    setSaveNotice('');
     // The quiz panel remounts on its starting selection
     setQuizCurrentLocation(!initialSetId);
     setGameMode('selecting');
@@ -394,18 +403,12 @@ export default function StreetFinderGame() {
 
   // Save current street set
   const handleSaveStreetSet = async ({ name, description }) => {
-    if (!isAuthenticated) {
-      alert('Please sign in to save street sets');
-      return;
-    }
+    // Errors thrown here show inside the Save modal
+    if (!isAuthenticated) throw new Error('Please sign in to save street sets');
 
     try {
       const token = localStorage.getItem('authToken');
-
-      if (!token) {
-        alert('No authentication token found. Please log in again.');
-        return;
-      }
+      if (!token) throw new Error('Your sign-in has expired. Please sign in again.');
 
       const streetsToSave = activeStreets
         .map((street) => {
@@ -449,7 +452,13 @@ export default function StreetFinderGame() {
         throw new Error(errorData.message || 'Failed to save street set');
       }
 
-      alert('Street set saved successfully!');
+      // The game now plays the saved set: its badge links to the set, and Save Set goes away
+      const saved = await response.json();
+      if (gameMode === 'playing') {
+        setSavedSetId(saved.id);
+        setStreetSetName(saved.name ?? name);
+        setSaveNotice(`Saved as ${saved.name ?? name}`);
+      }
     } catch (err) {
       throw new Error(err.message || 'Failed to save street set');
     }
@@ -533,7 +542,18 @@ export default function StreetFinderGame() {
 
       {gameMode !== 'selecting' && (
         <div className="game-info-bar">
-          {streetSetName && <span className="street-set-badge">📚 {streetSetName}</span>}
+          {savedSetId && streetSetName && (
+            <Link
+              to={`/street-sets/${savedSetId}`}
+              className="street-set-badge"
+              title="Open this street set"
+            >
+              📚 {streetSetName}
+            </Link>
+          )}
+          <span className="sr-only" role="status">
+            {saveNotice}
+          </span>
           <span className="game-meta">
             Difficulty: {LEVEL_LABELS[difficulty]}
             {quizRadius && ` • ${formatRadius(quizRadius)} radius`}
@@ -627,7 +647,7 @@ export default function StreetFinderGame() {
                 <p className="sr-only" role="status">
                   {keyStatus}
                 </p>
-                {isAuthenticated && !streetSetName && (
+                {isAuthenticated && !savedSetId && (
                   <button
                     onClick={() => setShowSaveModal(true)}
                     className="btn-save-set"
@@ -636,6 +656,14 @@ export default function StreetFinderGame() {
                     <Save size={16} />
                     Save Set
                   </button>
+                )}
+                {/* Just saved: the button's spot confirms it and links to the set. On phones the
+                    info bar (and its badge) is hidden, so this is the visible confirmation. */}
+                {savedSetId && saveNotice && (
+                  <Link to={`/street-sets/${savedSetId}`} className="btn-save-set saved-set-link">
+                    <Check size={16} aria-hidden="true" />
+                    Saved · Open set
+                  </Link>
                 )}
               </>
             ) : (

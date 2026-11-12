@@ -29,6 +29,7 @@ export function useLeafletMap({
     }
 
     let checkInterval;
+    let sizeTimeout;
 
     const initSelectionMap = () => {
       if (!window.L || !mapRef || !mapRef.current) {
@@ -68,11 +69,10 @@ export function useLeafletMap({
 
         console.log('✅ Selection map initialized');
 
-        // Ensure map renders properly
-        setTimeout(() => {
-          if (map) {
-            map.invalidateSize();
-          }
+        // Ensure map renders properly. Skip a map removed in the meantime (KAN-78): leaving the
+        // page within 100 ms made Leaflet throw "reading '_leaflet_pos'".
+        sizeTimeout = setTimeout(() => {
+          if (map._mapPane) map.invalidateSize();
         }, 100);
       } catch (error) {
         console.error('❌ Error creating selection map:', error);
@@ -99,6 +99,7 @@ export function useLeafletMap({
       if (checkInterval) {
         clearInterval(checkInterval);
       }
+      clearTimeout(sizeTimeout);
     };
   }, [gameMode, mapType, mapRef]);
 
