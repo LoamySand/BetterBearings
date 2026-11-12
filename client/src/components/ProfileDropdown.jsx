@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { User, Play, Layers, LogOut } from 'lucide-react';
+import { User, Play, Layers, LogOut, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './ProfileDropdown.css';
 
-export default function ProfileDropdown() {
+export default function ProfileDropdown({ onDeleteAccount }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
@@ -88,6 +88,19 @@ export default function ProfileDropdown() {
           <button className="dropdown-item logout" onClick={handleLogout}>
             <LogOut size={18} aria-hidden="true" />
             <span>Sign Out</span>
+          </button>
+
+          <button
+            className="dropdown-item delete-account"
+            onClick={() => {
+              setIsOpen(false);
+              // The dialog returns focus to its opener; this item is about to unmount
+              buttonRef.current?.focus();
+              onDeleteAccount();
+            }}
+          >
+            <Trash2 size={18} aria-hidden="true" />
+            <span>Delete account</span>
           </button>
         </div>
       )}

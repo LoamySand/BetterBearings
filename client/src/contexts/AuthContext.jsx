@@ -97,6 +97,26 @@ export function AuthProvider({ children }) {
     setError(null);
   };
 
+  // KAN-66. Returns { ok, status }. On 204 (and 401, account already gone) the token goes at once,
+  // but the caller calls logout() when the user closes the confirmation: logging out here would
+  // make the street-set pages redirect home and unmount the dialog before it shows.
+  const deleteAccount = async (password) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        },
+        body: JSON.stringify({ password }),
+      });
+      if (response.status === 204 || response.status === 401) localStorage.removeItem('authToken');
+      return { ok: response.status === 204, status: response.status };
+    } catch {
+      return { ok: false, status: 0 };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -104,6 +124,7 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    deleteAccount,
     isAuthenticated: !!user,
   };
 

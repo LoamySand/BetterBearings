@@ -111,7 +111,7 @@ NODE_ENV=production CORS_ORIGINS=http://localhost:5000 node server/server.js
 
 The server then serves the built app at http://localhost:5000. Stop the Vite dev server first. Use this build for Lighthouse audits; the dev server scores poorly on performance for reasons that don't apply in production.
 
-Production allows 5 login or signup attempts per 15 minutes. Restarting the server resets the count.
+Production allows 10 login, signup or delete-account attempts per 15 minutes, counted together. Restarting the server resets the count.
 
 ### Lighthouse
 

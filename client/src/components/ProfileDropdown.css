@@ -117,6 +117,14 @@
   background-color: #fee2e2;
 }
 
+.dropdown-item.delete-account {
+  color: #b91c1c;
+}
+
+.dropdown-item.delete-account:hover {
+  background-color: #fee2e2;
+}
+
 .dropdown-item svg {
   flex-shrink: 0;
 }

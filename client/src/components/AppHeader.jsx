@@ -1,11 +1,18 @@
 import { Target, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileDropdown from './ProfileDropdown';
+import DeleteAccountModal from './DeleteAccountModal';
 import './AppHeader.css';
 
 export default function AppHeader({ onSignIn }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  // Lives here, not in ProfileDropdown: a successful delete logs out, which unmounts the dropdown.
+  // Portaled to body: the header's backdrop-filter would otherwise clip a fixed overlay to the header.
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <header className="app-header">
@@ -20,7 +27,7 @@ export default function AppHeader({ onSignIn }) {
 
       <div className="app-header-actions">
         {isAuthenticated ? (
-          <ProfileDropdown />
+          <ProfileDropdown onDeleteAccount={() => setDeleteOpen(true)} />
         ) : (
           <button onClick={onSignIn} className="app-header-sign-in">
             <User size={18} />
@@ -28,6 +35,19 @@ export default function AppHeader({ onSignIn }) {
           </button>
         )}
       </div>
+
+      {deleteOpen &&
+        createPortal(
+          <DeleteAccountModal
+            onClose={() => setDeleteOpen(false)}
+            onDeleted={() => {
+              setDeleteOpen(false);
+              logout();
+              navigate('/');
+            }}
+          />,
+          document.body
+        )}
     </header>
   );
 }
