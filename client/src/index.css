@@ -89,7 +89,7 @@ textarea {
 
 /* Comfortable line length for long text, for pages like the L1 policies: about 70 characters of
    16 px body text. Set in rem, not ch: 1ch is the width of "0", which varies by font and is
-   wider than the average letter (70ch measured 85 characters per line). */
+   wider than the average letter. 30rem measured 70 to 72 characters in Overpass (KAN-81). */
 .readable {
-  max-width: 33rem;
+  max-width: 30rem;
 }

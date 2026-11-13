@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { MAP_COLORS } from '../utils/mapColors';
 
-// Street colors (KAN-81: ink at rest, yellow for the one in focus, green and red for results).
+// Street colors (KAN-81: blue at rest, yellow for the one in focus, green and red for results).
 // Each polyline keeps its own resting weight (areas are drawn thinner).
 const PAINT = {
   hover: { color: MAP_COLORS.hover, opacity: 1, extraWeight: 2 },

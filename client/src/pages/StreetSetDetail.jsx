@@ -18,6 +18,7 @@ import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
 import { API_URL } from '../config';
+import { MAP_COLORS } from '../utils/mapColors';
 import { addBaseLayer } from '../utils/tileLayer';
 import StatusPanel from '../components/StatusPanel';
 
@@ -188,7 +189,7 @@ export default function StreetSetDetail() {
         });
 
         const polyline = window.L.polyline(leafletCoords, {
-          color: isIncluded ? '#10b981' : '#9ca3af',
+          color: isIncluded ? MAP_COLORS.included : MAP_COLORS.excluded,
           weight: 3,
           opacity: isIncluded ? 0.8 : 0.5,
         }).addTo(map);
@@ -239,7 +240,7 @@ export default function StreetSetDetail() {
         const isIncluded = prevStreet.included;
         prevPolylines.forEach((polyline) => {
           polyline.setStyle({
-            color: isIncluded ? '#10b981' : '#9ca3af',
+            color: isIncluded ? MAP_COLORS.included : MAP_COLORS.excluded,
             weight: 3,
             opacity: isIncluded ? 0.8 : 0.5,
           });
@@ -264,7 +265,7 @@ export default function StreetSetDetail() {
       if (previousIncluded === undefined || previousIncluded !== isIncluded) {
         polylines.forEach((polyline) => {
           polyline.setStyle({
-            color: isIncluded ? '#10b981' : '#9ca3af',
+            color: isIncluded ? MAP_COLORS.included : MAP_COLORS.excluded,
             weight: 3,
             opacity: isIncluded ? 0.8 : 0.5,
           });
@@ -278,7 +279,7 @@ export default function StreetSetDetail() {
       const polylines = polylinesRef.current[hoveredStreetIndex];
       polylines.forEach((polyline) => {
         polyline.setStyle({
-          color: '#f59e0b',
+          color: MAP_COLORS.selected,
           weight: 5,
           opacity: 1,
         });
