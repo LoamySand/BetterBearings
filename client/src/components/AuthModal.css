@@ -188,6 +188,33 @@
   text-underline-offset: 2px;
 }
 
+/* Forgot-password step (KAN-69) */
+.auth-note {
+  margin: 0;
+  color: var(--bb-text);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.auth-forgot-btn {
+  align-self: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: none;
+  background: none;
+  color: var(--bb-green);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  border-radius: var(--bb-radius);
+}
+
+.auth-forgot-btn:hover {
+  color: var(--bb-green-dark);
+}
+
 /* Phones: a full-width sheet at the top of the screen, so the submit button stays above the
    on-screen keyboard, which rises from the bottom (KAN-61). Inputs keep 16 px text so iOS
    doesn't zoom on focus. */

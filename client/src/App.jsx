@@ -7,6 +7,7 @@ import StreetSetDetail from './pages/StreetSetDetail';
 import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import ResetPassword from './pages/ResetPassword';
 
 // Dev builds only: /__crash throws during render, to check the error boundary (KAN-63).
 // import.meta.env.DEV is false in production builds, so the route isn't there.
@@ -25,6 +26,7 @@ function App() {
             <Route path="/street-sets/:id" element={<StreetSetDetail />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {import.meta.env.DEV && <Route path="/__crash" element={<Crash />} />}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -24,6 +24,10 @@ export default function Privacy() {
         <li>a bcrypt hash of your password, never the password itself</li>
         <li>the date you signed up</li>
         <li>your street sets: their names, map areas and streets</li>
+        <li>
+          if you ask for a password reset: when you asked, and a one-way hash of the link (the link
+          itself is only in the email)
+        </li>
       </ul>
       <p>
         Your browser keeps one item for the site: a login token in local storage. It lasts 7 days,
@@ -44,8 +48,8 @@ export default function Privacy() {
 
       <h2>How your email is used</h2>
       <p>
-        Your email address is how you log in. Once password reset is available, it will also be used
-        to send you emails about your account, such as reset links. It is never used for marketing.
+        Your email address is how you log in, and where password reset links go when you ask for
+        one. Those are the only emails the site sends; your address is never used for marketing.
         Nothing about you is sold, rented or shared, except with the services below that keep the
         site running.
       </p>
@@ -60,6 +64,12 @@ export default function Privacy() {
         <li>
           <strong>Google Drive</strong> stores the weekly offsite backups. They are encrypted before
           they leave the server, so Google can&apos;t read them.
+        </li>
+        <li>
+          <strong>Resend</strong> sends password reset emails, so it receives your email address and
+          the email itself when you ask for a reset, and keeps a copy for 30 days. A reset link
+          stops working after 30 minutes. See{' '}
+          <a href="https://resend.com/legal/privacy-policy">Resend&apos;s privacy policy</a>.
         </li>
       </ul>
       <p>

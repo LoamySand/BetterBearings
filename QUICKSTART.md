@@ -174,6 +174,12 @@ CI deploys on every push: it pushes the image as `sha-<7>`, then runs `/srv/bett
 /srv/betterbearings/bin/deploy.sh prod sha-abc1234
 ```
 
+CI ships only the image. Each environment's `compose.yml` and `.env` live on the ProDesk and change only by hand, so a commit that changes `deploy/compose.yml` or adds a required variable needs both copied over before it's pushed (staging) or merged to `main` (production). Otherwise the deploy fails its health check and rolls back. From the laptop:
+
+```bash
+scp deploy/compose.yml loamy@loamy-prod:/srv/betterbearings/staging/compose.yml
+```
+
 ### Migrations
 
 The `migrate` service runs `npm run migrate -- up` from the same image before `app` starts, and `app` only starts if it exits 0. Check it with:

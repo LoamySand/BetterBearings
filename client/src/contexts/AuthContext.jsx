@@ -117,6 +117,23 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Password reset (KAN-69). Both return { ok, status, message } and never throw.
+  const postJson = async (path, body) => {
+    try {
+      const response = await fetch(`${API_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => ({}));
+      return { ok: response.ok, status: response.status, message: data.message };
+    } catch {
+      return { ok: false, status: 0, message: undefined };
+    }
+  };
+  const requestPasswordReset = (email) => postJson('/auth/forgot', { email });
+  const resetPassword = (token, password) => postJson('/auth/reset', { token, password });
+
   const value = {
     user,
     loading,
@@ -125,6 +142,8 @@ export function AuthProvider({ children }) {
     login,
     logout,
     deleteAccount,
+    requestPasswordReset,
+    resetPassword,
     isAuthenticated: !!user,
   };
 
