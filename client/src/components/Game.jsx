@@ -1,6 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Trophy, Target, Star, Award, RefreshCw, User, LogOut, Save } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo, useId } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import {
+  Trophy,
+  Star,
+  Award,
+  RefreshCw,
+  Save,
+  MapPin,
+  WifiOff,
+  TriangleAlert,
+  MapPinOff,
+  SearchX,
+  Check,
+  Layers,
+  RotateCcw,
+  Map as MapIcon,
+} from 'lucide-react';
+import StatusPanel from './StatusPanel';
+import { describeStreetError } from '../utils/streetErrors';
 import { useStreets } from '../hooks/useStreets';
 import { useGameState } from '../hooks/useGameState';
 import { useGameRefs } from '../hooks/useGameRefs';
@@ -8,16 +25,32 @@ import { useQuizArea } from '../hooks/useQuizArea';
 import { useLeafletMap } from '../hooks/useLeafletMap';
 import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
+import { useKeyboardPlay } from '../hooks/useKeyboardPlay';
+import { signParts } from '../utils/streetSign';
+import { useQuizCircle } from '../hooks/useQuizCircle';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from './AppHeader';
 import AuthModal from './AuthModal';
-import ProfileDropdown from './ProfileDropdown';
 import SaveStreetSetModal from './SaveStreetSetModal';
 import QuizAreaModule from './QuizAreaModule';
 import { Difficulty } from '../utils/areaTypes';
-import { assignDifficulty } from '../utils/streetDifficulty';
+import { planGame, filterByLevel } from '../utils/gamePlan';
+import { quizAreaFor, formatRadius } from '../utils/quizArea';
 import './Game.css';
 import { API_URL } from '../config';
+import useDialog from '../hooks/useDialog';
+
+// Current Location asks /api/streets for its maximum; every street returned is an option (KAN-70)
+const CURRENT_LOCATION_POOL = 200;
+
+const LEVEL_LABELS = {
+  [Difficulty.Tourist]: 'Easy (Major roads)',
+  [Difficulty.Resident]: 'Medium (+ Tertiary roads)',
+  [Difficulty.TaxiDriver]: 'Hard (All roads)',
+};
+
+// Matches the CSS breakpoint where the quiz panel becomes a bottom sheet
+const PHONE_QUERY = '(max-width: 767px)';
 
 export default function StreetFinderGame() {
   const location = useLocation();
@@ -27,13 +60,29 @@ export default function StreetFinderGame() {
   const mapRef = useRef(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  // "Play" on StreetSets or StreetSetDetail navigates to / with the set in navigation state, which
-  // mounts this component fresh. Read it once here instead of copying it into state in an effect.
-  const [initialSet] = useState(() => location.state?.streetSet ?? null);
-  const [preloadedStreets, setPreloadedStreets] = useState(initialSet?.streets ?? null);
-  const [streetSetName, setStreetSetName] = useState(initialSet?.name ?? null);
+  // "Play This Set" on StreetSets or StreetSetDetail navigates to / with the set's id in navigation
+  // state. The quiz panel opens with that set selected so the player picks the question count.
+  const [initialSetId] = useState(() => location.state?.streetSetId ?? null);
+  const [preloadedStreets, setPreloadedStreets] = useState(null);
+  // The saved set this game plays, if any (KAN-78). A Current Location game has neither, so it
+  // shows no set badge and offers Save Set; saving one turns the game into that set.
+  const [streetSetName, setStreetSetName] = useState(null);
+  const [savedSetId, setSavedSetId] = useState(null);
+  const [saveNotice, setSaveNotice] = useState('');
+  // Play Same Area bumps this to draw new questions from the same pool
+  const [planSeed, setPlanSeed] = useState(0);
+  // Phones show the quiz panel as a bottom sheet behind a button so the map comes first.
+  // Play This Set opens it, since the player came here to pick a question count.
+  // Ignored at 768 px and up, where the panel is always shown top right.
+  const [quizPanelOpen, setQuizPanelOpen] = useState(() => Boolean(initialSetId));
+  const quizToggleRef = useRef(null);
+  const quizPanelRef = useRef(null);
+  const quizPanelId = useId();
+  // The circle is the Current Location area; a saved set has its own center and radius.
+  // QuizAreaModule starts on the Play This Set set, else on Current Location.
+  const [quizCurrentLocation, setQuizCurrentLocation] = useState(() => !initialSetId);
 
-  const { user, logout, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   // Game state management
   const {
@@ -53,39 +102,35 @@ export default function StreetFinderGame() {
     endGame,
     resetGame,
     updateStreetsRef,
-  } = useGameState(totalRounds, initialSet ? 'playing' : 'selecting');
+  } = useGameState(totalRounds, 'selecting');
 
   // Quiz area management
-  const {
-    quizCenter,
-    quizRadius,
-    setQuizCenter,
-    setQuizRadius,
-    handleQuizThisArea,
-    resetQuizArea,
-  } = useQuizArea({
-    initialCenter: initialSet?.center ?? null,
-    initialRadius: initialSet?.radius ?? 5000,
+  const { quizCenter, quizRadius, setQuizCenter, setQuizRadius, resetQuizArea } = useQuizArea({
+    initialCenter: null,
+    initialRadius: 5000,
   });
 
   // Load streets from /api/streets - only when no preloaded streets
-  // For 'creating' mode, fetch more streets (50). For 'playing' mode, use totalRounds.
-  const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : totalRounds;
+  // For 'creating' mode, fetch 50. For 'playing' mode, fetch the whole pool; the plan picks questions.
+  const numberOfQuestionsForAPI = gameMode === 'creating' ? 50 : CURRENT_LOCATION_POOL;
 
-  const { streets, loading, error, loadStreets } = useStreets({
+  const { streets, loading, error, errorKind, loadStreets } = useStreets({
     center: !preloadedStreets ? quizCenter : null,
     radius: quizRadius,
     difficulty,
     numberOfQuestions: numberOfQuestionsForAPI,
   });
 
-  // Use preloaded streets if available, otherwise use fetched streets
-  // For 'creating' mode, don't limit. For 'playing' mode, limit to totalRounds.
-  const activeStreets = preloadedStreets
-    ? preloadedStreets.slice(0, totalRounds)
-    : gameMode === 'creating'
-      ? streets
-      : streets.slice(0, totalRounds);
+  // Plan the game once per pool and question count (utils/gamePlan.js). Planning on every render
+  // would reshuffle mid-game and redraw the map. planSeed is a dependency on purpose: Play Same
+  // Area changes it to draw new questions from the same pool.
+  const pool = preloadedStreets ?? streets;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const plan = useMemo(() => planGame(pool, totalRounds), [pool, totalRounds, planSeed]);
+  const roundsInGame = plan.count;
+
+  // Every street in the pool is drawn as an option. 'creating' mode shows what will be saved.
+  const activeStreets = gameMode === 'creating' ? streets : plan.options;
 
   // Game refs
   const { gameActiveRef, currentStreetRef, gameOverRef, roundRef } = useGameRefs(
@@ -96,17 +141,23 @@ export default function StreetFinderGame() {
   );
 
   // Selection map (before quiz starts)
-  const { mapInstanceRef: selectionMapInstanceRef } = useLeafletMap({
+  const {
+    mapInstanceRef: selectionMapInstanceRef,
+    selectionMap,
+    removeSelectionMap,
+  } = useLeafletMap({
     gameMode,
     quizCenter: null,
     mapType: 'selecting',
     mapRef,
   });
 
+  // The Current Location area, drawn on the selection map (KAN-76)
+  useQuizCircle({ map: selectionMap, active: gameMode === 'selecting' && quizCurrentLocation });
+
   // Playing map (during the game)
   const {
     mapInstanceRef: playingMapInstanceRef,
-    mapInitialized: playingMapInitialized,
     isMapReady: playingMapReady,
     cleanupMap: cleanupPlayingMap,
   } = usePlayingMap({
@@ -116,27 +167,35 @@ export default function StreetFinderGame() {
     mapRef,
   });
 
-  // Use the appropriate map instance based on game mode
-  const mapInstanceRef = gameMode === 'selecting' ? selectionMapInstanceRef : playingMapInstanceRef;
-
   // Street polylines management (only for playing mode)
-  const { resetPolylineColors, clearPolylines } = useStreetPolylines({
-    streets: activeStreets,
-    quizCenter,
-    mapRef,
+  const { resetPolylineColors, clearPolylines, polylinesRef, guess, skip, setHighlight } =
+    useStreetPolylines({
+      streets: activeStreets,
+      quizCenter,
+      mapRef,
+      mapInstanceRef: playingMapInstanceRef,
+      isMapReady: playingMapReady,
+      gameActiveRef,
+      currentStreetRef,
+      gameOverRef,
+      roundRef,
+      totalRounds: roundsInGame,
+      setScore,
+      setFeedback,
+      setGameActive,
+      setRound,
+      startNewRound,
+      endGame,
+    });
+
+  const keyStatus = useKeyboardPlay({
+    active: gameMode === 'playing' && gameActive,
+    round,
     mapInstanceRef: playingMapInstanceRef,
-    isMapReady: playingMapReady,
-    gameActiveRef,
-    currentStreetRef,
-    gameOverRef,
-    roundRef,
-    totalRounds,
-    setScore,
-    setFeedback,
-    setGameActive,
-    setRound,
-    startNewRound,
-    endGame,
+    polylinesRef,
+    setHighlight,
+    guess,
+    skip,
   });
 
   // Load streets when quiz area is selected (only on initial load)
@@ -165,15 +224,28 @@ export default function StreetFinderGame() {
     }
   }, [quizCenter, difficulty, gameMode, loadStreets, preloadedStreets]);
 
-  // Update streets ref when streets change
+  // Hand the planned questions to the round logic
   useEffect(() => {
-    updateStreetsRef(activeStreets);
-  }, [activeStreets, updateStreetsRef]);
+    updateStreetsRef(plan.questions);
+  }, [plan, updateStreetsRef]);
 
   // Clear the navigation state so a refresh doesn't replay the set
   useEffect(() => {
-    if (initialSet) window.history.replaceState({}, document.title);
-  }, [initialSet]);
+    if (initialSetId) window.history.replaceState({}, document.title);
+  }, [initialSetId]);
+
+  const openQuizPanel = () => {
+    setQuizPanelOpen(true);
+    // Move focus into the sheet once it's rendered
+    requestAnimationFrame(() => quizPanelRef.current?.querySelector('select')?.focus());
+  };
+
+  const closeQuizPanel = () => {
+    setQuizPanelOpen(false);
+    if (window.matchMedia(PHONE_QUERY).matches) {
+      requestAnimationFrame(() => quizToggleRef.current?.focus());
+    }
+  };
 
   // Load user's street sets on mount
   useEffect(() => {
@@ -193,6 +265,8 @@ export default function StreetFinderGame() {
           setStreetSets(data);
         }
       } catch (err) {
+        // The panel still works with Current Location; log so a failing list isn't silent
+        // eslint-disable-next-line no-console
         console.error('Failed to load street sets:', err);
       }
     };
@@ -210,6 +284,9 @@ export default function StreetFinderGame() {
         hard: Difficulty.TaxiDriver,
       };
 
+      // Current Location: which road classes to fetch. Saved set: shown in the info bar.
+      setDifficulty(difficultyMap[config.difficulty] ?? Difficulty.Tourist);
+
       if (config.streetSet === 'current-location') {
         // Get current map bounds
         if (!selectionMapInstanceRef.current) {
@@ -217,32 +294,20 @@ export default function StreetFinderGame() {
           return;
         }
 
-        const map = selectionMapInstanceRef.current;
-        const bounds = map.getBounds();
-        const center = bounds.getCenter();
+        // Same area as the circle on the map (utils/quizArea.js)
+        const { center, radius, tooSmall } = quizAreaFor(selectionMapInstanceRef.current);
 
-        // Calculate radius from bounds (max distance from center to corner)
-        const maxDist = Math.max(
-          map.distance(center, bounds.getNorthWest()),
-          map.distance(center, bounds.getNorthEast()),
-          map.distance(center, bounds.getSouthWest()),
-          map.distance(center, bounds.getSouthEast())
-        );
-
-        // Cap radius at 3km for performance
-        const radius = Math.min(maxDist, 3000);
-
-        if (radius < 500) {
+        if (tooSmall) {
           alert('Area too small. Please zoom out more.');
           return;
         }
 
         // The Quiz This Area selector picks which road classes /api/streets may return
-        setDifficulty(difficultyMap[config.difficulty] ?? Difficulty.Tourist);
         // Set center as object {lat, lng}, not array
-        setQuizCenter({ lat: center.lat, lng: center.lng });
+        setQuizCenter(center);
         setQuizRadius(radius);
-        setStreetSetName(`${Math.round(radius / 1000)}km area`);
+        setStreetSetName(null);
+        setSavedSetId(null);
         setPreloadedStreets(null); // No preloaded streets for current location
       } else {
         // Load streets from selected street set
@@ -263,10 +328,13 @@ export default function StreetFinderGame() {
             setQuizCenter(fullStreetSet.center);
             setQuizRadius(fullStreetSet.radius);
             setStreetSetName(fullStreetSet.name);
+            setSavedSetId(fullStreetSet.id);
 
-            // Filter to only included streets and convert format
-            const includedStreets =
-              fullStreetSet.streets?.filter((s) => s.included !== false) || [];
+            // Included streets at or below the chosen level (KAN-73), converted for the game
+            const includedStreets = filterByLevel(
+              fullStreetSet.streets?.filter((s) => s.included !== false),
+              config.difficulty
+            );
 
             if (includedStreets.length > 0) {
               // Convert database format to game format
@@ -283,14 +351,12 @@ export default function StreetFinderGame() {
                   ) || [],
               }));
 
-              // Randomly select streets based on numQuestions
-              const shuffled = convertedStreets.sort(() => Math.random() - 0.5);
-              const selectedStreets = shuffled.slice(0, config.numQuestions);
-              setPreloadedStreets(selectedStreets);
-              console.log('✅ Converted and selected streets:', selectedStreets.length);
+              // The whole set is the pool; planGame picks the questions
+              setPreloadedStreets(convertedStreets);
+            } else {
+              setPreloadedStreets([]);
             }
-          } catch (err) {
-            console.error('Error loading street set:', err);
+          } catch {
             alert('Error loading street set. Please try again.');
             return;
           }
@@ -300,96 +366,20 @@ export default function StreetFinderGame() {
       // Set total rounds from selected number of questions
       setTotalRounds(config.numQuestions);
 
-      // Remove selection map and transition to playing mode
-      if (selectionMapInstanceRef.current) {
-        selectionMapInstanceRef.current.remove();
-        selectionMapInstanceRef.current = null;
-      }
+      // Remove the selection map through the hook, which also clears its selectionMap state.
+      // Removing it here directly left the circle holding a dead map on the way back to
+      // the map screen, and Leaflet threw (KAN-76).
+      removeSelectionMap();
       setGameMode('playing');
-    } catch (err) {
-      console.error('Error starting quiz:', err);
+    } catch {
       alert('Error starting quiz. Please try again.');
     }
-  };
-
-  // Handle creating a new street set from selected area
-  const handleCreateStreetSet = (config) => {
-    console.log('handleCreateStreetSet called with config:', config);
-    console.log('selectionMapInstanceRef.current:', selectionMapInstanceRef.current);
-    console.log('quizCenter:', quizCenter, 'quizRadius:', quizRadius);
-
-    let center = config.center || quizCenter;
-    let radius = config.radius || quizRadius;
-
-    // If user hasn't explicitly selected an area, get current map bounds
-    if (!center || !radius) {
-      if (!selectionMapInstanceRef.current) {
-        alert('Map not initialized. Please try again.');
-        return;
-      }
-
-      try {
-        const map = selectionMapInstanceRef.current;
-        const bounds = map.getBounds();
-        const mapCenter = bounds.getCenter();
-
-        console.log('Got map bounds, center:', mapCenter);
-
-        // Calculate radius from bounds
-        const maxDist = Math.max(
-          map.distance(mapCenter, bounds.getNorthWest()),
-          map.distance(mapCenter, bounds.getNorthEast()),
-          map.distance(mapCenter, bounds.getSouthWest()),
-          map.distance(mapCenter, bounds.getSouthEast())
-        );
-
-        // Cap radius at 3km
-        radius = Math.min(maxDist, 3000);
-
-        if (radius < 500) {
-          alert('Area too small. Please zoom out more.');
-          return;
-        }
-
-        center = { lat: mapCenter.lat, lng: mapCenter.lng };
-        console.log('Calculated center and radius:', center, radius);
-      } catch (err) {
-        console.error('Error getting map bounds:', err);
-        alert('Could not get map bounds. Please try again.');
-        return;
-      }
-    }
-
-    console.log('Creating street set with center:', center, 'radius:', radius);
-    setQuizCenter(center);
-    setQuizRadius(radius);
-
-    // Trigger the /api/streets call by removing preloaded streets
-    setPreloadedStreets(null);
-
-    // Set a flag so we know to open save modal after streets load
-    setStreetSetName(null);
-
-    // Start loading the streets - this will trigger the useEffect to call loadStreets
-    // Once streets are loaded, we'll open the save modal
-    setGameMode('creating');
-  };
-
-  // Handle "Quiz this Area" button click (legacy)
-  const handleQuizThisAreaClick = () => {
-    handleQuizThisArea(mapInstanceRef.current, () => {
-      // Remove selection map and transition to playing mode
-      if (selectionMapInstanceRef.current) {
-        selectionMapInstanceRef.current.remove();
-        selectionMapInstanceRef.current.current = null;
-      }
-      setGameMode('playing');
-    });
   };
 
   // Play same area again
   const playSameArea = () => {
     resetGame();
+    setPlanSeed((seed) => seed + 1);
     resetPolylineColors();
     setGameMode('playing');
     // Start new round after a short delay to ensure state is updated
@@ -408,30 +398,25 @@ export default function StreetFinderGame() {
     streetsLoadedForCenter.current = null;
     setPreloadedStreets(null);
     setStreetSetName(null);
+    setSavedSetId(null);
+    setSaveNotice('');
+    // The quiz panel remounts on its starting selection
+    setQuizCurrentLocation(!initialSetId);
     setGameMode('selecting');
   };
 
   // Save current street set
   const handleSaveStreetSet = async ({ name, description }) => {
-    if (!isAuthenticated) {
-      alert('Please sign in to save street sets');
-      return;
-    }
+    // Errors thrown here show inside the Save modal
+    if (!isAuthenticated) throw new Error('Please sign in to save street sets');
 
     try {
       const token = localStorage.getItem('authToken');
-
-      if (!token) {
-        alert('No authentication token found. Please log in again.');
-        return;
-      }
+      if (!token) throw new Error('Your sign-in has expired. Please sign in again.');
 
       const streetsToSave = activeStreets
         .map((street) => {
-          if (!street.points || !Array.isArray(street.points)) {
-            console.warn('Street missing points:', street.name);
-            return null;
-          }
+          if (!street.points || !Array.isArray(street.points)) return null;
 
           return {
             osmId: street.osmId,
@@ -461,8 +446,8 @@ export default function StreetFinderGame() {
           description,
           center: quizCenter,
           radius: quizRadius,
-          // Easy/Medium/Hard thirds within this set (KAN-72)
-          streets: assignDifficulty(streetsToSave),
+          // The server labels each street from its road type (KAN-73)
+          streets: streetsToSave,
         }),
       });
 
@@ -471,97 +456,85 @@ export default function StreetFinderGame() {
         throw new Error(errorData.message || 'Failed to save street set');
       }
 
-      alert('Street set saved successfully!');
+      // The game now plays the saved set: its badge links to the set, and Save Set goes away
+      const saved = await response.json();
+      if (gameMode === 'playing') {
+        setSavedSetId(saved.id);
+        setStreetSetName(saved.name ?? name);
+        setSaveNotice(`Saved as ${saved.name ?? name}`);
+      }
     } catch (err) {
-      console.error('Save error:', err);
       throw new Error(err.message || 'Failed to save street set');
     }
   };
 
-  // Show loading state only when in playing mode
+  // Loading, error and empty states keep the header and put one card where the map goes (KAN-63)
+  const statusScreen = (panel) => (
+    <div className="game-container">
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      <AppHeader onSignIn={() => setShowAuthModal(true)} />
+      <main className="status-page">{panel}</main>
+    </div>
+  );
+
+  const newAreaButton = (
+    <button type="button" className="status-panel-action" onClick={chooseNewArea}>
+      <MapPin size={20} aria-hidden="true" />
+      Choose another area
+    </button>
+  );
+
   if (gameMode === 'playing' && loading) {
-    return (
-      <div className="game-container">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: '1rem',
-          }}
-        >
-          <RefreshCw size={48} className="animate-spin" />
-          <p>Loading streets...</p>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            This may take 10-30 seconds on first load. Results will be cached.
-          </p>
-        </div>
-      </div>
-    );
+    return statusScreen(<StatusPanel variant="loading" title="Loading streets..." />);
   }
 
-  // Show error state only when in playing mode
   if (gameMode === 'playing' && error) {
-    return (
-      <div className="game-container">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: '1rem',
-            padding: '2rem',
-          }}
-          //TODDO Guarentee that user selects a small enough area
-        >
-          <h1 style={{ color: '#EF4444' }}>Error loading streets, Try a smaller area </h1>
-          <p style={{ color: '#EF4444' }}>Error: {error}</p>
-          <button onClick={loadStreets} className="btn-primary">
-            Retry
-          </button>
-        </div>
-      </div>
+    const problem = describeStreetError({ kind: errorKind, message: error });
+    const icon =
+      { offline: WifiOff, outside: MapPinOff, empty: SearchX }[problem.kind] ?? TriangleAlert;
+    return statusScreen(
+      <StatusPanel
+        variant={problem.action === 'retry' ? 'error' : 'info'}
+        icon={icon}
+        title={problem.title}
+        actions={
+          problem.action === 'retry' ? (
+            <>
+              <button type="button" className="status-panel-action" onClick={loadStreets}>
+                <RefreshCw size={20} aria-hidden="true" />
+                Try again
+              </button>
+              <button
+                type="button"
+                className="status-panel-action status-panel-action--secondary"
+                onClick={chooseNewArea}
+              >
+                Choose another area
+              </button>
+            </>
+          ) : (
+            newAreaButton
+          )
+        }
+      >
+        <p>{problem.message}</p>
+      </StatusPanel>
     );
   }
 
-  // Show error only when in playing mode
-  if (gameMode === 'playing' && activeStreets.length === 0 && !loading && !preloadedStreets) {
-    return (
-      <div className="game-container">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: '1rem',
-            padding: '2rem',
-            textAlign: 'center',
-          }}
-        >
-          <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>No streets found in this area</p>
-          <p style={{ color: '#6b7280' }}>Try a different area or zoom level</p>
-          <button
-            onClick={chooseNewArea}
-            style={{
-              padding: '1rem 2rem',
-              background: '#4F46E5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Choose Different Area
-          </button>
-        </div>
-      </div>
+  // Streets came back, but fewer than the 2 a game needs
+  if (gameMode === 'playing' && plan.count === 0 && !loading) {
+    return statusScreen(
+      <StatusPanel
+        variant="info"
+        icon={SearchX}
+        title={
+          plan.options.length === 1 ? 'Only one street here' : 'No streets for this level here'
+        }
+        actions={newAreaButton}
+      >
+        <p>A game needs at least 2. Try a harder level, or zoom out to make the circle bigger.</p>
+      </StatusPanel>
     );
   }
 
@@ -573,24 +546,39 @@ export default function StreetFinderGame() {
 
       {gameMode !== 'selecting' && (
         <div className="game-info-bar">
-          {streetSetName && <span className="street-set-badge">📚 {streetSetName}</span>}
-          <span className="game-meta">
-            {difficulty === Difficulty.Tourist && 'Difficulty: Easy (Major roads)'}
-            {difficulty === Difficulty.Resident && 'Difficulty: Medium (+ Tertiary roads)'}
-            {difficulty === Difficulty.TaxiDriver && 'Difficulty: Hard (All roads)'}
-            {quizRadius && ` • ${Math.round(quizRadius / 1000)}km radius`}
+          {savedSetId && streetSetName && (
+            <Link
+              to={`/street-sets/${savedSetId}`}
+              className="street-set-badge"
+              title="Open this street set"
+            >
+              <Layers size={14} aria-hidden="true" />
+              {streetSetName}
+            </Link>
+          )}
+          <span className="sr-only" role="status">
+            {saveNotice}
           </span>
+          <span className="game-meta">
+            Difficulty: {LEVEL_LABELS[difficulty]}
+            {quizRadius && ` • ${formatRadius(quizRadius)} radius`}
+          </span>
+          {plan.capped && plan.count > 0 && (
+            <span className="game-meta game-capped" role="status">
+              {plan.options.length} streets here, so this game has {plan.count} questions
+            </span>
+          )}
 
           {gameMode === 'playing' && (
             <div className="game-stats">
-              <div className="stat">
+              <div className="game-stat">
                 <Star size={20} />
                 <span>Score: {score}</span>
               </div>
-              <div className="stat">
+              <div className="game-stat">
                 <Trophy size={20} />
                 <span>
-                  Round: {round}/{totalRounds}
+                  Round: {round}/{roundsInGame}
                 </span>
               </div>
             </div>
@@ -598,24 +586,62 @@ export default function StreetFinderGame() {
         </div>
       )}
 
-      <div className="game-content">
+      <main className="game-content">
         {gameMode === 'selecting' && (
-          <div className="quiz-button-overlay">
-            <QuizAreaModule
-              streetSets={streetSets}
-              onQuizStart={handleQuizModuleStart}
-              mapCenter={quizCenter}
-              mapRadius={quizRadius}
-            />
-          </div>
+          <>
+            <button
+              ref={quizToggleRef}
+              type="button"
+              className="quiz-toggle"
+              aria-expanded={quizPanelOpen}
+              aria-controls={quizPanelId}
+              onClick={openQuizPanel}
+            >
+              <MapPin size={20} aria-hidden="true" />
+              Quiz this area
+            </button>
+            <div
+              ref={quizPanelRef}
+              id={quizPanelId}
+              className={`quiz-button-overlay${quizPanelOpen ? ' is-open' : ''}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape' && quizPanelOpen) closeQuizPanel();
+              }}
+            >
+              <QuizAreaModule
+                streetSets={streetSets}
+                initialStreetSetId={initialSetId}
+                onQuizStart={handleQuizModuleStart}
+                onSelectionChange={setQuizCurrentLocation}
+                onClose={closeQuizPanel}
+                mapCenter={quizCenter}
+                mapRadius={quizRadius}
+              />
+            </div>
+          </>
         )}
 
         {gameMode === 'playing' && (
           <div className="question-panel">
             {currentStreet ? (
               <>
-                <h2 className="question">Find this street:</h2>
-                <h3 className="street-name">{currentStreet.name}</h3>
+                {/* Phones hide the info bar, so round and score live here (CSS shows this under 768 px) */}
+                <div className="question-stats">
+                  <span>
+                    Round {round}/{roundsInGame}
+                  </span>
+                  <span>Score {score}</span>
+                </div>
+                {plan.capped && (
+                  <p className="question-capped">
+                    {plan.options.length} streets here, so {plan.count} questions
+                  </p>
+                )}
+                <h2 className="question">Find this street</h2>
+                {/* Screen readers get the full name; the sign shows it the way a street sign
+                    does, with the type and quadrant small and abbreviated (KAN-81) */}
+                <h3 className="game-street-name sr-only">{currentStreet.name}</h3>
+                <StreetSign name={currentStreet.name} />
                 {feedback && (
                   <div
                     className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
@@ -624,9 +650,12 @@ export default function StreetFinderGame() {
                   </div>
                 )}
                 <p className="instruction">
-                  {gameActive ? 'Click on the street on the map below' : 'Wait for next round...'}
+                  {gameActive ? 'Click or tap it on the map' : 'Wait for next round...'}
                 </p>
-                {isAuthenticated && !streetSetName && (
+                <p className="sr-only" role="status">
+                  {keyStatus}
+                </p>
+                {isAuthenticated && !savedSetId && (
                   <button
                     onClick={() => setShowSaveModal(true)}
                     className="btn-save-set"
@@ -636,6 +665,14 @@ export default function StreetFinderGame() {
                     Save Set
                   </button>
                 )}
+                {/* Just saved: the button's spot confirms it and links to the set. On phones the
+                    info bar (and its badge) is hidden, so this is the visible confirmation. */}
+                {savedSetId && saveNotice && (
+                  <Link to={`/street-sets/${savedSetId}`} className="btn-save-set saved-set-link">
+                    <Check size={16} aria-hidden="true" />
+                    Saved · Open set
+                  </Link>
+                )}
               </>
             ) : (
               <p>Loading...</p>
@@ -644,46 +681,31 @@ export default function StreetFinderGame() {
         )}
 
         <div className="map-wrapper">
-          <div
-            ref={mapRef}
-            style={{
-              height: '100%',
-              width: '100%',
-              minHeight: '500px',
-            }}
-          />
+          <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
         </div>
-      </div>
+
+        {/* Keyboard play hint, out of the way at the bottom left (hidden on phones) */}
+        {gameMode === 'playing' && (
+          <p className="keys-hint">
+            <span>
+              <kbd>Space</kbd> next street
+            </span>{' '}
+            <span>
+              <kbd>Enter</kbd> guess
+            </span>{' '}
+            <span>
+              <kbd>S</kbd> skip
+            </span>
+          </p>
+        )}
+      </main>
 
       {gameMode === 'gameOver' && (
-        <div
-          className="game-over"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2000 }}
-        >
-          <div className="game-over-content">
-            <Award size={64} className="trophy-icon" />
-            <h2>Game Over!</h2>
-            <div className="final-score">
-              <p>Final Score</p>
-              <h1>{finalScore}</h1>
-              <p className="score-message">
-                {finalScore >= 40
-                  ? 'Impressive!'
-                  : finalScore >= 25
-                    ? 'Good Try!!'
-                    : 'Keep practicing!'}
-              </p>
-            </div>
-            <div className="game-over-buttons">
-              <button onClick={playSameArea} className="btn-restart">
-                🔄 Play Same Area
-              </button>
-              <button onClick={chooseNewArea} className="btn-restart btn-secondary">
-                🗺️ Choose New Area
-              </button>
-            </div>
-          </div>
-        </div>
+        <GameOverDialog
+          finalScore={finalScore}
+          onPlaySameArea={playSameArea}
+          onChooseNewArea={chooseNewArea}
+        />
       )}
 
       {showSaveModal && (
@@ -709,6 +731,55 @@ export default function StreetFinderGame() {
           radius={quizRadius}
         />
       )}
+    </div>
+  );
+}
+
+// Not closable with Escape: there's nothing to go back to, so the player picks one of the two buttons.
+function GameOverDialog({ finalScore, onPlaySameArea, onChooseNewArea }) {
+  const { titleId, dialogProps } = useDialog(null, { closeOnEscape: false });
+
+  return (
+    <div className="game-over">
+      <div className="game-over-content" {...dialogProps}>
+        <Award size={64} className="trophy-icon" aria-hidden="true" />
+        <h2 id={titleId}>Game Over!</h2>
+        <div className="final-score">
+          <p>Final Score</p>
+          <p className="final-score-value">{finalScore}</p>
+          <p className="score-message">
+            {finalScore >= 40
+              ? 'Impressive!'
+              : finalScore >= 25
+                ? 'Good Try!!'
+                : 'Keep practicing!'}
+          </p>
+        </div>
+        <div className="game-over-buttons">
+          <button onClick={onPlaySameArea} className="btn-restart">
+            <RotateCcw size={18} aria-hidden="true" />
+            Play Same Area
+          </button>
+          <button onClick={onChooseNewArea} className="btn-restart btn-secondary">
+            <MapIcon size={18} aria-hidden="true" />
+            Choose New Area
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// The street to find, drawn as a street-name sign: green blade, white inset border, the name
+// large and the type and quadrant small (KAN-81). Hidden from screen readers, which read the
+// full name in the heading above it.
+function StreetSign({ name }) {
+  const { prefix, main, suffix } = signParts(name);
+  return (
+    <div className="game-sign" aria-hidden="true">
+      {prefix && <span className="game-sign-small">{prefix}</span>}
+      <span className="game-sign-name">{main}</span>
+      {suffix && <span className="game-sign-small">{suffix}</span>}
     </div>
   );
 }

@@ -35,6 +35,9 @@ openssl rand -hex 32
 | `DATABASE_URL` | Yes | none | Postgres connection string. The example value matches the container below. Use `127.0.0.1`, not `localhost` (see Troubleshooting). |
 | `CORS_ORIGINS` | Production only | `http://localhost:3000` | Comma-separated allowed origins. The server exits in production without it. |
 | `PORT` | No | `5000` | API port |
+| `RESEND_API_KEY` | Production only | none | Sends password reset emails through Resend. Unset in development: the email, with its link, is logged instead. The server exits in production without it. |
+| `APP_URL` | Production only | `http://localhost:3000` | Base of the link in reset emails, as `https://host` with no trailing slash. The server exits in production without it. |
+| `EMAIL_FROM`, `EMAIL_REPLY_TO` | No | `BetterBearings <noreply@betterbearings.net>`, `contact@betterbearings.net` | Sender and reply address of reset emails |
 
 The client needs no `.env`. In development, Vite proxies `/api` to the server on port 5000.
 
@@ -94,9 +97,9 @@ The server checks the database connection before listening. It's ready when it p
 
 Run this after setup or any large change:
 
-1. Play a round logged out (random street mode).
+1. Play a game logged out (Quiz this area).
 2. Sign up for an account. Log out, then log back in with the email in different capitalization.
-3. Create a street set. Keep the radius at 1 to 2 km while testing; 5 km queries are slow.
+3. Create a street set.
 4. Refresh the street-set page; the set should still be there.
 5. Play a round from the saved set and confirm the score updates.
 6. Turn a few streets off, save, and check that the counts on the list page change.
@@ -109,9 +112,42 @@ npm run build --prefix client
 NODE_ENV=production CORS_ORIGINS=http://localhost:5000 node server/server.js
 ```
 
+Production mode also needs `RESEND_API_KEY` and an `https://` `APP_URL` in `server/.env`, or the server exits at startup. Locally, placeholders do: `RESEND_API_KEY=re_local_dummy` and `APP_URL=https://localhost:5000`. A reset request then fails at Resend and logs the error, while the dialog still shows the usual reply.
+
 The server then serves the built app at http://localhost:5000. Stop the Vite dev server first. Use this build for Lighthouse audits; the dev server scores poorly on performance for reasons that don't apply in production.
 
-Production allows 5 login or signup attempts per 15 minutes. Restarting the server resets the count.
+Production allows 10 failed login, signup, password-reset or delete-account attempts per 15 minutes, counted together. Restarting the server resets the count.
+
+### Lighthouse
+
+Use the CLI in headless Chrome. DevTools Lighthouse in a window gave `NO_FCP` errors, and on Nov 7 it scored prod performance at 63 against the CLI's 84, so the two aren't comparable. Run 3 times and compare medians: on Nov 8 three prod runs scored 94, 100 and 99 on performance. Mobile is the default form factor.
+
+```bash
+URL=https://betterbearings.net/   # or http://localhost:5000/ for the production build above
+for i in 1 2 3; do
+  npx -y lighthouse "$URL" --quiet --chrome-flags="--headless=new" \
+    --only-categories=performance,accessibility,best-practices \
+    --output=json --output-path=/tmp/lh$i.json
+done
+for i in 1 2 3; do jq -r '[.categories[].score*100|round]|@tsv' /tmp/lh$i.json; done   # performance, accessibility, best practices
+```
+
+Checks on each report:
+
+```bash
+for i in 1 2 3; do
+  echo "run $i: console=$(jq -r '.audits["errors-in-console"].score' /tmp/lh$i.json)" \
+    "own-uncached=$(jq -r '[.audits["uses-long-cache-ttl"].details.items[]?.url | select(test("//betterbearings\\.net"))] | length' /tmp/lh$i.json)" \
+    "failing=$(jq -r '[.audits | to_entries[] | select(.value.score == 0) | .key] | join(",")' /tmp/lh$i.json)"
+done
+```
+
+Expect `console=1` and `own-uncached=0`; `failing` lists the audits that scored 0.
+
+Limits:
+
+- The CLI can't log in, and Lighthouse reloads the page, so every report measures `/` as a logged-out visitor sees it. For the quiz panel with saved sets, My Street Sets and a set's detail page, log in and run DevTools Lighthouse with only Accessibility checked. Accessibility doesn't depend on throttling, so those scores compare with the CLI; performance scores don't.
+- If Chrome isn't found, set `CHROME_PATH` to its binary.
 
 ## Production (the ProDesk)
 
@@ -122,7 +158,15 @@ Production and staging run the same `deploy/compose.yml`, each from its own dire
 | Production | `/srv/betterbearings/prod` | `betterbearings` | `127.0.0.1:5000` | `main` |
 | Staging | `/srv/betterbearings/staging` | `betterbearings-staging` | `127.0.0.1:5001` | other branches in `ci.yml` |
 
-`.env` is mode 600 and owned by `loamy`. Start from `deploy/.env.example`; each environment needs its own `POSTGRES_PASSWORD`, `JWT_SECRET` and `TUNNEL_TOKEN`.
+`.env` is mode 600 and owned by `loamy`. Start from `deploy/.env.example`; each environment needs its own `POSTGRES_PASSWORD`, `JWT_SECRET`, `TUNNEL_TOKEN` and `APP_URL`, and a `RESEND_API_KEY`. Compose refuses to start without the last two.
+
+### Password reset email
+
+Reset emails go out through [Resend](https://resend.com) from `noreply@betterbearings.net` (free plan: 3,000 a month, 100 a day). The domain is verified in Resend with a DKIM record at `resend._domainkey` and an MX and SPF record on the `send` subdomain, so Cloudflare Email Routing (`contact@`) keeps the root MX and SPF. A `_dmarc` record (`v=DMARC1; p=none`) sits beside them.
+
+A link works once, for 30 minutes, and is stored only as a SHA-256 hash. It carries the token in the URL fragment (`/reset-password#token=...`), so it never reaches the server's request logs. A successful reset signs out every device: the auth check rejects tokens issued before `users.password_changed_at`. One email per address every 2 minutes; `/api/auth/forgot` allows 5 requests per 15 minutes per IP in production.
+
+To check sending on a host: `docker compose logs app | grep 'Password reset email'` shows `sent` or `failed` for each request, without the address.
 
 ### Deploys
 
@@ -130,6 +174,12 @@ CI deploys on every push: it pushes the image as `sha-<7>`, then runs `/srv/bett
 
 ```bash
 /srv/betterbearings/bin/deploy.sh prod sha-abc1234
+```
+
+CI ships only the image. Each environment's `compose.yml` and `.env` live on the ProDesk and change only by hand, so a commit that changes `deploy/compose.yml` or adds a required variable needs both copied over before it's pushed (staging) or merged to `main` (production). Otherwise the deploy fails its health check and rolls back. From the laptop:
+
+```bash
+scp deploy/compose.yml loamy@loamy-prod:/srv/betterbearings/staging/compose.yml
 ```
 
 ### Migrations
@@ -274,32 +324,15 @@ curl -sI https://tiles.betterbearings.net/nm/15/6676/12969.mvt | grep -iE '^HTTP
 **`docker: command not found`**
 - On Fedora use `podman`, or `sudo dnf install podman-docker` for a `docker` alias.
 
-**Overpass errors (502, 504, 429) or timeouts**
-- The public Overpass servers are volunteer-run and overload regularly. The app tries each server in `client/src/utils/overpassFetcher.js` before failing.
-- Check load: `curl -s https://overpass-api.de/api/status`. `0 slots available` means wait.
-- Reduce the radius.
+**"Street data isn't ready" (503 from `/api/streets`)**
+- `osm.streets` doesn't exist in that database: the street import hasn't run there, or a backup was just restored (dumps leave street data out). On the ProDesk, run the rebuild (see Street data rebuild).
 
-**Stale street data**
-- Responses are cached in the browser. In DevTools, open Application (Storage in Firefox), then Local Storage, and delete keys starting with `overpass-response`.
+**"No street data here"**
+- The circle is outside the imported extract, which is New Mexico only.
+
+**"No streets for this level here"**
+- The circle has streets, but fewer than 2 at this level. Pick a harder level or zoom out.
 
 ## Project layout
 
-```
-client/src/
-├── components/Game.jsx             main game
-├── components/QuizAreaModule.jsx   area picker for the game
-├── pages/StreetSets.jsx            saved street sets
-├── pages/StreetSetDetail.jsx       one street set
-├── contexts/AuthContext.js         login state
-├── hooks/useOverpassStreets.js     loads streets for an area
-└── utils/                          Overpass query, fetch, street processing
-server/
-├── app.js                          Express app: security middleware, routes, error handling
-├── server.js                       entry point: env checks, database check, listen
-├── routes/                         auth, street sets
-├── middleware/auth.js              JWT check shared by both route files
-└── db/
-    ├── pool.js                     shared pg Pool and transaction helper
-    ├── streetSets.js               street-set SQL and row-to-API mapping
-    └── migrations/                 versioned schema (node-pg-migrate, plain SQL)
-```
+See [Project layout](README.md#project-layout) in the README.

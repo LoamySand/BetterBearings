@@ -3,7 +3,9 @@ const { z } = require('zod');
 // bcrypt reads only the first 72 bytes and silently ignores the rest
 const MAX_PASSWORD_BYTES = 72;
 
-// Structural caps, provisional until measured (step 3). The 1.5mb body limit is the outer bound.
+// Structural caps. The 1.5mb body limit is the outer bound.
+// 200 streets, measured Nov 10 (KAN-75): a 5 km Northeast circle has ~1,590 streets, 8x the cap,
+// and the excess is residential; the balanced pick keeps every Easy and Medium street within it.
 // Mirrors the client cap in CreateStreetSetModal.jsx (numberOfQuestions: 200). Change both together.
 const MAX_STREETS = 200;
 const MAX_LINES_PER_STREET = 500; // 94 measured at ~2 km; long arterials scale with diameter
@@ -18,6 +20,14 @@ const email = z
   .max(254, { error: 'Email is too long' })
   .pipe(z.email({ error: 'Enter a valid email address' }));
 
+// A new password: at signup and at reset (KAN-69)
+const newPassword = z
+  .string({ error: 'Password is required' })
+  .min(12, { error: 'Password must be at least 12 characters' })
+  .refine((p) => Buffer.byteLength(p, 'utf8') <= MAX_PASSWORD_BYTES, {
+    error: 'Password is too long (72 bytes max)',
+  });
+
 const signupSchema = z.object({
   username: z
     .string({ error: 'Username is required' })
@@ -26,12 +36,7 @@ const signupSchema = z.object({
     .max(30, { error: 'Username must be at most 30 characters' })
     .regex(/^[A-Za-z0-9_.-]+$/, { error: 'Username can use letters, numbers, _ . and -' }),
   email,
-  password: z
-    .string({ error: 'Password is required' })
-    .min(12, { error: 'Password must be at least 12 characters' })
-    .refine((p) => Buffer.byteLength(p, 'utf8') <= MAX_PASSWORD_BYTES, {
-      error: 'Password is too long (72 bytes max)',
-    }),
+  password: newPassword,
 });
 
 // No strength rules on login: accounts made under the old 6-character rule must still get in
@@ -50,6 +55,15 @@ const loginSchema = z.object({
 
 // Re-confirm the password before destructive account actions
 const deleteAccountSchema = z.object({ password: loginSchema.shape.password });
+
+// Password reset (KAN-69). Tokens are 32 random bytes in base64url: 43 characters.
+const forgotPasswordSchema = z.object({ email: loginSchema.shape.email });
+const resetPasswordSchema = z.object({
+  token: z
+    .string({ error: 'Reset link is missing its token' })
+    .regex(/^[A-Za-z0-9_-]{43}$/, { error: 'This reset link is invalid or has expired' }),
+  password: newPassword,
+});
 
 // ---- Street sets ----
 
@@ -77,7 +91,7 @@ const street = z.object({
   width: z.number().nonnegative().nullish(),
   isEnclosedArea: z.boolean().optional(),
   included: z.boolean().optional(),
-  difficulty: z.int().min(1).max(3).optional(),
+  difficulty: z.int().min(1).max(3).optional(), // ignored: the server sets it from type (KAN-73)
   coordinates: z.array(line).min(1).max(MAX_LINES_PER_STREET),
 });
 
@@ -126,4 +140,6 @@ module.exports = {
   createStreetSetSchema,
   updateStreetSetSchema,
   deleteAccountSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };

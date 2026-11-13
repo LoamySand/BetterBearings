@@ -1,3 +1,31 @@
+/* Street-sign style (KAN-81): sign green, reflective white, sign yellow, from the brand in
+   client/brand (KAN-42). Components use these variables, never raw colours. */
+:root {
+  --bb-green: #0b6b4a;
+  --bb-green-dark: #08523a; /* hover and pressed */
+  --bb-yellow: #f5c400; /* main actions; always with ink text */
+  --bb-yellow-dark: #dcae00;
+  --bb-ink: #14231d; /* headings and strong text */
+  --bb-text: #2b3a33; /* body text */
+  --bb-muted: #4f5f58; /* secondary text: 6.6:1 on white, 5.9:1 on mist */
+  --bb-line: #c9d4cf; /* dividers and button outlines */
+  --bb-field-border: #85948d; /* input borders: 3.2:1 on white (WCAG 1.4.11) */
+  --bb-mist: #e7f1ec; /* page background */
+  --bb-white: #ffffff;
+  --bb-red: #b42318; /* errors and destructive actions */
+  --bb-red-dark: #8f1c13;
+  --bb-red-soft: #fdecea;
+  --bb-red-line: #f5c2bc;
+  --bb-focus: #08523a;
+  --bb-field-ring: rgba(11, 107, 74, 0.18); /* glow around a focused input */
+  --bb-placeholder: #66756e; /* 4.8:1 on white */
+  --bb-overlay: rgba(20, 35, 29, 0.6); /* behind dialogs */
+  --bb-shadow: 0 8px 28px rgba(20, 35, 29, 0.22); /* only for things that float over the map */
+  --bb-radius: 6px; /* buttons, inputs, menus */
+  --bb-radius-lg: 10px; /* dialogs and cards */
+  --bb-font: 'Overpass', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,301 +33,63 @@
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--bb-font);
+  color: var(--bb-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.landing-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #eef2ff 0%, #ffffff 50%, #f3e8ff 100%);
+/* Form controls don't inherit the page font by default */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
-/* Navigation */
-.nav {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  z-index: 50;
-  border-bottom: 1px solid #e5e7eb;
+/* Leaflet's attribution links differ from the text only by colour; underline them (WCAG 1.4.1) */
+.leaflet-control-attribution a {
+  text-decoration: underline;
 }
 
-.nav-content {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 64px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 1.25rem;
-}
-
-.logo-text {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #111827;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-
-.nav-link {
-  color: #374151;
-  text-decoration: none;
-  transition: color 0.3s;
-}
-
-.nav-link:hover {
-  color: #4f46e5;
-}
-
-.btn-primary {
-  background: #4f46e5;
-  color: white;
-  padding: 0.5rem 1.5rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
-}
-
-.btn-primary:hover {
-  background: #4338ca;
-}
-
-.mobile-menu-btn {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-/* Hero Section */
-.hero {
-  padding: 8rem 1.5rem 5rem;
-  text-align: center;
-  max-width: 1280px;
-  margin: 0 auto;
-}
-
-.hero h1 {
-  font-size: 3.75rem;
-  font-weight: bold;
-  color: #111827;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-}
-
-.hero-gradient {
-  background: linear-gradient(to right, #4f46e5, #7c3aed);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  display: block;
-}
-
-.hero p {
-  font-size: 1.25rem;
-  color: #4b5563;
-  margin-bottom: 2rem;
-  max-width: 42rem;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.signup-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 28rem;
-  margin: 0 auto 1rem;
-}
-
-.input {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 1rem;
-  outline: none;
-}
-
-.input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-.btn-submit {
-  background: #4f46e5;
-  color: white;
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background 0.3s;
-}
-
-.btn-submit:hover {
-  background: #4338ca;
-}
-
-/* Features Section */
-.features {
-  padding: 5rem 1.5rem;
-  background: white;
-}
-
-.section-title {
-  text-align: center;
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #111827;
-  margin-bottom: 4rem;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  max-width: 1280px;
-  margin: 0 auto;
-}
-
-.feature-card {
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  transition: box-shadow 0.3s;
-  background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
-}
-
-.feature-card:hover {
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.feature-icon {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-}
-
-.feature-card h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.5rem;
-}
-
-/* Pricing Section */
-.pricing {
-  padding: 5rem 1.5rem;
-}
-
-.pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  max-width: 1280px;
-  margin: 0 auto;
-}
-
-.pricing-card {
-  padding: 2rem;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  background: white;
-}
-
-.pricing-card.popular {
-  border-color: #4f46e5;
-  box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
-  transform: scale(1.05);
-}
-
-.pricing-card h3 {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.price {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #111827;
-}
-
-.price-period {
-  color: #6b7280;
-  font-size: 1rem;
-}
-
-.features-list {
-  list-style: none;
-  margin: 1.5rem 0;
-}
-
-.features-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.checkmark {
-  color: #10b981;
-  font-weight: bold;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .nav-links {
-    display: none;
+/* Leaflet's zoom buttons are 30 px on touch screens; make them 44 px tap targets (KAN-61).
+   Mouse users keep the standard size. */
+@media (pointer: coarse) {
+  .leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 24px;
   }
+}
 
-  .mobile-menu-btn {
-    display: block;
-  }
+/* Visible keyboard focus on every control (KAN-64). Inputs and selects keep their own
+   focus border; :where() keeps this at zero specificity so component styles can override it. */
+:where(button, a[href], summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 3px solid var(--bb-focus);
+  outline-offset: 2px;
+}
 
-  .hero h1 {
-    font-size: 2.5rem;
-  }
+/* Leaflet's map container takes focus for its arrow-key panning */
+.leaflet-container:focus-visible {
+  outline: 3px solid var(--bb-focus);
+  outline-offset: -3px;
+}
 
-  .signup-form {
-    width: 100%;
-  }
+/* Read by screen readers, not shown */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
-  .pricing-card.popular {
-    transform: scale(1);
-  }
+/* Comfortable line length for long text, for pages like the L1 policies: about 70 characters of
+   16 px body text. Set in rem, not ch: 1ch is the width of "0", which varies by font and is
+   wider than the average letter. 30rem measured 70 to 72 characters in Overpass (KAN-81). */
+.readable {
+  max-width: 30rem;
 }

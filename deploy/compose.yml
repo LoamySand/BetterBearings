@@ -44,6 +44,11 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TILE_URL: ${TILE_URL:-}
       TILE_ATTRIBUTION: ${TILE_ATTRIBUTION:-}
+      # Password reset email (KAN-69). The app refuses to start in production without these two.
+      RESEND_API_KEY: ${RESEND_API_KEY:?set RESEND_API_KEY in .env}
+      APP_URL: ${APP_URL:?set APP_URL in .env}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

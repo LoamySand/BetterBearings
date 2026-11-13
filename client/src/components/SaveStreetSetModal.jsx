@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import './SaveStreetSetModal.css';
+import useDialog from '../hooks/useDialog';
+import { Spinner } from './StatusPanel';
+
+// Same cap as the server (server/routes/schema.js) and CreateStreetSetModal's request
+const MAX_STREETS = 200;
 
 export default function SaveStreetSetModal({
   onClose,
@@ -17,6 +22,7 @@ export default function SaveStreetSetModal({
   const [difficulty, setDifficulty] = useState('easy');
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const { titleId, dialogProps } = useDialog(onClose);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,34 +56,41 @@ export default function SaveStreetSetModal({
 
   return (
     <div className="save-modal-overlay" onClick={onClose}>
-      <div className="save-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
+      <div className="save-modal" {...dialogProps} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="save-modal-close" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
 
-        <h2>Save Street Set</h2>
-        <p className="modal-subtitle">
+        <h2 id={titleId}>Save Street Set</h2>
+        <p className="save-modal-subtitle">
           {loading
             ? 'Loading streets from map area...'
             : `Save these ${streets?.length || 0} streets for future practice`}
         </p>
 
         {error && (
-          <div className="error-message" style={{ marginBottom: '1rem' }}>
+          <div className="save-error" style={{ marginBottom: '1rem' }}>
             {error}
           </div>
         )}
 
+        {isCreating && !loading && streets?.length >= MAX_STREETS && (
+          <p className="save-capped">
+            Sets hold up to {MAX_STREETS} streets, so a busy area can leave some out. Zoom in on a
+            smaller area to keep every street.
+          </p>
+        )}
+
         {loading && (
-          <div className="loading-message">
-            <div className="spinner"></div>
+          <div className="loading-message" role="status">
+            <Spinner size={24} />
             Loading streets...
           </div>
         )}
 
         {!loading && (
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
+            <div className="save-field">
               <label htmlFor="name">Name *</label>
               <input
                 type="text"
@@ -91,7 +104,7 @@ export default function SaveStreetSetModal({
               />
             </div>
 
-            <div className="form-group">
+            <div className="save-field">
               <label htmlFor="description">Description (optional)</label>
               <textarea
                 id="description"
@@ -103,13 +116,13 @@ export default function SaveStreetSetModal({
               />
             </div>
 
-            {submitError && <div className="error-message">{submitError}</div>}
+            {submitError && <div className="save-error">{submitError}</div>}
 
-            <div className="modal-actions">
-              <button type="button" onClick={onClose} className="btn-cancel" disabled={loading}>
+            <div className="save-modal-actions">
+              <button type="button" onClick={onClose} className="save-cancel" disabled={loading}>
                 Cancel
               </button>
-              <button type="submit" className="btn-save" disabled={saving || loading}>
+              <button type="submit" className="save-submit" disabled={saving || loading}>
                 <Save size={18} />
                 {saving ? 'Saving...' : 'Save Street Set'}
               </button>

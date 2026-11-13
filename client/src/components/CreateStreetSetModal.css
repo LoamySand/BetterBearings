@@ -4,21 +4,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--bb-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000; /* above AppHeader (2003), same as the Save and Auth modals */
 }
 
 .create-modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  background: var(--bb-white);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   padding: 2rem;
   max-width: 600px;
   width: 90vw;
-  max-height: 85vh;
+  max-height: 85dvh;
   overflow-y: auto;
   position: relative;
 }
@@ -26,32 +26,33 @@
 .create-modal h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: #1F2937;
+  color: var(--bb-ink);
 }
 
-.modal-subtitle {
+.create-modal-subtitle {
   margin: 0 0 1.5rem 0;
-  color: #6B7280;
+  color: var(--bb-muted);
   font-size: 0.95rem;
 }
 
-.modal-close {
+.create-modal-close {
   position: absolute;
   top: 1rem;
   right: 1rem;
   background: none;
   border: none;
   cursor: pointer;
-  color: #6B7280;
+  color: var(--bb-muted);
   padding: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  border-radius: 8px;
 }
 
-.modal-close:hover {
-  color: #1F2937;
+.create-modal-close:hover {
+  color: var(--bb-ink);
 }
 
 .create-modal-content {
@@ -60,36 +61,39 @@
   gap: 1.5rem;
 }
 
-.form-group {
+.create-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.form-group label {
-  font-weight: 600;
-  color: #374151;
+.create-field label {
+  font-weight: 700;
+  color: var(--bb-ink);
   font-size: 0.95rem;
 }
 
-.form-select {
+.create-select {
   padding: 0.75rem;
-  border: 2px solid #E5E7EB;
-  border-radius: 8px;
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  background-color: #F9FAFB;
+  color: var(--bb-ink);
+  background-color: var(--bb-white);
   cursor: pointer;
   transition: border-color 0.2s;
+  min-height: 44px;
+  font-family: inherit;
 }
 
-.form-select:hover {
-  border-color: #4F46E5;
+.create-select:hover {
+  border-color: var(--bb-green);
 }
 
-.form-select:focus {
+.create-select:focus {
   outline: none;
-  border-color: #4F46E5;
-  background-color: white;
+  border-color: var(--bb-green);
+  box-shadow: 0 0 0 3px var(--bb-field-ring);
 }
 
 .map-container {
@@ -101,86 +105,125 @@
 .create-map {
   width: 100%;
   height: 300px;
-  border-radius: 8px;
-  border: 2px solid #E5E7EB;
+  border-radius: var(--bb-radius);
+  border: 2px solid var(--bb-line);
 }
 
 .map-instruction {
   margin: 0;
-  font-size: 0.85rem;
-  color: #6B7280;
-  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--bb-muted);
   text-align: center;
 }
 
-.modal-actions {
+.create-modal-actions {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+  margin-top: 1.5rem;
 }
 
-.btn-cancel,
+.create-cancel,
 .btn-select {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.btn-cancel {
-  background: #E5E7EB;
-  color: #374151;
+.create-cancel {
+  background: var(--bb-white);
+  color: var(--bb-ink);
+  box-shadow: inset 0 0 0 2px var(--bb-line);
+  justify-content: center;
+  flex: 1;
 }
 
-.btn-cancel:hover {
-  background: #D1D5DB;
+.create-cancel:hover {
+  background: var(--bb-mist);
 }
 
 .btn-select {
-  background: #10B981;
-  color: white;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
 }
 
-.btn-select:hover {
-  background: #059669;
-  transform: translateY(-2px);
+.btn-select:hover:not(:disabled) {
+  background: var(--bb-yellow-dark);
 }
 
-.btn-select:active {
-  transform: translateY(0);
+.btn-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-/* Responsive */
-@media (max-width: 640px) {
+/* Phones: a full-screen sheet, and the map takes the height left over (KAN-62) */
+@media (max-width: 767px) {
+  .create-modal-overlay {
+    align-items: stretch;
+  }
+
   .create-modal {
-    padding: 1rem;
-    max-width: 95vw;
-    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+    overflow: hidden;
   }
 
   .create-modal h2 {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+    padding-right: 2.5rem;
+  }
+
+  .create-modal-subtitle {
+    margin-bottom: 1rem;
+  }
+
+  .create-modal .create-modal-close {
+    top: max(0.5rem, env(safe-area-inset-top));
+    right: 0.5rem;
+    width: 44px;
+    height: 44px;
+  }
+
+  .create-modal-content {
+    flex: 1;
+    min-height: 0;
+    gap: 1rem;
+  }
+
+  .create-modal .map-container {
+    flex: 1;
+    min-height: 0;
   }
 
   .create-map {
-    height: 250px;
+    flex: 1;
+    height: auto;
+    min-height: 240px;
   }
 
-  .modal-actions {
-    flex-direction: column;
+  .create-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
     gap: 0.75rem;
   }
 
-  .btn-cancel,
+  .create-cancel,
   .btn-select {
-    width: 100%;
     justify-content: center;
-    padding: 0.6rem;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
   }
 }

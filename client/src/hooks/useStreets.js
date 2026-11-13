@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { API_URL } from '../config';
 import { defaults } from '../utils/areaTypes';
+import { networkError, responseError, emptyError } from '../utils/streetErrors';
 
 // /api/streets returns lines as [lat, lng] pairs; the map and save code use { lat, lng } points
 function toClientStreet({ coordinates, ...street }) {
@@ -23,14 +24,13 @@ async function fetchStreets({ center, radius, difficulty, count }) {
   try {
     response = await fetch(`${API_URL}/streets?${params}`);
   } catch {
-    throw new Error('Could not reach the server. Check your connection and try again.');
+    throw networkError();
   }
 
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    // 400 (validation), 429 (rate limit) and 503 (no street data yet) all carry a message
-    throw new Error(body.message || `Could not load streets (HTTP ${response.status})`);
-  }
+  if (!response.ok) throw responseError(response.status, body);
+  // An empty list says whether the circle has data at all (outside coverage) or not (KAN-63)
+  if (!body.streets?.length) throw emptyError(body.hasData);
   return body.streets.map(toClientStreet);
 }
 
@@ -47,26 +47,24 @@ export function useStreets({
   const [streets, setStreets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // What kind of failure, for utils/streetErrors.describeStreetError
+  const [errorKind, setErrorKind] = useState(null);
 
   const loadStreets = useCallback(async () => {
     if (!center) return;
     setLoading(true);
     setError(null);
+    setErrorKind(null);
     try {
-      const result = await fetchStreets({ center, radius, difficulty, count: numberOfQuestions });
-      if (result.length === 0) {
-        throw new Error(
-          'No suitable streets found. Try increasing the difficulty or selecting a different area.'
-        );
-      }
-      setStreets(result);
+      setStreets(await fetchStreets({ center, radius, difficulty, count: numberOfQuestions }));
     } catch (err) {
       setError(err.message);
+      setErrorKind(err.kind ?? 'server');
       setStreets([]);
     } finally {
       setLoading(false);
     }
   }, [center, radius, difficulty, numberOfQuestions]);
 
-  return { streets, loading, error, loadStreets };
+  return { streets, loading, error, errorKind, loadStreets };
 }

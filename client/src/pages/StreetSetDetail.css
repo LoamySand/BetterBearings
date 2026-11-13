@@ -1,6 +1,13 @@
 .street-set-detail-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100dvh;
+  background: var(--bb-mist);
+  display: flex;
+  flex-direction: column;
+}
+
+/* <main> sits between the page and its sections; keep the same column layout */
+.street-set-detail-page > main {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -18,7 +25,7 @@
   flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .detail-header {
     max-width: 100%;
     margin: 0 0 1rem 0;
@@ -32,81 +39,79 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.25rem;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  background: var(--bb-white);
+  color: var(--bb-ink);
+  border: none;
+  box-shadow: inset 0 0 0 2px var(--bb-line);
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  backdrop-filter: blur(10px);
+  transition: background-color 0.15s;
 }
 
 .btn-back:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
+  background: var(--bb-mist);
 }
 
-.detail-header .header-content {
+.detail-header .detail-header-text {
   flex: 1;
 }
 
-.detail-header .header-content h1 {
+.detail-header .detail-header-text h1 {
   font-size: 2.5rem;
-  color: white;
+  line-height: 1.15;
+  color: var(--bb-ink);
   margin: 0 0 0.5rem 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-@media (max-width: 768px) {
-  .detail-header .header-content h1 {
+@media (max-width: 767px) {
+  .detail-header .detail-header-text h1 {
     font-size: 1.5rem;
   }
 }
 
-.detail-header .header-content .subtitle {
-  color: rgba(255, 255, 255, 0.9);
+.detail-header .detail-header-text .subtitle {
+  color: var(--bb-muted);
   font-size: 1.125rem;
   margin: 0 0 0.5rem 0;
 }
 
 .detail-header .street-count {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--bb-muted);
   font-size: 1rem;
   margin: 0;
-  font-weight: 500;
+  font-weight: 700;
 }
 
-.header-actions {
+.detail-actions {
   display: flex;
   gap: 1rem;
   align-items: center;
 }
 
-.btn-save {
+.detail-save {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
-  background: white;
-  color: #667eea;
+  background: var(--bb-green);
+  color: var(--bb-white);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.15s;
+  justify-content: center;
 }
 
-.btn-save:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+.detail-save:hover:not(:disabled) {
+  background: var(--bb-green-dark);
 }
 
-.btn-save:disabled {
-  opacity: 0.6;
+.detail-save:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
@@ -115,20 +120,18 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: background-color 0.15s;
 }
 
 .btn-play-set:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  background: var(--bb-yellow-dark);
 }
 
 .detail-container {
@@ -140,7 +143,7 @@
   flex: 1;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .detail-container {
     margin: 1rem auto;
     padding: 0 1rem 1rem;
@@ -148,19 +151,18 @@
 }
 
 .detail-container > div {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  background: var(--bb-white);
+  border: 1px solid var(--bb-line);
+  border-radius: var(--bb-radius-lg);
   overflow: hidden;
-  height: calc(100vh - 250px);
+  height: calc(100dvh - 250px);
   display: flex;
   flex-direction: column;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .detail-container > div {
-    height: calc(100vh - 180px);
-    border-radius: 12px;
+    border-radius: var(--bb-radius-lg);
   }
 }
 
@@ -174,7 +176,7 @@
 .left-panel {
   display: flex;
   flex-direction: column;
-  border-right: 2px solid #e5e7eb;
+  border-right: 1px solid var(--bb-line);
   overflow: hidden;
 }
 
@@ -188,19 +190,19 @@
   height: 100%;
 }
 
-.error-message {
-  background: #fee2e2;
-  color: #dc2626;
+.detail-error {
+  background: var(--bb-red-soft);
+  color: var(--bb-red);
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: var(--bb-radius);
   margin-bottom: 1rem;
   text-align: center;
 }
 
 .select-all-section {
   padding: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 1px solid var(--bb-line);
+  background: var(--bb-mist);
 }
 
 .select-all-button {
@@ -208,24 +210,22 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--bb-white);
+  border: 2px solid var(--bb-line);
+  border-radius: var(--bb-radius);
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 700;
+  color: var(--bb-ink);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.15s;
 }
 
 .select-all-button:hover {
-  background: #f3f4f6;
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--bb-green);
 }
 
 .select-all-button svg {
-  color: #667eea;
+  color: var(--bb-green);
 }
 
 .streets-list {
@@ -238,14 +238,14 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--bb-line);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
   min-height: 48px; /* Minimum touch target size */
-  -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+  -webkit-tap-highlight-color: var(--bb-field-ring);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .street-item {
     padding: 1.25rem 1rem;
     min-height: 56px; /* Larger touch target on mobile */
@@ -254,7 +254,7 @@
 }
 
 .street-item:hover {
-  background: #f9fafb;
+  background: var(--bb-mist);
 }
 
 .street-item:last-child {
@@ -265,16 +265,16 @@
   opacity: 0.5;
 }
 
-.street-item.excluded .street-name {
+.street-item.excluded .detail-street-name {
   text-decoration: line-through;
 }
 
 .checkbox {
   flex-shrink: 0;
-  color: #667eea;
+  color: var(--bb-green);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .checkbox svg {
     width: 24px;
     height: 24px;
@@ -294,10 +294,10 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  border-radius: var(--bb-radius);
   font-size: 0.75rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  background: var(--bb-white);
   border: 1.5px solid currentColor;
   flex-shrink: 0;
 }
@@ -306,33 +306,34 @@
   line-height: 1;
 }
 
-.street-name {
+.detail-street-name {
+  /* Was gradient text, kept by accident in KAN-61 (KAN-81) */
   font-size: 1rem;
-  font-weight: 500;
-  color: #1f2937;
+  font-weight: 700;
+  color: var(--bb-ink);
+  margin: 0.25rem 0 0.5rem 0;
 }
 
 .alt-name {
   font-size: 0.875rem;
-  color: #6b7280;
-  font-style: italic;
+  color: var(--bb-muted);
 }
 
 /* Street tooltip styling */
 .street-tooltip {
-  background: rgba(0, 0, 0, 0.85) !important;
-  color: white !important;
+  background: var(--bb-ink) !important;
+  color: var(--bb-white) !important;
   border: none !important;
-  border-radius: 6px !important;
+  border-radius: var(--bb-radius) !important;
   padding: 0.5rem 0.75rem !important;
   font-size: 0.875rem !important;
-  font-weight: 600 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  font-weight: 700 !important;
+  box-shadow: var(--bb-shadow) !important;
   pointer-events: none !important;
 }
 
 .street-tooltip::before {
-  border-top-color: rgba(0, 0, 0, 0.85) !important;
+  border-top-color: var(--bb-ink) !important;
 }
 
 @media (max-width: 1024px) {
@@ -341,60 +342,215 @@
   }
 }
 
-@media (max-width: 768px) {
+/* Map size toggle: hides the list for a larger map (KAN-62). Leaflet controls sit at z-index 800 to 1000 */
+.btn-map-size {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 44px;
+  padding: 0 0.875rem;
+  background: var(--bb-white);
+  color: var(--bb-ink);
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-map-size:hover {
+  background: var(--bb-mist);
+}
+
+.content-split.map-large {
+  grid-template-columns: 1fr;
+}
+
+.content-split.map-large .left-panel {
+  display: none;
+}
+
+/* List / Map switch, phones only */
+.view-toggle {
+  display: none;
+}
+
+/* Phones: the page fits the screen, and the card shows the list or the map (KAN-62) */
+@media (max-width: 767px) {
   .street-set-detail-page {
-    padding: 0;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .street-set-detail-page > main {
+    min-height: 0;
   }
 
   .detail-header {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin: 0;
+    padding: max(0.5rem, env(safe-area-inset-top)) 0.75rem 0;
   }
 
-  .header-content .subtitle {
+  .btn-back {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--bb-radius);
+  }
+
+  /* The label stays for screen readers; the arrow shows on screen */
+  .btn-back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .detail-header .detail-header-text h1,
+  .detail-header .detail-header-text .subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detail-header .detail-header-text h1 {
+    font-size: 1.25rem;
+    margin: 0 0 0.125rem;
+  }
+
+  .detail-header .detail-header-text .subtitle {
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .detail-header .street-count {
+    font-size: 0.8125rem;
+  }
+
+  .detail-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .detail-save,
+  .btn-play-set {
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
     font-size: 0.95rem;
   }
 
-  .btn-back,
-  .btn-save,
-  .btn-play-set {
-    width: 100%;
-    justify-content: center;
-    padding: 0.875rem 1.25rem;
-    font-size: 1rem;
-    min-height: 48px; /* Minimum touch target */
-  }
-
-  .header-actions {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
   .detail-container {
-    height: calc(100vh - 120px);
+    flex: 1;
+    min-height: 0;
+    margin: 0.75rem 0 0;
+    padding: 0 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-container > div {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+
+  .view-toggle {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    background: var(--bb-mist);
+    border-bottom: 1px solid var(--bb-line);
+  }
+
+  .view-toggle-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-height: 44px;
+    border: none;
+    border-radius: var(--bb-radius);
+    background: transparent;
+    color: var(--bb-muted);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .view-toggle-button[aria-pressed='true'] {
+    background: var(--bb-white);
+    color: var(--bb-green-dark);
+    box-shadow: inset 0 0 0 2px var(--bb-green);
   }
 
   .content-split {
     grid-template-columns: 1fr;
-    grid-template-rows: 280px 1fr;
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+
+  .content-split.show-list .right-panel,
+  .content-split.show-map .left-panel {
+    display: none;
+  }
+
+  /* The size toggle is hidden on phones; a larger map set on a wider screen mustn't hide the list here */
+  .content-split.map-large.show-list .left-panel {
+    display: flex;
   }
 
   .left-panel {
     border-right: none;
-    border-bottom: 2px solid #e5e7eb;
-    max-height: 280px;
+    min-height: 0;
+  }
+
+  .btn-map-size {
+    display: none;
   }
 
   .select-all-section {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
   }
 
   .select-all-button {
-    min-height: 48px;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
     font-size: 1rem;
   }
 
-  .street-name {
+  .detail-street-name {
     font-size: 0.95rem;
+  }
+}
+
+/* Up to 768 px the header text and buttons get 0.75rem side padding (KAN-61: this came from
+   AppHeader.css's .header-content and .header-actions before the class names were split) */
+@media (max-width: 768px) {
+  .detail-actions,
+  .detail-header-text {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .detail-street-name {
+    margin: 0.125rem 0 0.25rem 0;
   }
 }

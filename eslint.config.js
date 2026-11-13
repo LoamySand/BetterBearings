@@ -60,6 +60,13 @@ module.exports = [
     languageOptions: { globals: globals.browser },
   },
   {
+    // Node scripts that build the icons and link-preview image (KAN-42). They drive a browser,
+    // so code inside page.evaluate() sees browser globals; console output is their report.
+    files: ['client/brand/**/*.{js,mjs}'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    rules: { 'no-console': 'off' },
+  },
+  {
     files: ['server/**/*.js', '*.js'],
     languageOptions: { sourceType: 'commonjs', globals: globals.node },
   },

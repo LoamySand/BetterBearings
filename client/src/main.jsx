@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+// Overpass, drawn from US highway-sign lettering (SIL OFL). Self-hosted, so CSP font-src 'self' covers it (KAN-81)
+import '@fontsource/overpass/400.css';
+import '@fontsource/overpass/700.css';
 import './index.css';
 import App from './App';
 import { loadTileConfig } from './utils/tileLayer';

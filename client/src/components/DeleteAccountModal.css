@@ -1,0 +1,155 @@
+/* KAN-66. Prefix delete-account-: CSS is bundled globally. */
+.delete-account-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bb-overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.delete-account-modal {
+  background: var(--bb-white);
+  border-radius: var(--bb-radius-lg);
+  padding: 2rem;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: var(--bb-shadow);
+}
+
+.delete-account-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--bb-ink);
+  margin: 0 0 0.75rem;
+}
+
+.delete-account-text {
+  color: var(--bb-text);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+
+.delete-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.delete-account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.delete-account-field label {
+  font-weight: 700;
+  color: var(--bb-ink);
+  font-size: 0.95rem;
+}
+
+.delete-account-field input {
+  min-height: 44px;
+  padding: 0.625rem 0.875rem;
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
+  font-size: 1rem;
+  color: var(--bb-ink);
+  outline: none;
+}
+
+.delete-account-field input:focus {
+  border-color: var(--bb-green);
+  box-shadow: 0 0 0 3px var(--bb-field-ring);
+}
+
+.delete-account-error {
+  padding: 0.75rem 1rem;
+  background-color: var(--bb-red-soft);
+  color: var(--bb-red);
+  border-radius: var(--bb-radius);
+  font-size: 0.875rem;
+  border: 1px solid var(--bb-red-line);
+}
+
+.delete-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.delete-account-cancel,
+.delete-account-confirm,
+.delete-account-ok {
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: var(--bb-radius);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-account-cancel {
+  background: var(--bb-white);
+  color: var(--bb-ink);
+  border: 2px solid var(--bb-line);
+}
+
+.delete-account-cancel:hover:not(:disabled) {
+  background: var(--bb-mist);
+}
+
+.delete-account-confirm {
+  background: var(--bb-red);
+  color: var(--bb-white);
+  border: 2px solid var(--bb-red);
+}
+
+.delete-account-confirm:hover:not(:disabled) {
+  background: var(--bb-red-dark);
+  border-color: var(--bb-red-dark);
+}
+
+.delete-account-ok {
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
+  border: 2px solid var(--bb-yellow);
+}
+
+.delete-account-cancel:disabled,
+.delete-account-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Phones: a full-width sheet at the top, so the button stays above the keyboard (as AuthModal) */
+@media (max-width: 479px) {
+  .delete-account-overlay {
+    align-items: flex-start;
+  }
+
+  .delete-account-modal {
+    width: 100%;
+    max-width: none;
+    max-height: 100dvh;
+    overflow-y: auto;
+    border-radius: 0 0 var(--bb-radius-lg) var(--bb-radius-lg);
+    padding: max(1rem, env(safe-area-inset-top)) 1.25rem 1.25rem;
+  }
+
+  .delete-account-title {
+    font-size: 1.375rem;
+  }
+
+  .delete-account-text {
+    margin-bottom: 1rem;
+  }
+
+  .delete-account-actions > button {
+    flex: 1;
+    padding: 0 0.75rem;
+    white-space: nowrap;
+  }
+}

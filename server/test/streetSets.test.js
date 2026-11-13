@@ -107,6 +107,59 @@ describe('create and read', () => {
   });
 });
 
+describe('difficulty labels (KAN-73)', () => {
+  // Labels follow the road class, whatever the client sent
+  const street = (name, type, difficulty, included = true) => ({
+    ...centralAve,
+    osmId: null,
+    name,
+    type,
+    difficulty,
+    included,
+  });
+  const labelled = validSet({
+    streets: [
+      street('Osuna Road', 'secondary', 3),
+      street('Silver Avenue', 'tertiary', 1),
+      street('Bike Path', 'cycleway', 3),
+      street('Edith Boulevard', 'residential', 1),
+      street('Old Town Road', null, 1),
+      street('Excluded Avenue', 'primary', 1, false),
+    ],
+  });
+  const labels = (body) => Object.fromEntries(body.streets.map((s) => [s.name, s.difficulty]));
+
+  test('the server sets each label from the road type', async () => {
+    const res = await createSet(alice, labelled);
+    assert.equal(res.status, 201);
+    assert.deepEqual(labels(res.body), {
+      'Osuna Road': 1,
+      'Silver Avenue': 2,
+      'Bike Path': 2,
+      'Edith Boulevard': 3,
+      'Old Town Road': 3,
+      'Excluded Avenue': 1,
+    });
+  });
+
+  test('included counts per level are cumulative and skip excluded streets', async () => {
+    await createSet(alice, labelled);
+    const [summary] = (await request(app).get('/api/street-sets').set(bearer(alice.token))).body;
+    assert.deepEqual(summary.includedByLevel, { easy: 1, medium: 3, hard: 5 });
+    assert.equal(summary.includedStreets, 5);
+  });
+
+  test('PUT relabels the streets it saves', async () => {
+    const { body: created } = await createSet(alice);
+    const res = await request(app)
+      .put(`/api/street-sets/${created.id}`)
+      .set(bearer(alice.token))
+      .send({ streets: [street('Silver Avenue', 'tertiary', 3)] });
+    assert.deepEqual(labels(res.body), { 'Silver Avenue': 2 });
+    assert.deepEqual(res.body.includedByLevel, { easy: 0, medium: 1, hard: 1 });
+  });
+});
+
 describe('update and delete', () => {
   test('PUT with only a name keeps the streets', async () => {
     const { body: created } = await createSet(alice);

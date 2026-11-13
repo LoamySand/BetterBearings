@@ -4,91 +4,100 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--bb-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 3000;
-  backdrop-filter: blur(4px);
 }
 
 .save-modal {
-  background: white;
-  border-radius: 16px;
+  background: var(--bb-white);
+  border-radius: var(--bb-radius-lg);
   padding: 2rem;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--bb-shadow);
 }
 
-.modal-close {
+.save-modal-close {
   position: absolute;
   top: 1rem;
   right: 1rem;
   background: none;
   border: none;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--bb-muted);
   padding: 0.5rem;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.modal-close:hover {
-  background: #f3f4f6;
-  color: #1f2937;
+/* 44 px tap target (KAN-62). Scoped: CreateStreetSetModal.css has its own .save-modal-close */
+.save-modal .save-modal-close {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.save-modal-close:hover {
+  background: var(--bb-mist);
+  color: var(--bb-ink);
 }
 
 .save-modal h2 {
   font-size: 1.5rem;
-  color: #1f2937;
+  color: var(--bb-ink);
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-.modal-subtitle {
-  color: #6b7280;
+.save-modal-subtitle {
+  color: var(--bb-muted);
   margin: 0 0 1.5rem 0;
-  font-size: 0.9375rem;
+  font-size: 0.95rem;
 }
 
-.save-modal .form-group {
+.save-modal .save-field {
   margin-bottom: 1.25rem;
 }
 
 .save-modal label {
   display: block;
-  font-weight: 600;
-  color: #374151;
+  font-weight: 700;
+  color: var(--bb-ink);
   margin-bottom: 0.5rem;
-  font-size: 0.9375rem;
+  font-size: 0.95rem;
+}
+
+.save-modal input::placeholder {
+  color: var(--bb-placeholder);
 }
 
 .save-modal input,
 .save-modal textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  transition: all 0.2s;
+  color: var(--bb-ink);
+  transition: border-color 0.15s;
   font-family: inherit;
 }
 
 .save-modal input:focus,
 .save-modal textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--bb-green);
+  box-shadow: 0 0 0 3px var(--bb-field-ring);
 }
 
 .save-modal textarea {
@@ -96,80 +105,73 @@
   min-height: 80px;
 }
 
-.error-message {
-  background: #fee2e2;
-  color: #dc2626;
-  padding: 0.75rem;
+.save-capped {
+  margin: -0.75rem 0 1.25rem;
+  padding: 0.625rem 0.75rem;
   border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9375rem;
+  background: var(--bb-mist);
+  color: var(--bb-green-dark);
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
-.modal-actions {
+.save-error {
+  background: var(--bb-red-soft);
+  color: var(--bb-red);
+  padding: 1rem;
+  border-radius: var(--bb-radius);
+  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.save-modal-actions {
   display: flex;
   gap: 1rem;
   margin-top: 1.5rem;
+  justify-content: flex-end;
 }
 
-.btn-cancel,
-.btn-save {
+.save-cancel,
+.save-submit {
   flex: 1;
   padding: 0.875rem 1.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 }
 
-.btn-cancel {
-  background: #f3f4f6;
-  color: #374151;
+.save-cancel {
+  background: var(--bb-white);
+  color: var(--bb-ink);
+  box-shadow: inset 0 0 0 2px var(--bb-line);
+  padding: 0.75rem 1.5rem;
 }
 
-.btn-cancel:hover {
-  background: #e5e7eb;
+.save-cancel:hover {
+  background: var(--bb-mist);
 }
 
-.btn-save {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+/* Was white with purple text by accident (kept in KAN-61); the main action is yellow (KAN-81) */
+.save-submit {
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
 }
 
-.btn-save:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+.save-submit:hover:not(:disabled) {
+  background: var(--bb-yellow-dark);
 }
 
-.btn-save:disabled {
+.save-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.form-select {
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 1rem;
-  background-color: #f9fafb;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  font-family: inherit;
-}
-
-.form-select:hover {
-  border-color: #4f46e5;
-}
-
-.form-select:focus {
-  outline: none;
-  border-color: #4f46e5;
-  background-color: white;
 }
 
 .loading-message {
@@ -178,21 +180,8 @@
   justify-content: center;
   gap: 1rem;
   padding: 2rem;
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 1rem;
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #4f46e5;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 640px) {
@@ -200,12 +189,43 @@
     padding: 1.5rem;
   }
 
-  .modal-actions {
+  .save-modal-actions {
     flex-direction: column;
   }
 
-  .btn-cancel,
-  .btn-save {
+  .save-cancel,
+  .save-submit {
     width: 100%;
+  }
+}
+
+.save-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Phones (KAN-61: these came from CreateStreetSetModal.css and StreetSetDetail.css before the
+   class names were split) */
+@media (max-width: 767px) {
+  .save-modal-subtitle {
+    margin-bottom: 1rem;
+  }
+
+  .save-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 0.75rem;
+  }
+
+  .save-cancel,
+  .save-submit {
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .save-submit {
+    font-size: 0.95rem;
   }
 }

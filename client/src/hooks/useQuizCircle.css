@@ -1,0 +1,18 @@
+/* Size label on the quiz circle. Lives with the hook because the game and the
+   Create New Street Set modal both draw the circle (KAN-76, KAN-62). */
+.leaflet-tooltip.quiz-circle-label {
+  padding: 0.25rem 0.625rem 0.125rem;
+  border: 2px solid var(--bb-green);
+  border-radius: var(--bb-radius);
+  background: var(--bb-white);
+  color: var(--bb-green-dark);
+  font-family: var(--bb-font);
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.leaflet-tooltip.quiz-circle-label--small {
+  border-color: var(--bb-red);
+  color: var(--bb-red);
+}

@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { addBaseLayer } from '../utils/tileLayer';
+import { useRef, useEffect, useState } from 'react';
+import { addBaseLayer, addLegalLinks } from '../utils/tileLayer';
 
 /**
  * Custom hook to manage Leaflet map initialization and lifecycle
@@ -13,6 +13,9 @@ export function useLeafletMap({
   const mapInstanceRef = useRef(null);
   const mapInitialized = useRef(false);
   const selectionMapInitialized = useRef(false);
+  // The selection map is created asynchronously below. Holding it in state too re-renders the
+  // caller each time a new one exists, so it can draw on it (useQuizCircle, KAN-76).
+  const [selectionMap, setSelectionMap] = useState(null);
 
   // Initialize selection map (before quiz starts)
   useEffect(() => {
@@ -26,6 +29,7 @@ export function useLeafletMap({
     }
 
     let checkInterval;
+    let sizeTimeout;
 
     const initSelectionMap = () => {
       if (!window.L || !mapRef || !mapRef.current) {
@@ -58,17 +62,18 @@ export function useLeafletMap({
         });
 
         addBaseLayer(map);
+        addLegalLinks(map);
 
         mapInstanceRef.current = map;
         selectionMapInitialized.current = true;
+        setSelectionMap(map);
 
         console.log('✅ Selection map initialized');
 
-        // Ensure map renders properly
-        setTimeout(() => {
-          if (map) {
-            map.invalidateSize();
-          }
+        // Ensure map renders properly. Skip a map removed in the meantime (KAN-78): leaving the
+        // page within 100 ms made Leaflet throw "reading '_leaflet_pos'".
+        sizeTimeout = setTimeout(() => {
+          if (map._mapPane) map.invalidateSize();
         }, 100);
       } catch (error) {
         console.error('❌ Error creating selection map:', error);
@@ -95,6 +100,7 @@ export function useLeafletMap({
       if (checkInterval) {
         clearInterval(checkInterval);
       }
+      clearTimeout(sizeTimeout);
     };
   }, [gameMode, mapType, mapRef]);
 
@@ -182,6 +188,7 @@ export function useLeafletMap({
       }
       mapInstanceRef.current = null;
       selectionMapInitialized.current = false;
+      setSelectionMap(null);
     }
   };
 
@@ -196,12 +203,14 @@ export function useLeafletMap({
     }
     mapInitialized.current = false;
     selectionMapInitialized.current = false;
+    setSelectionMap(null);
   };
 
   return {
     mapInstanceRef,
     mapInitialized,
     selectionMapInitialized,
+    selectionMap,
     removeSelectionMap,
     cleanupMap,
   };

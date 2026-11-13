@@ -1,15 +1,19 @@
 .game-container {
-  min-height: 100vh;
+  /* The game fills the visible viewport; dvh tracks mobile browser bars, vh is the fallback */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  /* No double-tap page zoom. Leaflet sets touch-action: none on the map and handles pinch itself */
+  touch-action: manipulation;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--bb-mist);
 }
 
 .game-info-bar {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: var(--bb-white);
   padding: 0.75rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--bb-line);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -24,25 +28,39 @@
   }
 }
 
+/* Phones: round, score and difficulty move into the bottom sheet to give the map the height */
+@media (max-width: 767px) {
+  .game-info-bar {
+    display: none;
+  }
+}
+
 .street-set-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  text-decoration: none;
+  background: var(--bb-green);
+  color: var(--bb-white);
+  padding: 0.3125rem 0.75rem 0.1875rem;
+  border-radius: var(--bb-radius);
+  font-weight: 700;
   font-size: 0.875rem;
+}
+
+.street-set-badge:hover {
+  background: var(--bb-green-dark);
 }
 
 .game-meta {
   font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
+  color: var(--bb-muted);
+  font-weight: 400;
 }
 
 .game-stats {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   margin-left: auto;
 }
 
@@ -54,74 +72,23 @@
   }
 }
 
-.stat {
+.game-stat {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #4b5563;
-}
-
-.game-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 2rem;
-  position: relative;
-  z-index: 2003;
-}
-
-@media (max-width: 768px) {
-  .game-header {
-    padding: 1rem 0.75rem;
-    gap: 1rem;
-  }
-}
-
-.game-info {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.game-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.75rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin: 0;
-}
-
-.game-stats {
-  display: flex;
-  gap: 2rem;
-}
-
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #4b5563;
+  font-weight: 700;
+  color: var(--bb-ink);
+  flex-direction: column;
 }
 
-.stat svg {
-  color: #f59e0b;
+.game-stat svg {
+  color: var(--bb-green);
 }
 
 .game-content {
   flex: 1;
+  min-height: 0;
   position: relative;
   width: 100%;
   overflow: hidden;
@@ -131,37 +98,63 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: white;
+  background: var(--bb-white);
   padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   text-align: center;
   z-index: 1000;
-  max-width: 280px;
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.98);
+  max-width: 320px;
+}
+
+/* Phone-only rows of the question panel; the info bar shows these on wider screens */
+.question-stats,
+.question-capped {
+  display: none;
 }
 
 .question {
   font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 0.25rem 0;
-  font-weight: 600;
+  color: var(--bb-muted);
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
 }
 
-.street-name {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin: 0.25rem 0 0.5rem 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* The street to find as a US street-name sign (KAN-81): sign green, a white border inset from
+   the edge, the name large and the type and quadrant small. The one place this look is used. */
+.game-sign {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 0.375rem;
+  /* As wide as the name, like a real blade, up to the panel's width */
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 0.25rem;
+  padding: 0.5rem 1rem 0.25rem;
+  border-radius: 7px;
+  background: var(--bb-green);
+  color: var(--bb-white);
+  box-shadow:
+    inset 0 0 0 3px var(--bb-green),
+    inset 0 0 0 5px var(--bb-white);
+  line-height: 1.1;
+}
+
+.game-sign-name {
+  font-size: 1.625rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.game-sign-small {
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .instruction {
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
@@ -169,45 +162,45 @@
 .btn-save-set {
   margin-top: 0.75rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--bb-white);
+  color: var(--bb-ink);
   border: none;
-  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--bb-line);
+  border-radius: var(--bb-radius);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
 }
 
 .btn-save-set:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: var(--bb-mist);
 }
 
 .feedback {
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0.75rem 0;
   animation: slideIn 0.3s ease-out;
 }
 
 .feedback.correct {
-  background: #d1fae5;
-  color: #065f46;
-  border: 2px solid #10b981;
+  background: var(--bb-mist);
+  color: var(--bb-green-dark);
+  border: 2px solid var(--bb-green);
 }
 
 .feedback.incorrect {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 2px solid #ef4444;
+  background: var(--bb-red-soft);
+  color: var(--bb-red);
+  border: 2px solid var(--bb-red);
 }
 
 @keyframes slideIn {
@@ -233,7 +226,12 @@
 }
 
 .game-over {
-  flex: 1;
+  /* Above the header (2003) and info bar (2002), like the other modals (KAN-64) */
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: var(--bb-overlay);
+  overflow-y: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -241,24 +239,26 @@
 }
 
 .game-over-content {
-  background: white;
+  background: var(--bb-white);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   padding: 3rem;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   text-align: center;
   max-width: 500px;
   width: 100%;
 }
 
 .trophy-icon {
-  color: #f59e0b;
+  color: var(--bb-green);
   margin-bottom: 1rem;
 }
 
 .game-over-content h2 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
-  color: #1f2937;
+  color: var(--bb-ink);
 }
 
 .final-score {
@@ -266,89 +266,177 @@
 }
 
 .final-score p {
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 1rem;
   margin: 0.5rem 0;
 }
 
-.final-score h1 {
+.final-score .final-score-value {
   font-size: 4rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bb-green);
   margin: 1rem 0;
 }
 
 .score-message {
   font-size: 1.5rem !important;
   margin-top: 1rem !important;
+  color: var(--bb-ink) !important;
 }
 
 .btn-restart {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
   padding: 1rem 3rem;
   border: none;
-  border-radius: 50px;
+  border-radius: var(--bb-radius);
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: background-color 0.15s;
   margin-top: 1rem;
 }
 
 .btn-restart:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  background: var(--bb-yellow-dark);
 }
 
 @media (max-width: 768px) {
-  .game-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .game-title {
-    font-size: 1.25rem;
-  }
-
   .game-stats {
     gap: 1rem;
   }
 
-  .stat {
+  .game-stat {
     font-size: 0.95rem;
   }
+}
 
+/* Phones: the question panel is a bottom sheet. It stays clear of the zoom buttons (top left)
+   and of the attribution (bottom right, 1.5rem), and pads for the home indicator. */
+@media (max-width: 767px) {
   .question-panel {
-    top: 0.75rem;
-    right: 0.75rem;
-    left: 0.75rem;
+    top: auto;
+    left: calc(0.5rem + env(safe-area-inset-left));
+    right: calc(0.5rem + env(safe-area-inset-right));
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
     max-width: none;
-    padding: 0.75rem;
+    padding: 0.625rem 0.75rem 0.75rem;
+  }
+
+  .question-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--bb-text);
+    margin-bottom: 0.25rem;
+  }
+
+  .question-capped {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--bb-muted);
+    margin: 0 0 0.25rem;
   }
 
   .question {
     font-size: 0.75rem;
-    margin: 0 0 0.25rem 0;
+    margin: 0 0 0.25rem;
   }
 
-  .street-name {
-    font-size: 1rem;
-    margin: 0.25rem 0 0.5rem 0;
+  /* 22 px name on phones: KAN-61 left the old one at 15.2 px instead of U2's 18 */
+  .game-sign {
+    padding: 0.375rem 0.75rem 0.1875rem;
   }
 
+  .game-sign-name {
+    font-size: 1.375rem;
+  }
+
+  .game-sign-small {
+    font-size: 0.9375rem;
+  }
+
+  /* The prompt is clear without it, and the sheet should stay short */
   .instruction {
-    font-size: 0.75rem;
+    display: none;
+  }
+
+  .feedback {
+    padding: 0.5rem;
+    margin: 0.375rem 0 0;
+    font-size: 0.875rem;
+  }
+
+  .btn-save-set {
+    min-height: 44px;
+    margin-top: 0.5rem;
+  }
+
+  .game-over {
+    padding: calc(1rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right))
+      calc(1rem + env(safe-area-inset-bottom)) calc(1rem + env(safe-area-inset-left));
+  }
+
+  .game-over-content {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .trophy-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0.25rem;
+  }
+
+  .game-over-content h2 {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .final-score {
+    margin: 0.75rem 0;
+  }
+
+  .final-score .final-score-value {
+    font-size: 3rem;
+    margin: 0.25rem 0;
+  }
+
+  .score-message {
+    font-size: 1.125rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  .game-over-buttons {
+    gap: 0.75rem;
+  }
+
+  .game-over-buttons .btn-restart {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
   }
 }
 
-/* Add at the end of the file */
+/* viewport-fit=cover lets the map run under the home indicator and notches; keep the
+   zoom buttons and attribution inside the safe area */
+.game-content .leaflet-bottom {
+  bottom: env(safe-area-inset-bottom);
+}
+
+.game-content .leaflet-left {
+  left: env(safe-area-inset-left);
+}
+
+.game-content .leaflet-right {
+  right: env(safe-area-inset-right);
+}
 
 /* Clickable street cursor */
 .clickable-street {
@@ -368,44 +456,74 @@
   stroke-width: 6 !important;
 }
 
-/* Quiz area selection button */
+/* Quiz This Area panel: top right from 768 px up, a bottom sheet behind .quiz-toggle on phones */
 .quiz-button-overlay {
   position: absolute;
-  top: 40%;
-  left: 82%;
-  transform: translate(-50%, -50%);
-  z-index: 1000;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.98);
-  padding: 0.5rem 0.5rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  top: 1rem;
+  right: calc(1rem + env(safe-area-inset-right));
+  width: 320px;
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
+  z-index: 1001;
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
 }
 
-.btn-quiz-area {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1.25rem 2.5rem;
-  border: none;
-  border-radius: 50px;
-  font-size: 1.25rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+.quiz-toggle {
+  display: none;
 }
 
-.btn-quiz-area:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+@media (max-width: 767px) {
+  .quiz-button-overlay {
+    display: none;
+    top: auto;
+    left: calc(0.5rem + env(safe-area-inset-left));
+    right: calc(0.5rem + env(safe-area-inset-right));
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    width: auto;
+    /* Never tall enough to reach the zoom buttons */
+    max-height: calc(100% - 7rem);
+  }
+
+  .quiz-button-overlay.is-open {
+    display: block;
+  }
+
+  .quiz-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(2rem + env(safe-area-inset-bottom));
+    z-index: 1001;
+    min-height: 48px;
+    padding: 0 1.5rem;
+    border: none;
+    border-radius: var(--bb-radius);
+    background: var(--bb-yellow);
+    color: var(--bb-ink);
+    font-size: 1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: var(--bb-shadow);
+  }
+
+  .quiz-toggle[aria-expanded='true'] {
+    display: none;
+  }
+
+  .quiz-toggle:focus-visible {
+    outline: 3px solid var(--bb-focus);
+    outline-offset: 3px;
+  }
 }
 
 .quiz-instruction {
   margin-top: 1rem;
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 0.875rem;
 }
 
@@ -417,93 +535,89 @@
   margin-top: 1rem;
 }
 
+/* Choose New Area: the second choice, outlined */
 .btn-secondary {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--bb-white);
+  box-shadow: inset 0 0 0 2px var(--bb-line);
 }
 
 .btn-secondary:hover {
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+  background: var(--bb-mist);
 }
 
-/* Auth Buttons */
-.auth-buttons {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.username {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: #374151;
-  padding: 0.5rem 1rem;
-  background: #f3f4f6;
-  border-radius: 8px;
-}
-
-.btn-login,
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.875rem;
-}
-
-.btn-login {
-  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
-  color: white;
-}
-
-.btn-login:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
-}
-
-.btn-logout {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.btn-logout:hover {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-@media (max-width: 768px) {
-  .quiz-button-overlay {
-    position: fixed;
-    top: 8%;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    margin: 0;
-    width: 85vw;
-    max-width: 320px;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    border-radius: 16px;
-    z-index: 1001;
+/* Laptops: a 607 px dialog doesn't fit under 800 px of height (KAN-64) */
+@media (min-width: 768px) and (max-height: 800px) {
+  .game-over {
+    padding: 1rem;
   }
 
-  .btn-quiz-area {
-    font-size: 1rem;
-    padding: 1rem 2rem;
+  .game-over-content {
+    padding: 2rem 2.5rem;
+  }
+
+  .trophy-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.5rem;
+  }
+
+  .game-over-content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .final-score {
+    margin: 1rem 0;
   }
 }
 
+/* Keyboard play hint at the map's bottom left (Leaflet's attribution is bottom right) */
+.keys-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 1000;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--bb-radius);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.75rem;
+  color: var(--bb-text);
+  pointer-events: none;
+}
+
+.keys-hint span {
+  white-space: nowrap;
+}
+
+.keys-hint kbd {
+  display: inline-block;
+  margin: 0 0.125rem 0 0.25rem;
+  padding: 0 0.3125rem;
+  border: 1px solid var(--bb-field-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bb-white);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--bb-ink);
+}
+
+.keys-hint span:first-child kbd {
+  margin-left: 0;
+}
+
+@media (max-width: 767px) {
+  .keys-hint {
+    display: none;
+  }
+}
+
+/* After saving mid-game, the Save Set button becomes a link to the new set (KAN-78) */
+.saved-set-link {
+  text-decoration: none;
+  background: var(--bb-mist);
+  color: var(--bb-green-dark);
+  box-shadow: inset 0 0 0 2px var(--bb-green);
+}

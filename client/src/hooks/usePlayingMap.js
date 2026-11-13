@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { addBaseLayer } from '../utils/tileLayer';
+import { addBaseLayer, addLegalLinks } from '../utils/tileLayer';
 
 /**
  * Custom hook to initialize the playing map (map with tile layer for the game)
@@ -63,6 +63,7 @@ export function usePlayingMap({ gameMode, quizCenter, streets, mapRef }) {
         });
 
         addBaseLayer(map);
+        addLegalLinks(map);
 
         mapInstanceRef.current = map;
         mapInitialized.current = true;

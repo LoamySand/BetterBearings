@@ -1,17 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Save, CheckSquare, Square, Play, Star } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  CheckSquare,
+  Square,
+  Play,
+  Star,
+  TriangleAlert,
+  List,
+  Map as MapIcon,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import './StreetSetDetail.css';
 import { API_URL } from '../config';
+import { MAP_COLORS } from '../utils/mapColors';
 import { addBaseLayer } from '../utils/tileLayer';
+import StatusPanel from '../components/StatusPanel';
 
 export default function StreetSetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [streetSet, setStreetSet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,6 +33,9 @@ export default function StreetSetDetail() {
   const [selectAll, setSelectAll] = useState(true);
   const [hoveredStreetIndex, setHoveredStreetIndex] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  // Phones show one panel at a time (KAN-62); wider screens can hide the list for a larger map
+  const [phoneView, setPhoneView] = useState('list');
+  const [mapLarge, setMapLarge] = useState(false);
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -46,14 +63,15 @@ export default function StreetSetDetail() {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
+      // 700 shades: 4.8:1 or better on white and on the row hover background
       case 1:
-        return '#10b981'; // green
+        return '#047857'; // green
       case 2:
-        return '#f59e0b'; // orange
+        return '#b45309'; // amber
       case 3:
-        return '#ef4444'; // red
+        return '#b91c1c'; // red
       default:
-        return '#f59e0b';
+        return '#b45309';
     }
   };
 
@@ -71,12 +89,14 @@ export default function StreetSetDetail() {
   };
 
   useEffect(() => {
+    // On a direct load or refresh the stored token is still being checked; wait for it
+    if (authLoading) return;
     if (!isAuthenticated) {
       navigate('/');
       return;
     }
     fetchStreetSet();
-  }, [id, isAuthenticated, navigate]);
+  }, [id, authLoading, isAuthenticated, navigate]);
 
   const fetchStreetSet = async () => {
     try {
@@ -88,13 +108,16 @@ export default function StreetSetDetail() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch street set');
+        // The API answers 404 for another user's set too, so existence isn't revealed
+        throw new Error(
+          response.status === 404
+            ? "This street set doesn't exist, or it belongs to another account."
+            : 'Something went wrong loading it. Try again in a moment.'
+        );
       }
 
       const data = await response.json();
       setStreetSet(data);
-      console.log('Loaded street set:', data);
-      console.log('First street:', data.streets[0]);
 
       // Check if all streets are included
       const allIncluded = data.streets.every((s) => s.included);
@@ -109,8 +132,6 @@ export default function StreetSetDetail() {
   // Initialize map when street set loads
   useEffect(() => {
     if (!streetSet || !mapRef.current || mapInstanceRef.current) return;
-
-    console.log('Initializing map for street set');
 
     const map = window.L.map(mapRef.current, {
       center: [streetSet.center.lat, streetSet.center.lng],
@@ -168,7 +189,7 @@ export default function StreetSetDetail() {
         });
 
         const polyline = window.L.polyline(leafletCoords, {
-          color: isIncluded ? '#10b981' : '#9ca3af',
+          color: isIncluded ? MAP_COLORS.included : MAP_COLORS.excluded,
           weight: 3,
           opacity: isIncluded ? 0.8 : 0.5,
         }).addTo(map);
@@ -202,8 +223,6 @@ export default function StreetSetDetail() {
         polylinesRef.current[streetIndex].push(polyline);
       });
     });
-
-    console.log('Drew streets on map');
   };
 
   // Update street colors based on included status and hover state
@@ -221,7 +240,7 @@ export default function StreetSetDetail() {
         const isIncluded = prevStreet.included;
         prevPolylines.forEach((polyline) => {
           polyline.setStyle({
-            color: isIncluded ? '#10b981' : '#9ca3af',
+            color: isIncluded ? MAP_COLORS.included : MAP_COLORS.excluded,
             weight: 3,
             opacity: isIncluded ? 0.8 : 0.5,
           });
@@ -246,7 +265,7 @@ export default function StreetSetDetail() {
       if (previousIncluded === undefined || previousIncluded !== isIncluded) {
         polylines.forEach((polyline) => {
           polyline.setStyle({
-            color: isIncluded ? '#10b981' : '#9ca3af',
+            color: isIncluded ? MAP_COLORS.included : MAP_COLORS.excluded,
             weight: 3,
             opacity: isIncluded ? 0.8 : 0.5,
           });
@@ -260,7 +279,7 @@ export default function StreetSetDetail() {
       const polylines = polylinesRef.current[hoveredStreetIndex];
       polylines.forEach((polyline) => {
         polyline.setStyle({
-          color: '#f59e0b',
+          color: MAP_COLORS.selected,
           weight: 5,
           opacity: 1,
         });
@@ -270,6 +289,15 @@ export default function StreetSetDetail() {
     // Update previous hover index
     previousHoverIndexRef.current = hoveredStreetIndex;
   }, [hoveredStreetIndex, streetSet]);
+
+  // A panel that was hidden or resized leaves Leaflet with a stale size; on phones the map
+  // starts hidden, so its first real size arrives here. invalidateSize keeps the center.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return undefined;
+    const frame = requestAnimationFrame(() => map.invalidateSize());
+    return () => cancelAnimationFrame(frame);
+  }, [phoneView, mapLarge]);
 
   const handleToggleStreet = (index) => {
     // Save current map view before updating state
@@ -353,38 +381,11 @@ export default function StreetSetDetail() {
     }
   };
 
+  // The quiz panel on / opens with this set selected, so the player picks the question count.
+  // It plays the saved set, so unsaved changes here are left out.
   const handlePlay = () => {
     if (!streetSet) return;
-
-    navigate('/', {
-      state: {
-        streetSet: {
-          name: streetSet.name,
-          center: streetSet.center,
-          radius: streetSet.radius,
-          streets: streetSet.streets
-            .filter((s) => s.included)
-            .map((s) => ({
-              name: s.name,
-              // Convert coordinates array format to points format
-              points: s.coordinates.map((polyline) =>
-                polyline.map((coord) => {
-                  if (Array.isArray(coord)) {
-                    return { lat: coord[0], lng: coord[1] };
-                  }
-                  return coord;
-                })
-              ),
-              osmId: s.osmId,
-              type: s.type,
-              length: s.length,
-              width: s.width,
-              alternativeName: s.alternativeName,
-              isEnclosedArea: s.isEnclosedArea || false,
-            })),
-        },
-      },
-    });
+    navigate('/', { state: { streetSetId: streetSet.id } });
   };
 
   if (loading) {
@@ -392,9 +393,9 @@ export default function StreetSetDetail() {
       <div className="street-set-detail-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <div className="detail-container">
-          <p>Loading...</p>
-        </div>
+        <main className="status-page">
+          <StatusPanel variant="loading" title="Loading street set..." />
+        </main>
       </div>
     );
   }
@@ -404,7 +405,20 @@ export default function StreetSetDetail() {
       <div className="street-set-detail-page">
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         <AppHeader onSignIn={() => setShowAuthModal(true)} />
-        <div className="error-message">{error}</div>
+        <main className="status-page">
+          <StatusPanel
+            variant="error"
+            icon={TriangleAlert}
+            title="Couldn't open this street set"
+            actions={
+              <Link to="/street-sets" className="status-panel-action">
+                Back to my street sets
+              </Link>
+            }
+          >
+            <p>{error}</p>
+          </StatusPanel>
+        </main>
       </div>
     );
   }
@@ -420,83 +434,130 @@ export default function StreetSetDetail() {
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
       <AppHeader onSignIn={() => setShowAuthModal(true)} />
 
-      <div className="detail-header">
-        <button onClick={() => navigate('/street-sets')} className="btn-back">
-          <ArrowLeft size={20} />
-          Back
-        </button>
-        <div className="header-content">
-          <h1>{streetSet.name}</h1>
-          {streetSet.description && <p className="subtitle">{streetSet.description}</p>}
-          <p className="street-count">
-            {includedCount} of {streetSet.streets.length} streets selected
-          </p>
-        </div>
-        <div className="header-actions">
-          <button onClick={handleSave} className="btn-save" disabled={saving}>
-            <Save size={20} />
-            {saving ? 'Saving...' : 'Save Changes'}
+      <main>
+        <div className="detail-header">
+          <button onClick={() => navigate('/street-sets')} className="btn-back">
+            <ArrowLeft size={20} aria-hidden="true" />
+            <span className="btn-back-label">Back</span>
           </button>
-          <button onClick={handlePlay} className="btn-play-set">
-            <Play size={20} />
-            Play This Set
-          </button>
+          <div className="detail-header-text">
+            <h1>{streetSet.name}</h1>
+            {streetSet.description && <p className="subtitle">{streetSet.description}</p>}
+            <p className="street-count">
+              {includedCount} of {streetSet.streets.length} streets selected
+            </p>
+          </div>
+          <div className="detail-actions">
+            <button onClick={handleSave} className="detail-save" disabled={saving}>
+              <Save size={20} aria-hidden="true" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={handlePlay} className="btn-play-set">
+              <Play size={20} aria-hidden="true" />
+              Play This Set
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="detail-container">
-        <div>
-          <div className="content-split">
-            <div className="left-panel">
-              <div className="select-all-section">
-                <button onClick={handleSelectAll} className="select-all-button">
-                  {selectAll ? <CheckSquare size={24} /> : <Square size={24} />}
-                  <span>{selectAll ? 'Deselect All' : 'Select All'}</span>
+        <div className="detail-container">
+          <div>
+            <div className="view-toggle" role="group" aria-label="Show">
+              <button
+                type="button"
+                className="view-toggle-button"
+                aria-pressed={phoneView === 'list'}
+                onClick={() => setPhoneView('list')}
+              >
+                <List size={18} aria-hidden="true" />
+                List
+              </button>
+              <button
+                type="button"
+                className="view-toggle-button"
+                aria-pressed={phoneView === 'map'}
+                onClick={() => setPhoneView('map')}
+              >
+                <MapIcon size={18} aria-hidden="true" />
+                Map
+              </button>
+            </div>
+            <div className={`content-split show-${phoneView}${mapLarge ? ' map-large' : ''}`}>
+              <div className="left-panel">
+                <div className="select-all-section">
+                  <button onClick={handleSelectAll} className="select-all-button">
+                    {selectAll ? <CheckSquare size={24} /> : <Square size={24} />}
+                    <span>{selectAll ? 'Deselect All' : 'Select All'}</span>
+                  </button>
+                </div>
+
+                <div className="streets-list">
+                  {getSortedStreets().map((street) => {
+                    const originalIndex = streetSet.streets.findIndex(
+                      (s) => s.name === street.name && s.osmId === street.osmId
+                    );
+                    const difficulty = getStreetDifficulty(street);
+                    return (
+                      <div
+                        key={originalIndex}
+                        className={`street-item ${street.included ? 'included' : 'excluded'}`}
+                        // A checkbox for keyboards and screen readers: Tab reaches it, Space toggles (KAN-64)
+                        role="checkbox"
+                        aria-checked={street.included}
+                        tabIndex={0}
+                        onClick={() => handleToggleStreet(originalIndex)}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            handleToggleStreet(originalIndex);
+                          }
+                        }}
+                        onFocus={() => setHoveredStreetIndex(originalIndex)}
+                        onBlur={() => setHoveredStreetIndex(null)}
+                        onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
+                        onMouseLeave={() => setHoveredStreetIndex(null)}
+                      >
+                        <div className="checkbox" aria-hidden="true">
+                          {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
+                        </div>
+                        <div className="street-info">
+                          <span className="detail-street-name">{street.name}</span>
+                          {street.alternativeName && (
+                            <span className="alt-name">({street.alternativeName})</span>
+                          )}
+                        </div>
+                        <div
+                          className="difficulty-badge"
+                          style={{ color: getDifficultyColor(difficulty) }}
+                        >
+                          <Star size={16} fill={getDifficultyColor(difficulty)} />
+                          <span>{getDifficultyLabel(difficulty)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="right-panel">
+                <div ref={mapRef} className="detail-map" />
+                <button
+                  type="button"
+                  className="btn-map-size"
+                  aria-pressed={mapLarge}
+                  onClick={() => setMapLarge((large) => !large)}
+                >
+                  {mapLarge ? (
+                    <Minimize2 size={18} aria-hidden="true" />
+                  ) : (
+                    <Maximize2 size={18} aria-hidden="true" />
+                  )}
+                  {mapLarge ? 'Show list' : 'Larger map'}
                 </button>
               </div>
-
-              <div className="streets-list">
-                {getSortedStreets().map((street) => {
-                  const originalIndex = streetSet.streets.findIndex(
-                    (s) => s.name === street.name && s.osmId === street.osmId
-                  );
-                  const difficulty = getStreetDifficulty(street);
-                  return (
-                    <div
-                      key={originalIndex}
-                      className={`street-item ${street.included ? 'included' : 'excluded'}`}
-                      onClick={() => handleToggleStreet(originalIndex)}
-                      onMouseEnter={() => setHoveredStreetIndex(originalIndex)}
-                      onMouseLeave={() => setHoveredStreetIndex(null)}
-                    >
-                      <div className="checkbox">
-                        {street.included ? <CheckSquare size={20} /> : <Square size={20} />}
-                      </div>
-                      <div className="street-info">
-                        <span className="street-name">{street.name}</span>
-                        {street.alternativeName && (
-                          <span className="alt-name">({street.alternativeName})</span>
-                        )}
-                      </div>
-                      <div
-                        className="difficulty-badge"
-                        style={{ color: getDifficultyColor(difficulty) }}
-                      >
-                        <Star size={16} fill={getDifficultyColor(difficulty)} />
-                        <span>{getDifficultyLabel(difficulty)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="right-panel">
-              <div ref={mapRef} className="detail-map" />
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

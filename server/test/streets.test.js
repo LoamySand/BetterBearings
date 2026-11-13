@@ -129,6 +129,52 @@ describe('GET /api/streets', () => {
     assert.equal((await near({ difficulty: 'taxi-driver' })).body.streets.length, 3);
   });
 
+  test('a street takes its dominant class, by meters (KAN-73)', async () => {
+    // Osuna: the oldest segment (lowest osm_id) is a short tertiary end; most of it is secondary
+    await insertOsmStreet({
+      osmId: 1,
+      name: 'Osuna Road',
+      highway: 'tertiary',
+      coordinates: ns(LNG),
+    });
+    await insertOsmStreet({
+      osmId: 2,
+      name: 'Osuna Road',
+      highway: 'secondary',
+      coordinates: ns(LNG, LAT + 0.002, LAT + 0.004),
+    });
+    await insertOsmStreet({
+      osmId: 3,
+      name: 'Osuna Road',
+      highway: 'secondary',
+      coordinates: ns(LNG, LAT + 0.004, LAT + 0.006),
+    });
+    // Mostly residential, with one secondary block long enough to qualify on its own
+    await insertOsmStreet({
+      osmId: 4,
+      name: 'Edith Boulevard',
+      highway: 'secondary',
+      coordinates: ns(LNG + 0.002),
+    });
+    for (const [i, lat0] of [LAT + 0.002, LAT + 0.004].entries()) {
+      await insertOsmStreet({
+        osmId: 5 + i,
+        name: 'Edith Boulevard',
+        highway: 'residential',
+        coordinates: ns(LNG + 0.002, lat0, lat0 + 0.002),
+      });
+    }
+
+    const types = async (difficulty) =>
+      Object.fromEntries((await near({ difficulty })).body.streets.map((s) => [s.name, s.type]));
+    assert.deepEqual(await types('tourist'), { 'Osuna Road': 'secondary' });
+    assert.deepEqual(await types('resident'), { 'Osuna Road': 'secondary' });
+    assert.deepEqual(await types('taxi-driver'), {
+      'Osuna Road': 'secondary',
+      'Edith Boulevard': 'residential',
+    });
+  });
+
   test('major state roads match on ref, not type', async () => {
     await insertOsmStreet({
       osmId: 1,
@@ -242,10 +288,91 @@ describe('GET /api/streets', () => {
     assert.equal(new Set(names(res)).size, 3);
   });
 
-  test('an area with no streets gives an empty list', async () => {
+  describe('balanced pick across levels (KAN-75)', () => {
+    // n streets of one road class, 22 m apart, all inside the 1 km radius
+    let nextId = 1;
+    const addStreets = async (highway, n) => {
+      for (let i = 0; i < n; i++) {
+        const id = nextId++;
+        await insertOsmStreet({
+          osmId: id,
+          name: `${highway} ${i}`,
+          highway,
+          coordinates: ns(LNG + id * 0.0002),
+        });
+      }
+    };
+    const LEVEL = { secondary: 'easy', tertiary: 'medium', residential: 'hard' };
+    const split = async (query) => {
+      const counts = { easy: 0, medium: 0, hard: 0 };
+      const res = await near({ difficulty: 'taxi-driver', ...query });
+      for (const s of res.body.streets) counts[LEVEL[s.type]]++;
+      return counts;
+    };
+    beforeEach(() => {
+      nextId = 1;
+    });
+
+    test('a third of count per level when every level has enough', async () => {
+      await addStreets('secondary', 10);
+      await addStreets('tertiary', 10);
+      await addStreets('residential', 10);
+      assert.deepEqual(await split({ count: 9 }), { easy: 3, medium: 3, hard: 3 });
+      // Uneven count: the extra goes to the easier level
+      assert.deepEqual(await split({ count: 10 }), { easy: 4, medium: 3, hard: 3 });
+    });
+
+    test('a short level rolls its slots over to the others', async () => {
+      await addStreets('secondary', 1);
+      await addStreets('tertiary', 10);
+      await addStreets('residential', 10);
+      assert.deepEqual(await split({ count: 9 }), { easy: 1, medium: 4, hard: 4 });
+      // Medium level allows no Hard: Easy runs out, Medium takes the rest
+      assert.deepEqual(await split({ count: 9, difficulty: 'resident' }), {
+        easy: 1,
+        medium: 8,
+        hard: 0,
+      });
+    });
+
+    test('an area with fewer streets than count gives every street', async () => {
+      await addStreets('secondary', 2);
+      await addStreets('tertiary', 1);
+      await addStreets('residential', 3);
+      assert.deepEqual(await split({ count: 50 }), { easy: 2, medium: 1, hard: 3 });
+    });
+  });
+
+  test('an area with no streets gives an empty list and hasData false', async () => {
+    // What a circle outside the imported extract gets (KAN-63)
     const res = await near();
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { streets: [] });
+    assert.deepEqual(res.body, { streets: [], hasData: false });
+  });
+
+  test('streets in the area but none at this level give hasData true', async () => {
+    // A residential street is Hard; an Easy (tourist) game finds nothing to ask
+    await insertOsmStreet({
+      osmId: 1,
+      name: 'Quiet Lane',
+      highway: 'residential',
+      coordinates: ns(LNG),
+    });
+    const res = await near({ difficulty: 'tourist' });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { streets: [], hasData: true });
+  });
+
+  test('hasData is only sent with an empty list', async () => {
+    await insertOsmStreet({
+      osmId: 1,
+      name: 'Central Avenue',
+      highway: 'primary',
+      coordinates: ns(LNG),
+    });
+    const res = await near({ difficulty: 'tourist' });
+    assert.equal(res.body.streets.length, 1);
+    assert.equal('hasData' in res.body, false);
   });
 
   test('radius over 5000 is a 400', async () => {
