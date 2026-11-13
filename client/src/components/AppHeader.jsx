@@ -1,4 +1,4 @@
-import { Target, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ export default function AppHeader({ onSignIn }) {
       <div className="app-header-brand">
         <h1 className="app-title">
           <Link to="/" className="app-title-link">
-            <Target className="app-icon" aria-hidden="true" />
+            <img src="/favicon.svg" className="app-icon" alt="" width="32" height="32" />
             BetterBearings
           </Link>
         </h1>

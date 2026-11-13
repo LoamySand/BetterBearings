@@ -32,6 +32,11 @@
   opacity: 0.8;
 }
 
+.app-icon {
+  flex-shrink: 0;
+  border-radius: 7px;
+}
+
 .app-title-link {
   display: flex;
   align-items: center;
@@ -66,10 +71,9 @@
     gap: 0.4rem !important;
   }
 
-  .app-icon,
-  .app-title svg {
-    width: 18px !important;
-    height: 18px !important;
+  .app-icon {
+    width: 20px !important;
+    height: 20px !important;
   }
 }
 
