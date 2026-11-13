@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--bb-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,9 +12,9 @@
 }
 
 .create-modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  background: var(--bb-white);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   padding: 2rem;
   max-width: 600px;
   width: 90vw;
@@ -26,12 +26,12 @@
 .create-modal h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: #1F2937;
+  color: var(--bb-ink);
 }
 
 .create-modal-subtitle {
   margin: 0 0 1.5rem 0;
-  color: #6B7280;
+  color: var(--bb-muted);
   font-size: 0.95rem;
 }
 
@@ -42,7 +42,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #6B7280;
+  color: var(--bb-muted);
   padding: 0.5rem;
   display: flex;
   align-items: center;
@@ -52,7 +52,7 @@
 }
 
 .create-modal-close:hover {
-  color: #1F2937;
+  color: var(--bb-ink);
 }
 
 .create-modal-content {
@@ -68,17 +68,18 @@
 }
 
 .create-field label {
-  font-weight: 600;
-  color: #374151;
+  font-weight: 700;
+  color: var(--bb-ink);
   font-size: 0.95rem;
 }
 
 .create-select {
   padding: 0.75rem;
-  border: 2px solid #E5E7EB;
-  border-radius: 8px;
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  background-color: #F9FAFB;
+  color: var(--bb-ink);
+  background-color: var(--bb-white);
   cursor: pointer;
   transition: border-color 0.2s;
   min-height: 44px;
@@ -86,13 +87,13 @@
 }
 
 .create-select:hover {
-  border-color: #4F46E5;
+  border-color: var(--bb-green);
 }
 
 .create-select:focus {
   outline: none;
-  border-color: #4F46E5;
-  background-color: white;
+  border-color: var(--bb-green);
+  box-shadow: 0 0 0 3px var(--bb-field-ring);
 }
 
 .map-container {
@@ -104,15 +105,14 @@
 .create-map {
   width: 100%;
   height: 300px;
-  border-radius: 8px;
-  border: 2px solid #E5E7EB;
+  border-radius: var(--bb-radius);
+  border: 2px solid var(--bb-line);
 }
 
 .map-instruction {
   margin: 0;
-  font-size: 0.85rem;
-  color: #6B7280;
-  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--bb-muted);
   text-align: center;
 }
 
@@ -127,45 +127,40 @@
 .btn-select {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .create-cancel {
-  background: #E5E7EB;
-  color: #374151;
+  background: var(--bb-white);
+  color: var(--bb-ink);
+  box-shadow: inset 0 0 0 2px var(--bb-line);
   justify-content: center;
   flex: 1;
 }
 
 .create-cancel:hover {
-  background: #D1D5DB;
+  background: var(--bb-mist);
 }
 
 .btn-select {
-  background: #10B981;
-  color: white;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
 }
 
-.btn-select:hover {
-  background: #059669;
-  transform: translateY(-2px);
-}
-
-.btn-select:active {
-  transform: translateY(0);
+.btn-select:hover:not(:disabled) {
+  background: var(--bb-yellow-dark);
 }
 
 .btn-select:disabled {
-  background: #9ca3af;
+  opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* Phones: a full-screen sheet, and the map takes the height left over (KAN-62) */

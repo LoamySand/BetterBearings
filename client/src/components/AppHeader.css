@@ -1,10 +1,11 @@
 .app-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  /* White with a sign-green rule underneath (KAN-81) */
+  background: var(--bb-white);
+  border-bottom: 3px solid var(--bb-green);
   /* viewport-fit=cover (index.html) puts the page under notches; keep the header inside the safe area */
-  padding: calc(1.5rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right)) 1.5rem
-    calc(1.5rem + env(safe-area-inset-left));
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* The bottom padding gives up the rule's 3 px, so the header keeps its height */
+  padding: calc(1.5rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
+    calc(1.5rem - 3px) calc(1.5rem + env(safe-area-inset-left));
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -21,8 +22,9 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 1.75rem;
-  font-weight: bold;
-  color: #1f2937;
+  font-weight: 700;
+  color: var(--bb-ink);
+  line-height: 1.2;
   margin: 0;
   transition: opacity 0.2s;
   white-space: nowrap;
@@ -47,13 +49,13 @@
 }
 
 .app-title-link:focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 3px solid var(--bb-focus);
   outline-offset: 4px;
 }
 
 @media (max-width: 768px) {
   .app-header {
-    padding: calc(0.5rem + env(safe-area-inset-top)) env(safe-area-inset-right) 0.5rem
+    padding: calc(0.5rem + env(safe-area-inset-top)) env(safe-area-inset-right) calc(0.5rem - 3px)
       env(safe-area-inset-left) !important;
     gap: 0.5rem !important;
   }
@@ -88,20 +90,18 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: background-color 0.15s;
 }
 
 .app-header-sign-in:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  background: var(--bb-yellow-dark);
 }
 
 @media (max-width: 768px) {

@@ -22,11 +22,11 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+  background: var(--bb-green);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--bb-white);
   transition: transform 0.2s;
 }
 
@@ -38,9 +38,10 @@
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  background: var(--bb-white);
+  border: 1px solid var(--bb-line);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   min-width: 220px;
   /* The menu hangs from the right edge of the button; at 360 px a long email can't push it off screen */
   max-width: calc(100vw - 1.5rem);
@@ -62,8 +63,8 @@
 
 .dropdown-header {
   padding: 1rem;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  color: white;
+  background: var(--bb-green);
+  color: var(--bb-white);
 }
 
 .profile-user-info {
@@ -85,7 +86,7 @@
 
 .dropdown-divider {
   height: 1px;
-  background: #e5e7eb;
+  background: var(--bb-line);
   margin: 0.5rem 0;
 }
 
@@ -99,30 +100,30 @@
   align-items: center;
   gap: 0.75rem;
   cursor: pointer;
-  color: #374151;
+  color: var(--bb-text);
   font-size: 0.9375rem;
   transition: background-color 0.15s;
   text-align: left;
 }
 
 .dropdown-item:hover {
-  background-color: #f3f4f6;
+  background-color: var(--bb-mist);
 }
 
 .dropdown-item.logout {
-  color: #dc2626;
+  color: var(--bb-red);
 }
 
 .dropdown-item.logout:hover {
-  background-color: #fee2e2;
+  background-color: var(--bb-red-soft);
 }
 
 .dropdown-item.delete-account {
-  color: #b91c1c;
+  color: var(--bb-red);
 }
 
 .dropdown-item.delete-account:hover {
-  background-color: #fee2e2;
+  background-color: var(--bb-red-soft);
 }
 
 .dropdown-item svg {
@@ -138,6 +139,6 @@
 }
 
 .profile-button:focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 3px solid var(--bb-focus);
   outline-offset: 2px;
 }
