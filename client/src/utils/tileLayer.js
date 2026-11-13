@@ -55,3 +55,16 @@ export function addBaseLayer(map) {
     attribution: tiles.attribution,
   }).addTo(map);
 }
+
+// Privacy and Terms links in the attribution strip (KAN-67). The game screen is a full-screen map
+// with no room for SiteFooter, so this is how the home page links the policies. They replace
+// Leaflet's own credit, which kept the strip from fitting on one line at 360 to 390 px; the
+// Terms page credits Leaflet instead. New tabs, so a tap mid-game doesn't end the game.
+const NEW_TAB = '<span class="sr-only"> (opens in a new tab)</span>';
+const LEGAL_PREFIX =
+  `<a href="/privacy" target="_blank" rel="noopener">Privacy${NEW_TAB}</a> · ` +
+  `<a href="/terms" target="_blank" rel="noopener">Terms${NEW_TAB}</a>`;
+
+export function addLegalLinks(map) {
+  map.attributionControl?.setPrefix(LEGAL_PREFIX);
+}

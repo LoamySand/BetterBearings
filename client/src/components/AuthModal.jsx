@@ -128,6 +128,22 @@ export default function AuthModal({ onClose }) {
           <button type="submit" className="auth-submit-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Please wait...' : isLogin ? 'Log In' : 'Sign Up'}
           </button>
+
+          {/* Below the button, so the button stays above the phone keyboard (KAN-67). New tabs
+              keep a half-filled form. */}
+          {!isLogin && (
+            <p className="auth-legal">
+              By signing up you agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener">
+                Terms of Use<span className="sr-only"> (opens in a new tab)</span>
+              </a>{' '}
+              and acknowledge the{' '}
+              <a href="/privacy" target="_blank" rel="noopener">
+                Privacy Policy<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+              .
+            </p>
+          )}
         </form>
 
         <div className="auth-toggle">

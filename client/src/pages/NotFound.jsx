@@ -4,6 +4,7 @@ import { Compass } from 'lucide-react';
 import AppHeader from '../components/AppHeader';
 import AuthModal from '../components/AuthModal';
 import StatusPanel from '../components/StatusPanel';
+import SiteFooter from '../components/SiteFooter';
 
 // Any client route App doesn't know (KAN-63). The server's SPA fallback sends index.html for
 // every path, so this is where a bad URL ends up.
@@ -26,6 +27,7 @@ export default function NotFound() {
           <p>Nothing lives at this address. Check the link, or start a game from the map.</p>
         </StatusPanel>
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import CreateStreetSetModal from '../components/CreateStreetSetModal';
 import './StreetSets.css';
 import { API_URL } from '../config';
 import StatusPanel from '../components/StatusPanel';
+import SiteFooter from '../components/SiteFooter';
 
 export default function StreetSets() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
@@ -247,6 +248,7 @@ export default function StreetSets() {
           )}
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

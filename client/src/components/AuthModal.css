@@ -178,6 +178,20 @@
   padding: 0 0.5rem;
 }
 
+.auth-legal {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth-legal a {
+  color: #4338ca;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Phones: a full-width sheet at the top of the screen, so the submit button stays above the
    on-screen keyboard, which rises from the bottom (KAN-61). Inputs keep 16 px text so iOS
    doesn't zoom on focus. */

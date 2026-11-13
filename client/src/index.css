@@ -345,7 +345,9 @@ body {
   white-space: nowrap;
 }
 
-/* Comfortable line length for long text (about 70 characters), for pages like the L1 policies */
+/* Comfortable line length for long text, for pages like the L1 policies: about 70 characters of
+   16 px body text. Set in rem, not ch: 1ch is the width of "0", which varies by font and is
+   wider than the average letter (70ch measured 85 characters per line). */
 .readable {
-  max-width: 70ch;
+  max-width: 33rem;
 }

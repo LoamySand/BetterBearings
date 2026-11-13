@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { addBaseLayer } from '../utils/tileLayer';
+import { addBaseLayer, addLegalLinks } from '../utils/tileLayer';
 
 /**
  * Custom hook to manage Leaflet map initialization and lifecycle
@@ -62,6 +62,7 @@ export function useLeafletMap({
         });
 
         addBaseLayer(map);
+        addLegalLinks(map);
 
         mapInstanceRef.current = map;
         selectionMapInitialized.current = true;
