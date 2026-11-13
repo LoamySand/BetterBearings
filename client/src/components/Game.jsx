@@ -12,6 +12,9 @@ import {
   MapPinOff,
   SearchX,
   Check,
+  Layers,
+  RotateCcw,
+  Map as MapIcon,
 } from 'lucide-react';
 import StatusPanel from './StatusPanel';
 import { describeStreetError } from '../utils/streetErrors';
@@ -23,6 +26,7 @@ import { useLeafletMap } from '../hooks/useLeafletMap';
 import { usePlayingMap } from '../hooks/usePlayingMap';
 import { useStreetPolylines } from '../hooks/useStreetPolylines';
 import { useKeyboardPlay } from '../hooks/useKeyboardPlay';
+import { signParts } from '../utils/streetSign';
 import { useQuizCircle } from '../hooks/useQuizCircle';
 import { useAuth } from '../contexts/AuthContext';
 import AppHeader from './AppHeader';
@@ -548,7 +552,8 @@ export default function StreetFinderGame() {
               className="street-set-badge"
               title="Open this street set"
             >
-              📚 {streetSetName}
+              <Layers size={14} aria-hidden="true" />
+              {streetSetName}
             </Link>
           )}
           <span className="sr-only" role="status">
@@ -632,8 +637,11 @@ export default function StreetFinderGame() {
                     {plan.options.length} streets here, so {plan.count} questions
                   </p>
                 )}
-                <h2 className="question">Find this street:</h2>
-                <h3 className="game-street-name">{currentStreet.name}</h3>
+                <h2 className="question">Find this street</h2>
+                {/* Screen readers get the full name; the sign shows it the way a street sign
+                    does, with the type and quadrant small and abbreviated (KAN-81) */}
+                <h3 className="game-street-name sr-only">{currentStreet.name}</h3>
+                <StreetSign name={currentStreet.name} />
                 {feedback && (
                   <div
                     className={`feedback ${feedback.includes('Correct') ? 'correct' : 'incorrect'}`}
@@ -749,13 +757,29 @@ function GameOverDialog({ finalScore, onPlaySameArea, onChooseNewArea }) {
         </div>
         <div className="game-over-buttons">
           <button onClick={onPlaySameArea} className="btn-restart">
-            🔄 Play Same Area
+            <RotateCcw size={18} aria-hidden="true" />
+            Play Same Area
           </button>
           <button onClick={onChooseNewArea} className="btn-restart btn-secondary">
-            🗺️ Choose New Area
+            <MapIcon size={18} aria-hidden="true" />
+            Choose New Area
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// The street to find, drawn as a street-name sign: green blade, white inset border, the name
+// large and the type and quadrant small (KAN-81). Hidden from screen readers, which read the
+// full name in the heading above it.
+function StreetSign({ name }) {
+  const { prefix, main, suffix } = signParts(name);
+  return (
+    <div className="game-sign" aria-hidden="true">
+      {prefix && <span className="game-sign-small">{prefix}</span>}
+      <span className="game-sign-name">{main}</span>
+      {suffix && <span className="game-sign-small">{suffix}</span>}
     </div>
   );
 }

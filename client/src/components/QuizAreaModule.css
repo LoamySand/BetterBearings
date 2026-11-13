@@ -1,6 +1,6 @@
 .quiz-area-module {
-  background: white;
-  border-radius: 12px;
+  background: var(--bb-white);
+  border-radius: var(--bb-radius-lg);
   padding: 1.25rem;
 }
 
@@ -9,15 +9,15 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
-  border-bottom: 2px solid #4F46E5;
+  border-bottom: 3px solid var(--bb-green);
   padding-bottom: 0.75rem;
-  color: #4F46E5;
+  color: var(--bb-green);
 }
 
 .quiz-module-header h2 {
   margin: 0;
   font-size: 1.125rem;
-  color: #1F2937;
+  color: var(--bb-ink);
 }
 
 /* Phones only; the panel can't be closed when it sits top right */
@@ -38,8 +38,8 @@
 }
 
 .quiz-field label {
-  font-weight: 600;
-  color: #374151;
+  font-weight: 700;
+  color: var(--bb-ink);
   font-size: 0.95rem;
 }
 
@@ -47,23 +47,24 @@
   width: 100%;
   min-height: 44px;
   padding: 0.75rem;
-  border: 2px solid #E5E7EB;
-  border-radius: 8px;
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  background-color: #F9FAFB;
+  color: var(--bb-ink);
+  background-color: var(--bb-white);
   cursor: pointer;
   transition: border-color 0.2s;
   font-family: inherit;
 }
 
 .quiz-select:hover {
-  border-color: #4F46E5;
+  border-color: var(--bb-green);
 }
 
 .quiz-select:focus {
   outline: none;
-  border-color: #4F46E5;
-  background-color: white;
+  border-color: var(--bb-green);
+  box-shadow: 0 0 0 3px var(--bb-field-ring);
 }
 
 .count-label-row {
@@ -83,17 +84,18 @@
   width: 4.5rem;
   min-height: 44px;
   padding: 0.75rem 1rem;
-  border: 2px solid #E5E7EB;
-  border-radius: 8px;
+  border: 2px solid var(--bb-field-border);
+  border-radius: var(--bb-radius);
   font-size: 1rem;
+  color: var(--bb-ink);
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .number-input:focus {
   outline: none;
-  border-color: #4F46E5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: var(--bb-green);
+  box-shadow: 0 0 0 3px var(--bb-field-ring);
 }
 
 /* The input is 44 px tall for touch; the visible track is drawn 6 px tall inside it. */
@@ -115,17 +117,17 @@
 .number-slider::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 3px;
-  background: #E5E7EB;
+  background: var(--bb-line);
 }
 
 .number-slider::-moz-range-track {
   height: 6px;
   border-radius: 3px;
-  background: #E5E7EB;
+  background: var(--bb-line);
 }
 
 .number-input-group .number-slider:focus-visible {
-  outline: 2px solid #4F46E5;
+  outline: 3px solid var(--bb-focus);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -137,9 +139,11 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #4F46E5;
+  background: var(--bb-green);
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 3px var(--bb-white),
+    0 1px 3px rgba(20, 35, 29, 0.4);
   transition: transform 0.2s;
 }
 
@@ -151,10 +155,12 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #4F46E5;
+  background: var(--bb-green);
   cursor: pointer;
   border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 3px var(--bb-white),
+    0 1px 3px rgba(20, 35, 29, 0.4);
   transition: transform 0.2s;
 }
 
@@ -163,9 +169,9 @@
 }
 
 .number-max {
-  color: #4B5563;
+  color: var(--bb-muted);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -176,46 +182,37 @@
   gap: 0.5rem;
   min-height: 48px;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  color: white;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
   border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: var(--bb-radius);
+  font-size: 1.0625rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background-color 0.15s;
   margin-top: 0.5rem;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .quiz-play:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
 }
 
 .quiz-note {
   margin: 0.5rem 0 0;
-  font-size: 0.8rem;
-  color: #4b5563;
+  font-size: 0.8125rem;
+  color: var(--bb-muted);
 }
 
 .quiz-play:hover:not(:disabled) {
-  background: #4338CA;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-}
-
-.quiz-play:active {
-  transform: translateY(0);
+  background: var(--bb-yellow-dark);
 }
 
 .quiz-area-instruction {
   text-align: center;
-  color: #6B7280;
+  color: var(--bb-muted);
   font-size: 0.875rem;
   margin: 1rem 0 0 0;
-  font-style: italic;
 }
 
 /* Phones: the panel is a bottom sheet (Game.css). Inputs keep 16 px text so iOS doesn't zoom. */
@@ -237,23 +234,17 @@
     height: 44px;
     margin: -0.25rem -0.5rem 0 auto;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--bb-radius);
     background: transparent;
-    color: #374151;
+    color: var(--bb-text);
     cursor: pointer;
   }
 
   .quiz-close:hover {
-    background: #F3F4F6;
-  }
-
-  .quiz-close:focus-visible {
-    outline: 2px solid #4F46E5;
+    background: var(--bb-mist);
   }
 
   .quiz-module-content {
     gap: 0.75rem;
   }
-
-
 }

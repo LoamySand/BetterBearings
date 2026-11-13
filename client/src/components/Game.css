@@ -7,14 +7,13 @@
   touch-action: manipulation;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+  background: var(--bb-mist);
 }
 
 .game-info-bar {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: var(--bb-white);
   padding: 0.75rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--bb-line);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -37,24 +36,26 @@
 }
 
 .street-set-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   text-decoration: none;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-weight: 600;
+  background: var(--bb-green);
+  color: var(--bb-white);
+  padding: 0.3125rem 0.75rem 0.1875rem;
+  border-radius: var(--bb-radius);
+  font-weight: 700;
   font-size: 0.875rem;
 }
 
 .street-set-badge:hover {
-  filter: brightness(1.1);
+  background: var(--bb-green-dark);
 }
 
 .game-meta {
   font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
+  color: var(--bb-muted);
+  font-weight: 400;
 }
 
 .game-stats {
@@ -76,13 +77,13 @@
   align-items: center;
   gap: 0.25rem;
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #4b5563;
+  font-weight: 700;
+  color: var(--bb-ink);
   flex-direction: column;
 }
 
 .game-stat svg {
-  color: #f59e0b;
+  color: var(--bb-green);
 }
 
 .game-content {
@@ -97,15 +98,13 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: white;
+  background: var(--bb-white);
   padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   text-align: center;
   z-index: 1000;
-  max-width: 280px;
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.98);
+  max-width: 320px;
 }
 
 /* Phone-only rows of the question panel; the info bar shows these on wider screens */
@@ -116,24 +115,46 @@
 
 .question {
   font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 0.25rem 0;
-  font-weight: 600;
+  color: var(--bb-muted);
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
 }
 
-.game-street-name {
+/* The street to find as a US street-name sign (KAN-81): sign green, a white border inset from
+   the edge, the name large and the type and quadrant small. The one place this look is used. */
+.game-sign {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 0.375rem;
+  /* As wide as the name, like a real blade, up to the panel's width */
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 0.25rem;
+  padding: 0.5rem 1rem 0.25rem;
+  border-radius: 7px;
+  background: var(--bb-green);
+  color: var(--bb-white);
+  box-shadow:
+    inset 0 0 0 3px var(--bb-green),
+    inset 0 0 0 5px var(--bb-white);
+  line-height: 1.1;
+}
+
+.game-sign-name {
+  font-size: 1.625rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.game-sign-small {
   font-size: 1rem;
-  font-weight: 500;
-  color: #1f2937;
-  margin: 0.25rem 0 0.5rem 0;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
 }
 
 .instruction {
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
@@ -141,45 +162,45 @@
 .btn-save-set {
   margin-top: 0.75rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  color: white;
+  background: var(--bb-white);
+  color: var(--bb-ink);
   border: none;
-  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--bb-line);
+  border-radius: var(--bb-radius);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
 }
 
 .btn-save-set:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: var(--bb-mist);
 }
 
 .feedback {
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--bb-radius);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0.75rem 0;
   animation: slideIn 0.3s ease-out;
 }
 
 .feedback.correct {
-  background: #d1fae5;
-  color: #065f46;
-  border: 2px solid #10b981;
+  background: var(--bb-mist);
+  color: var(--bb-green-dark);
+  border: 2px solid var(--bb-green);
 }
 
 .feedback.incorrect {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 2px solid #ef4444;
+  background: var(--bb-red-soft);
+  color: var(--bb-red);
+  border: 2px solid var(--bb-red);
 }
 
 @keyframes slideIn {
@@ -209,7 +230,7 @@
   position: fixed;
   inset: 0;
   z-index: 3000;
-  background: rgba(17, 24, 39, 0.5);
+  background: var(--bb-overlay);
   overflow-y: auto;
   display: flex;
   align-items: center;
@@ -218,26 +239,26 @@
 }
 
 .game-over-content {
-  background: white;
+  background: var(--bb-white);
   max-height: calc(100dvh - 2rem);
   overflow-y: auto;
   padding: 3rem;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
   text-align: center;
   max-width: 500px;
   width: 100%;
 }
 
 .trophy-icon {
-  color: #f59e0b;
+  color: var(--bb-green);
   margin-bottom: 1rem;
 }
 
 .game-over-content h2 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
-  color: #1f2937;
+  color: var(--bb-ink);
 }
 
 .final-score {
@@ -245,45 +266,45 @@
 }
 
 .final-score p {
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 1rem;
   margin: 0.5rem 0;
 }
 
 .final-score .final-score-value {
   font-size: 4rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bb-green);
   margin: 1rem 0;
 }
 
 .score-message {
   font-size: 1.5rem !important;
   margin-top: 1rem !important;
+  color: var(--bb-ink) !important;
 }
 
 .btn-restart {
   min-height: 48px;
-  background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--bb-yellow);
+  color: var(--bb-ink);
   padding: 1rem 3rem;
   border: none;
-  border-radius: 50px;
+  border-radius: var(--bb-radius);
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: background-color 0.15s;
   margin-top: 1rem;
 }
 
 .btn-restart:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  background: var(--bb-yellow-dark);
 }
 
 @media (max-width: 768px) {
@@ -312,26 +333,34 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.8125rem;
-    font-weight: 600;
-    color: #4b5563;
+    font-weight: 700;
+    color: var(--bb-text);
     margin-bottom: 0.25rem;
   }
 
   .question-capped {
     display: block;
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--bb-muted);
     margin: 0 0 0.25rem;
   }
 
   .question {
     font-size: 0.75rem;
-    margin: 0;
+    margin: 0 0 0.25rem;
   }
 
-  .game-street-name {
-    font-size: 0.95rem;
-    margin: 0.125rem 0 0.25rem 0;
+  /* 22 px name on phones: KAN-61 left the old one at 15.2 px instead of U2's 18 */
+  .game-sign {
+    padding: 0.375rem 0.75rem 0.1875rem;
+  }
+
+  .game-sign-name {
+    font-size: 1.375rem;
+  }
+
+  .game-sign-small {
+    font-size: 0.9375rem;
   }
 
   /* The prompt is clear without it, and the sheet should stay short */
@@ -357,7 +386,6 @@
 
   .game-over-content {
     padding: 1.5rem 1.25rem;
-    border-radius: 16px;
   }
 
   .trophy-icon {
@@ -437,8 +465,8 @@
   max-height: calc(100% - 2rem);
   overflow-y: auto;
   z-index: 1001;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border-radius: var(--bb-radius-lg);
+  box-shadow: var(--bb-shadow);
 }
 
 .quiz-toggle {
@@ -473,14 +501,14 @@
     min-height: 48px;
     padding: 0 1.5rem;
     border: none;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-    color: white;
+    border-radius: var(--bb-radius);
+    background: var(--bb-yellow);
+    color: var(--bb-ink);
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--bb-shadow);
   }
 
   .quiz-toggle[aria-expanded='true'] {
@@ -488,14 +516,14 @@
   }
 
   .quiz-toggle:focus-visible {
-    outline: 3px solid #1f2937;
+    outline: 3px solid var(--bb-focus);
     outline-offset: 3px;
   }
 }
 
 .quiz-instruction {
   margin-top: 1rem;
-  color: #6b7280;
+  color: var(--bb-muted);
   font-size: 0.875rem;
 }
 
@@ -507,12 +535,14 @@
   margin-top: 1rem;
 }
 
+/* Choose New Area: the second choice, outlined */
 .btn-secondary {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--bb-white);
+  box-shadow: inset 0 0 0 2px var(--bb-line);
 }
 
 .btn-secondary:hover {
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+  background: var(--bb-mist);
 }
 
 /* Laptops: a 607 px dialog doesn't fit under 800 px of height (KAN-64) */
@@ -549,10 +579,10 @@
   z-index: 1000;
   margin: 0;
   padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--bb-radius);
+  background: rgba(255, 255, 255, 0.92);
   font-size: 0.75rem;
-  color: #4b5563;
+  color: var(--bb-text);
   pointer-events: none;
 }
 
@@ -564,14 +594,14 @@
   display: inline-block;
   margin: 0 0.125rem 0 0.25rem;
   padding: 0 0.3125rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--bb-field-border);
   border-bottom-width: 2px;
   border-radius: 4px;
-  background: #f9fafb;
+  background: var(--bb-white);
   font-family: inherit;
   font-size: 0.6875rem;
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 700;
+  color: var(--bb-ink);
 }
 
 .keys-hint span:first-child kbd {
@@ -587,7 +617,7 @@
 /* After saving mid-game, the Save Set button becomes a link to the new set (KAN-78) */
 .saved-set-link {
   text-decoration: none;
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background: var(--bb-mist);
+  color: var(--bb-green-dark);
+  box-shadow: inset 0 0 0 2px var(--bb-green);
 }

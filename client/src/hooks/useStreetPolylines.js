@@ -1,13 +1,15 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { MAP_COLORS } from '../utils/mapColors';
 
-// Street colors. Each polyline keeps its own resting weight (areas are drawn thinner).
+// Street colors (KAN-81: ink at rest, yellow for the one in focus, green and red for results).
+// Each polyline keeps its own resting weight (areas are drawn thinner).
 const PAINT = {
-  hover: { color: '#f1ee30ff', opacity: 0.9 },
-  highlight: { color: '#f59e0b', opacity: 1, extraWeight: 4 },
-  correct: { color: '#10B981', opacity: 1 },
-  wrong: { color: '#EF4444', opacity: 1 },
+  hover: { color: MAP_COLORS.hover, opacity: 1, extraWeight: 2 },
+  highlight: { color: MAP_COLORS.highlight, opacity: 1, extraWeight: 4 },
+  correct: { color: MAP_COLORS.correct, opacity: 1, extraWeight: 2 },
+  wrong: { color: MAP_COLORS.wrong, opacity: 1, extraWeight: 2 },
 };
-const BASE_COLOR = '#3B82F6';
+const BASE_COLOR = MAP_COLORS.street;
 const BASE_OPACITY = 0.7;
 // How long the result colors stay before the next round
 const RESULT_MS = 2000;
@@ -195,11 +197,11 @@ export function useStreetPolylines({
             const leafletCoords = polylinePoints.map((point) => [point.lat, point.lng]);
 
             const polyline = window.L.polyline(leafletCoords, {
-              color: '#3B82F6',
+              color: BASE_COLOR,
               weight: street.isEnclosedArea ? 3 : 6,
-              opacity: 0.7,
+              opacity: BASE_OPACITY,
               className: 'clickable-street',
-              fillColor: street.isEnclosedArea ? '#3B82F6' : undefined,
+              fillColor: street.isEnclosedArea ? BASE_COLOR : undefined,
               fillOpacity: street.isEnclosedArea ? 0.1 : undefined,
             }).addTo(map);
 

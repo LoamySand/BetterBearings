@@ -1,21 +1,22 @@
 import { useEffect } from 'react';
 import { quizAreaFor, circleLabel } from '../utils/quizArea';
+import { MAP_COLORS } from '../utils/mapColors';
 import './useQuizCircle.css';
 
 const OK_STYLE = {
-  color: '#4f46e5',
+  color: MAP_COLORS.area,
   weight: 2,
   dashArray: '6 6',
-  fillColor: '#4f46e5',
+  fillColor: MAP_COLORS.area,
   fillOpacity: 0.08,
 };
 // Room above the label's anchor for the label itself
 const LABEL_ROOM = 48;
 const TOO_SMALL_STYLE = {
-  color: '#dc2626',
+  color: MAP_COLORS.areaTooSmall,
   weight: 2,
   dashArray: '6 6',
-  fillColor: '#dc2626',
+  fillColor: MAP_COLORS.areaTooSmall,
   fillOpacity: 0.08,
 };
 
