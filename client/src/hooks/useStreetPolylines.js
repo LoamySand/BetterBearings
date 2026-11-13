@@ -11,6 +11,8 @@ const BASE_COLOR = '#3B82F6';
 const BASE_OPACITY = 0.7;
 // How long the result colors stay before the next round
 const RESULT_MS = 2000;
+// A mouse or trackpad as the main pointer. Phones and tablets without one don't match.
+const HOVER_QUERY = '(hover: hover) and (pointer: fine)';
 
 /**
  * Custom hook to manage street polylines on the map
@@ -174,6 +176,8 @@ export function useStreetPolylines({
         else paint(streetName, highlightedRef.current === streetName ? 'highlight' : 'base');
       };
 
+      const canHover = window.matchMedia(HOVER_QUERY).matches;
+
       let totalPolylinesDrawn = 0;
 
       // Draw all streets
@@ -209,14 +213,19 @@ export function useStreetPolylines({
               handleStreetClick(e, street);
             });
 
-            // Hover effects
-            polyline.on('mouseover', function () {
-              handleStreetHover(street.name, true);
-            });
+            // Hover effects, only where there is a real hover. On a touch screen a tap also fires
+            // mouseover, and paint() moves the path in the DOM (bringToFront). iOS Safari treats a
+            // DOM change during mouseover as a hover tap and drops the click, so the street turned
+            // yellow and the guess never counted.
+            if (canHover) {
+              polyline.on('mouseover', function () {
+                handleStreetHover(street.name, true);
+              });
 
-            polyline.on('mouseout', function () {
-              handleStreetHover(street.name, false);
-            });
+              polyline.on('mouseout', function () {
+                handleStreetHover(street.name, false);
+              });
+            }
 
             // Store polyline references
             if (!polylinesRef.current[street.name]) {
