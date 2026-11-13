@@ -35,6 +35,9 @@ openssl rand -hex 32
 | `DATABASE_URL` | Yes | none | Postgres connection string. The example value matches the container below. Use `127.0.0.1`, not `localhost` (see Troubleshooting). |
 | `CORS_ORIGINS` | Production only | `http://localhost:3000` | Comma-separated allowed origins. The server exits in production without it. |
 | `PORT` | No | `5000` | API port |
+| `RESEND_API_KEY` | Production only | none | Sends password reset emails through Resend. Unset in development: the email, with its link, is logged instead. The server exits in production without it. |
+| `APP_URL` | Production only | `http://localhost:3000` | Base of the link in reset emails, as `https://host` with no trailing slash. The server exits in production without it. |
+| `EMAIL_FROM`, `EMAIL_REPLY_TO` | No | `BetterBearings <noreply@betterbearings.net>`, `contact@betterbearings.net` | Sender and reply address of reset emails |
 
 The client needs no `.env`. In development, Vite proxies `/api` to the server on port 5000.
 
@@ -111,7 +114,7 @@ NODE_ENV=production CORS_ORIGINS=http://localhost:5000 node server/server.js
 
 The server then serves the built app at http://localhost:5000. Stop the Vite dev server first. Use this build for Lighthouse audits; the dev server scores poorly on performance for reasons that don't apply in production.
 
-Production allows 10 login, signup or delete-account attempts per 15 minutes, counted together. Restarting the server resets the count.
+Production allows 10 failed login, signup, password-reset or delete-account attempts per 15 minutes, counted together. Restarting the server resets the count.
 
 ### Lighthouse
 
@@ -153,7 +156,15 @@ Production and staging run the same `deploy/compose.yml`, each from its own dire
 | Production | `/srv/betterbearings/prod` | `betterbearings` | `127.0.0.1:5000` | `main` |
 | Staging | `/srv/betterbearings/staging` | `betterbearings-staging` | `127.0.0.1:5001` | other branches in `ci.yml` |
 
-`.env` is mode 600 and owned by `loamy`. Start from `deploy/.env.example`; each environment needs its own `POSTGRES_PASSWORD`, `JWT_SECRET` and `TUNNEL_TOKEN`.
+`.env` is mode 600 and owned by `loamy`. Start from `deploy/.env.example`; each environment needs its own `POSTGRES_PASSWORD`, `JWT_SECRET`, `TUNNEL_TOKEN` and `APP_URL`, and a `RESEND_API_KEY`. Compose refuses to start without the last two.
+
+### Password reset email
+
+Reset emails go out through [Resend](https://resend.com) from `noreply@betterbearings.net` (free plan: 3,000 a month, 100 a day). The domain is verified in Resend with a DKIM record at `resend._domainkey` and an MX and SPF record on the `send` subdomain, so Cloudflare Email Routing (`contact@`) keeps the root MX and SPF. A `_dmarc` record (`v=DMARC1; p=none`) sits beside them.
+
+A link works once, for 30 minutes, and is stored only as a SHA-256 hash. It carries the token in the URL fragment (`/reset-password#token=...`), so it never reaches the server's request logs. A successful reset signs out every device: the auth check rejects tokens issued before `users.password_changed_at`. One email per address every 2 minutes; `/api/auth/forgot` allows 5 requests per 15 minutes per IP in production.
+
+To check sending on a host: `docker compose logs app | grep 'Password reset email'` shows `sent` or `failed` for each request, without the address.
 
 ### Deploys
 
