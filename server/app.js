@@ -16,6 +16,13 @@ function createApp() {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET must be set');
   }
+  // Password reset links need somewhere to send them and an address to point at (KAN-69)
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY must be set in production');
+    if (!/^https:\/\/[^/]+$/.test(process.env.APP_URL ?? '')) {
+      throw new Error('APP_URL must be set in production, as https://host with no path');
+    }
+  }
   // Proxies in front of Express: 0 locally, 1 behind the Cloudflare Tunnel.
   // Only safe if Express is reachable solely through that proxy; otherwise X-Forwarded-For is spoofable.
   const trustProxy = Number(process.env.TRUST_PROXY ?? 0);
@@ -120,8 +127,17 @@ function createApp() {
     message: tooMany('Too many failed attempts, please try again in 15 minutes.'),
   });
 
+  // Reset emails: every request counts, since the reply is always 200 (KAN-69)
+  const forgotLimiter = rateLimit({
+    ...limiterDefaults,
+    limit: isProd ? 5 : 100,
+    skip: (req) => req.method === 'OPTIONS',
+    message: tooMany('Too many reset requests, please try again in 15 minutes.'),
+  });
+
   app.use('/api/', apiLimiter);
-  app.use(['/api/auth/login', '/api/auth/signup'], authLimiter);
+  app.use(['/api/auth/login', '/api/auth/signup', '/api/auth/reset'], authLimiter);
+  app.use('/api/auth/forgot', forgotLimiter);
   app.use('/api/street-sets', writeLimiter);
   app.delete('/api/auth/me', authLimiter); // password re-check; GET /me stays unthrottled
 
