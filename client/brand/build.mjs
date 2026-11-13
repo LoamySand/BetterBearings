@@ -2,7 +2,7 @@
 // Sources here: mark.js (the marks and colours), og-map.png (from og-render.mjs) and the
 // Overpass font (fonts/, SIL OFL 1.1). See README.md.
 //
-//   node build.mjs              # writes to ../public
+//   node build.mjs              # writes to ../public, and the header icon to ../src/assets
 //   MARK=compass node build.mjs out/
 import { chromium } from 'playwright';
 import fs from 'node:fs';
@@ -35,6 +35,14 @@ for (const s of [16, 32])
   await png(tileSvg({ mark: MARK, size: s, small: true }), s, `favicon-${s}.png`);
 await png(tileSvg({ mark: MARK, size: 48 }), 48, 'favicon-48.png');
 fs.writeFileSync(path.join(out, 'favicon.svg'), tileSvg({ mark: MARK, small: true }) + '\n');
+// The header's copy: AppHeader imports it, so it ships inside the hashed bundle and is cached
+// for a year (L2). Only on a real build, not a trial run into another folder.
+if (!process.argv[2]) {
+  fs.writeFileSync(
+    path.join(here, '../src/assets/app-icon.svg'),
+    tileSvg({ mark: MARK, small: true }) + '\n'
+  );
+}
 // Home screens. iOS rounds corners itself and turns transparency black, so its icon is full-bleed.
 // Maskable keeps the mark inside the central 80% safe zone.
 await png(

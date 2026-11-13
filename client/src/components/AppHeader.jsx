@@ -5,6 +5,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileDropdown from './ProfileDropdown';
 import DeleteAccountModal from './DeleteAccountModal';
+// Vite inlines it (under 4 KB) into the hashed bundle, cached for a year, so the header makes no
+// request for it. public/favicon.svg stays for the browser tab and the manifest (L2).
+import appIcon from '../assets/app-icon.svg';
 import './AppHeader.css';
 
 export default function AppHeader({ onSignIn }) {
@@ -19,7 +22,7 @@ export default function AppHeader({ onSignIn }) {
       <div className="app-header-brand">
         <h1 className="app-title">
           <Link to="/" className="app-title-link">
-            <img src="/favicon.svg" className="app-icon" alt="" width="32" height="32" />
+            <img src={appIcon} className="app-icon" alt="" width="32" height="32" />
             BetterBearings
           </Link>
         </h1>

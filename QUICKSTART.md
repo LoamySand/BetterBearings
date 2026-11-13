@@ -97,9 +97,9 @@ The server checks the database connection before listening. It's ready when it p
 
 Run this after setup or any large change:
 
-1. Play a round logged out (random street mode).
+1. Play a game logged out (Quiz this area).
 2. Sign up for an account. Log out, then log back in with the email in different capitalization.
-3. Create a street set. Keep the radius at 1 to 2 km while testing; 5 km queries are slow.
+3. Create a street set.
 4. Refresh the street-set page; the set should still be there.
 5. Play a round from the saved set and confirm the score updates.
 6. Turn a few streets off, save, and check that the counts on the list page change.
@@ -111,6 +111,8 @@ Run this after setup or any large change:
 npm run build --prefix client
 NODE_ENV=production CORS_ORIGINS=http://localhost:5000 node server/server.js
 ```
+
+Production mode also needs `RESEND_API_KEY` and an `https://` `APP_URL` in `server/.env`, or the server exits at startup. Locally, placeholders do: `RESEND_API_KEY=re_local_dummy` and `APP_URL=https://localhost:5000`. A reset request then fails at Resend and logs the error, while the dialog still shows the usual reply.
 
 The server then serves the built app at http://localhost:5000. Stop the Vite dev server first. Use this build for Lighthouse audits; the dev server scores poorly on performance for reasons that don't apply in production.
 
@@ -322,32 +324,15 @@ curl -sI https://tiles.betterbearings.net/nm/15/6676/12969.mvt | grep -iE '^HTTP
 **`docker: command not found`**
 - On Fedora use `podman`, or `sudo dnf install podman-docker` for a `docker` alias.
 
-**Overpass errors (502, 504, 429) or timeouts**
-- The public Overpass servers are volunteer-run and overload regularly. The app tries each server in `client/src/utils/overpassFetcher.js` before failing.
-- Check load: `curl -s https://overpass-api.de/api/status`. `0 slots available` means wait.
-- Reduce the radius.
+**"Street data isn't ready" (503 from `/api/streets`)**
+- `osm.streets` doesn't exist in that database: the street import hasn't run there, or a backup was just restored (dumps leave street data out). On the ProDesk, run the rebuild (see Street data rebuild).
 
-**Stale street data**
-- Responses are cached in the browser. In DevTools, open Application (Storage in Firefox), then Local Storage, and delete keys starting with `overpass-response`.
+**"No street data here"**
+- The circle is outside the imported extract, which is New Mexico only.
+
+**"No streets for this level here"**
+- The circle has streets, but fewer than 2 at this level. Pick a harder level or zoom out.
 
 ## Project layout
 
-```
-client/src/
-├── components/Game.jsx             main game
-├── components/QuizAreaModule.jsx   area picker for the game
-├── pages/StreetSets.jsx            saved street sets
-├── pages/StreetSetDetail.jsx       one street set
-├── contexts/AuthContext.js         login state
-├── hooks/useOverpassStreets.js     loads streets for an area
-└── utils/                          Overpass query, fetch, street processing
-server/
-├── app.js                          Express app: security middleware, routes, error handling
-├── server.js                       entry point: env checks, database check, listen
-├── routes/                         auth, street sets
-├── middleware/auth.js              JWT check shared by both route files
-└── db/
-    ├── pool.js                     shared pg Pool and transaction helper
-    ├── streetSets.js               street-set SQL and row-to-API mapping
-    └── migrations/                 versioned schema (node-pg-migrate, plain SQL)
-```
+See [Project layout](README.md#project-layout) in the README.
