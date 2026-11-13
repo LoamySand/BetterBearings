@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { MAP_COLORS } from '../utils/mapColors';
 
 // Street colors (KAN-81: blue at rest, yellow for the one in focus, green and red for results).
@@ -43,6 +43,21 @@ export function useStreetPolylines({
   const highlightedRef = useRef(null);
   // Set while drawStreets has run: resolves a guess for clicks, Enter and Skip alike
   const resolveRef = useRef(null);
+  // The game's callbacks, refreshed after every render. The drawing effect reads them here
+  // instead of listing them as dependencies: a callback that changed identity used to re-run
+  // the effect, which redrew every street mid-round and wiped a correct guess's green (KAN-83).
+  const gameRef = useRef(null);
+  useLayoutEffect(() => {
+    gameRef.current = {
+      setScore,
+      setFeedback,
+      setGameActive,
+      setRound,
+      startNewRound,
+      endGame,
+      totalRounds,
+    };
+  });
 
   // Paints every segment of one street. 'base' restores the resting style.
   const paint = useCallback((name, kind) => {
@@ -118,6 +133,7 @@ export function useStreetPolylines({
         if (gameOverRef.current || !currentStreetRef.current || !gameActiveRef.current) {
           return;
         }
+        const game = gameRef.current;
         const answer = currentStreetRef.current;
         const isCorrect = !!street && street.name.toLowerCase() === answer.name.toLowerCase();
 
@@ -128,27 +144,29 @@ export function useStreetPolylines({
 
         if (isCorrect) {
           paint(street.name, 'correct');
-          setScore((prevScore) => prevScore + 10);
-          setFeedback('🎉 Correct! +10 points');
+          game.setScore((prevScore) => prevScore + 10);
+          game.setFeedback('🎉 Correct! +10 points');
         } else {
           if (street) paint(street.name, 'wrong');
           paint(answer.name, 'correct');
           revealOnMap(answer.name);
-          setFeedback(street ? `❌ Wrong! That was ${street.name}.` : '⏭️ Skipped.');
+          game.setFeedback(street ? `❌ Wrong! That was ${street.name}.` : '⏭️ Skipped.');
         }
 
         // No guesses while the result shows
-        setGameActive(false);
+        game.setGameActive(false);
 
         setTimeout(() => {
           if (street) paint(street.name, 'base');
           paint(answer.name, 'base');
 
-          if (roundRef.current < totalRounds) {
-            setRound((prevRound) => prevRound + 1);
-            startNewRound();
+          // The latest callbacks, not the ones from when the guess was made
+          const latest = gameRef.current;
+          if (roundRef.current < latest.totalRounds) {
+            latest.setRound((prevRound) => prevRound + 1);
+            latest.startNewRound();
           } else {
-            endGame();
+            latest.endGame();
           }
         }, RESULT_MS);
       };
@@ -245,11 +263,11 @@ export function useStreetPolylines({
       console.log(`   Total polylines drawn: ${totalPolylinesDrawn}`);
 
       // Start the first round after drawing streets (only once)
-      if (startNewRound && !firstRoundStartedRef.current) {
+      if (gameRef.current?.startNewRound && !firstRoundStartedRef.current) {
         firstRoundStartedRef.current = true;
         setTimeout(() => {
           console.log('🎮 Starting first round...');
-          startNewRound();
+          gameRef.current.startNewRound();
         }, 100);
       }
     }
@@ -260,17 +278,10 @@ export function useStreetPolylines({
     quizCenter,
     isMapReady,
     mapInstanceRef,
-    setScore,
-    setFeedback,
-    setGameActive,
-    setRound,
-    startNewRound,
-    endGame,
     gameActiveRef,
     currentStreetRef,
     gameOverRef,
     roundRef,
-    totalRounds,
     paint,
   ]);
 

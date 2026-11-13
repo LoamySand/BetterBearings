@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
  * Custom hook to manage game state and logic
@@ -11,6 +11,14 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
   const [gameActive, setGameActive] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [finalScore, setFinalScore] = useState(0);
+
+  // endGame reads the score from here, so it stays the same function all game. Reading the
+  // state made it a new function on every point, which redrew the map mid-round and let the
+  // last round's timer save the score from before its own point (KAN-83).
+  const scoreRef = useRef(0);
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
   // The game's questions, already shuffled and free of repeats (utils/gamePlan.js).
   // Rounds ask them in order.
@@ -40,9 +48,9 @@ export function useGameState(totalRounds = 5, initialMode = 'selecting') {
 
   const endGame = useCallback(() => {
     setGameMode('gameOver');
-    setFinalScore(score);
+    setFinalScore(scoreRef.current);
     setGameActive(false);
-  }, [score]);
+  }, []);
 
   const resetGame = useCallback(() => {
     setScore(0);
